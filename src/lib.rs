@@ -27,11 +27,13 @@ mod tests {
     }
 
     #[test]
-    fn test_fixedstringfuzzer() {
+    fn fuzzer_fixedstrings() {
         let mut fsf = fixed::FixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
         let mut buf:Vec<u8> = Vec::new();
         for i in 0..16 {
             fsf.append_fuzzed(i, &mut buf)
         }
+        println!("TEST:FuzzerFixedStrings:{:?}", buf);
+        println!("TEST:FuzzerFixedStrings:{:?}", String::from_utf8(buf));
     }
 }
