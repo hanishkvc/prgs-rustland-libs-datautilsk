@@ -14,11 +14,12 @@ trait Fuzz {
 }
 
 mod fixed;
+mod random;
 
 
 #[cfg(test)]
 mod tests {
-    use crate::{fixed, Fuzz};
+    use crate::{fixed, random, Fuzz};
 
     #[test]
     fn it_works() {
@@ -35,5 +36,18 @@ mod tests {
         }
         println!("TEST:FuzzerFixedStrings:{:?}", buf);
         println!("TEST:FuzzerFixedStrings:{:?}", String::from_utf8(buf));
+    }
+
+    #[test]
+    fn fuzzer_randomrandom() {
+        const MINLEN: usize = 3;
+        const MAXLEN: usize = 5;
+        let mut rrf = random::RandomRandomFuzzer::new(MINLEN, MAXLEN);
+        let mut buf:Vec<u8> = Vec::new();
+        for i in 0..16 {
+            rrf.append_fuzzed(i, &mut buf);
+            println!("TEST:FuzzerRandomRandom:{}:BufLen:{}", i, buf.len());
+        }
+        println!("TEST:FuzzerRandomRandom:{:?}", buf);
     }
 }
