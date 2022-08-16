@@ -50,4 +50,35 @@ mod tests {
         }
         println!("TEST:FuzzerRandomRandom:{:?}", buf);
     }
+
+    fn gen_randbytes(size: usize) -> Vec<u8> {
+        let mut randbytes = Vec::new();
+        for i in 0..size {
+            randbytes.push(rand::random());
+        }
+        randbytes
+    }
+
+    #[test]
+    fn fuzzer_randomfixed() {
+        const MINLEN: usize = 3;
+        const MAXLEN: usize = 10;
+        // RandomFixedFuzzer - binary
+        let mut rfb = random::RandomFixedFuzzer::new(MINLEN, MAXLEN, gen_randbytes(128));
+        let mut buf:Vec<u8> = Vec::new();
+        for i in 0..16 {
+            rfb.append_fuzzed(i, &mut buf);
+            println!("TEST:FuzzerRandomFixed<Binary>:{}:BufLen:{}", i, buf.len());
+        }
+        println!("TEST:FuzzerRandomFixed<Binary>:{:?}", buf);
+        // RandomFixedFuzzer - Printable chars
+        buf.clear();
+        let mut rfp = random::RandomFixedFuzzer::new_printables(MINLEN, MAXLEN);
+        for i in 0..16 {
+            rfp.append_fuzzed(i, &mut buf);
+            println!("TEST:FuzzerRandomFixed<Printables>:{}:BufLen:{}", i, buf.len());
+        }
+        println!("TEST:FuzzerRandomFixed<Printables>:{:?}", String::from_utf8(buf));
+    }
+
 }
