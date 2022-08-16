@@ -11,6 +11,8 @@
 trait Fuzz {
     /// Generate the next fuzzed output and append to the passed buf
     fn append_fuzzed(&mut self, step: usize, buf: &mut Vec<u8>);
+    /// Generate the next fuzzed output and append to the passed buf
+    fn append_fuzzed_immut(&self, step: usize, buf: &mut Vec<u8>);
 }
 
 mod fixed;
