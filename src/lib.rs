@@ -129,10 +129,15 @@ mod tests {
         let mut fc1 = FuzzChain::new();
         let mut rfsf = RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
         let mut rspacesf1 = RandomFixedStringsFuzzer::new(vec![" ".to_string(), "  ".to_string()]);
+        let mut rspacesf2 = RandomFixedFuzzer::new(1, 5, vec![' ' as u8]);
         let mut rfpf = RandomFixedFuzzer::new_printables(3, 10);
+        let mut rfpf2 = RandomFixedFuzzer::new_printables(3, 10);
         fc1.append(&mut rfsf);
         fc1.append(&mut rspacesf1);
         fc1.append(&mut rfpf);
+        fc1.append(&mut rspacesf2);
+        //fc1.append(&mut rfpf); // Cant do mutable borrow more than once
+        fc1.append(&mut rfpf2);
         for i in 0..8 {
             let fuzzed = fc1.get();
             println!("TEST:FuzzChainT1:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
