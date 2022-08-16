@@ -1,5 +1,5 @@
 //!
-//! FuzzerK - A fuzzing library
+//! FuzzerK - A fuzzing helper library
 //!
 //! HanishKVC, 2022
 //!
@@ -10,14 +10,22 @@
 ///
 trait Fuzz {
     /// Generate the next fuzzed output and append to the passed buf
+    /// The fuzzer can update itself if reqd
     fn append_fuzzed(&mut self, step: usize, buf: &mut Vec<u8>);
+
     /// Generate the next fuzzed output and append to the passed buf
+    /// The fuzzer cant/doesnt update itself in this case.
     fn append_fuzzed_immut(&self, step: usize, buf: &mut Vec<u8>);
 }
 
 mod fixed;
 mod random;
 
+
+///
+/// Allow a chain of muttable fuzzers (whose internal contexts can be modified) to be created,
+/// so that byte buffer with the reqd pattern of data can be generated.
+///
 struct FuzzChain<'a> {
     chain: Vec<&'a mut dyn Fuzz>,
     step: usize,
@@ -32,10 +40,13 @@ impl<'a> FuzzChain<'a> {
         }
     }
 
+    /// Chain a muttable fuzzer, as part of setting up to achieve the reqd data pattern
     fn append(&mut self, fuzzer: &'a mut dyn Fuzz) {
         self.chain.push(fuzzer);
     }
 
+    /// Get a byte buffer, whose data matches the pattern specified by the
+    /// chain of Fuzzers in this FuzzChain instance
     fn get(&mut self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         /*
@@ -52,6 +63,11 @@ impl<'a> FuzzChain<'a> {
 
 }
 
+
+///
+/// Allow a chain of immuttable fuzzers (whose internal contexts cant change) to be created,
+/// so that byte buffer with the reqd pattern of data can be generated.
+///
 struct FuzzChainImmuts<'a> {
     chain: Vec<&'a dyn Fuzz>,
     step: usize,
@@ -66,10 +82,13 @@ impl<'a> FuzzChainImmuts<'a> {
         }
     }
 
+    /// Chain a immuttable fuzzer, as part of setting up to achieve the reqd data pattern
     fn append(&mut self, fuzzer: &'a dyn Fuzz) {
         self.chain.push(fuzzer);
     }
 
+    /// Get a byte buffer, whose data matches the pattern specified by the
+    /// chain of Fuzzers in this FuzzChainImmuts instance
     fn get(&mut self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         for i in 0..self.chain.len() {
@@ -187,7 +206,7 @@ mod tests {
         fc1.append(&rspacesf1);
         fc1.append(&rfpf);
         fc1.append(&rspacesf2);
-        fc1.append(&rfpf);
+        fc1.append(&rfpf); // The same fuzzer instance can be chained multiple times, if data pattern reqd dictates it.
         for i in 0..8 {
             let fuzzed = fc1.get();
             println!("TEST:FuzzChainImmutsT2:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
