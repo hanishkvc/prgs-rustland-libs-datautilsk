@@ -29,13 +29,22 @@ mod tests {
 
     #[test]
     fn fuzzer_fixedstrings() {
-        let mut fsf = fixed::FixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        // LoopFixedStringsFuzzer
+        let mut fsf = fixed::LoopFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
         let mut buf:Vec<u8> = Vec::new();
         for i in 0..16 {
             fsf.append_fuzzed(i, &mut buf)
         }
-        println!("TEST:FuzzerFixedStrings:{:?}", buf);
-        println!("TEST:FuzzerFixedStrings:{:?}", String::from_utf8(buf));
+        println!("TEST:FuzzerLoopFixedStrings:{:?}", buf);
+        println!("TEST:FuzzerLoopFixedStrings:{:?}", String::from_utf8(buf));
+        // RandomFixedStringsFuzzer
+        let mut fsf = fixed::RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        let mut buf:Vec<u8> = Vec::new();
+        for i in 0..16 {
+            fsf.append_fuzzed(i, &mut buf)
+        }
+        println!("TEST:FuzzerRandomFixedStrings:{:?}", buf);
+        println!("TEST:FuzzerRandomFixedStrings:{:?}", String::from_utf8(buf));
     }
 
     #[test]
