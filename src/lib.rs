@@ -128,8 +128,10 @@ mod tests {
     fn fuzzchain_t1() {
         let mut fc1 = FuzzChain::new();
         let mut rfsf = RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        let mut rspacesf1 = RandomFixedStringsFuzzer::new(vec![" ".to_string(), "  ".to_string()]);
         let mut rfpf = RandomFixedFuzzer::new_printables(3, 10);
         fc1.append(&mut rfsf);
+        fc1.append(&mut rspacesf1);
         fc1.append(&mut rfpf);
         for i in 0..8 {
             let fuzzed = fc1.get();
