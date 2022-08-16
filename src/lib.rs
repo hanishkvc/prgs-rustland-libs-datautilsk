@@ -16,10 +16,44 @@ trait Fuzz {
 mod fixed;
 mod random;
 
+struct FuzzChain<'a> {
+    chain: Vec<&'a mut dyn Fuzz>,
+    step: usize,
+}
+
+impl<'a> FuzzChain<'a> {
+    pub fn new() -> FuzzChain<'a> {
+        FuzzChain {
+            chain: Vec::new(),
+            step: 0,
+        }
+    }
+
+    fn append(&mut self, fuzzer: &'a mut dyn Fuzz) {
+        self.chain.push(fuzzer);
+    }
+
+    fn get(&mut self) -> Vec<u8> {
+        let mut buf: Vec<u8> = Vec::new();
+        /*
+        for fuzzer in &mut self.chain {
+            fuzzer.append_fuzzed(self.step, &mut buf)
+        }
+         */
+        for i in 0..self.chain.len() {
+            self.chain[i].append_fuzzed(self.step, &mut buf)
+        }
+        self.step += 1;
+        buf
+    }
+
+}
+
+
 
 #[cfg(test)]
 mod tests {
-    use crate::{fixed, random, Fuzz};
+    use crate::{fixed::{self, RandomFixedStringsFuzzer}, random::{self, RandomFixedFuzzer}, Fuzz, FuzzChain};
 
     #[test]
     fn it_works() {
@@ -88,6 +122,19 @@ mod tests {
             println!("TEST:FuzzerRandomFixed<Printables>:{}:BufLen:{}", i, buf.len());
         }
         println!("TEST:FuzzerRandomFixed<Printables>:{:?}", String::from_utf8(buf));
+    }
+
+    #[test]
+    fn fuzzchain_t1() {
+        let mut fc1 = FuzzChain::new();
+        let mut rfsf = RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        let mut rfpf = RandomFixedFuzzer::new_printables(3, 10);
+        fc1.append(&mut rfsf);
+        fc1.append(&mut rfpf);
+        for i in 0..8 {
+            let fuzzed = fc1.get();
+            println!("TEST:FuzzChainT1:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
+        }
     }
 
 }
