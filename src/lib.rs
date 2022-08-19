@@ -72,7 +72,7 @@ impl<'a> FuzzChain<'a> {
 /// Allow a chain of immuttable fuzzers (whose internal contexts cant change) to be created,
 /// so that byte buffer with the reqd pattern of data can be generated.
 ///
-struct FuzzChainImmuts {
+pub struct FuzzChainImmuts {
     chain: Vec<Rc<dyn Fuzz>>,
     step: usize,
 }
