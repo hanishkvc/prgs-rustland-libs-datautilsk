@@ -4,6 +4,7 @@
 //! HanishKVC, 2022
 //!
 
+
 ///
 /// The trait that needs to be implemented by the different fuzzers
 ///
@@ -19,8 +20,7 @@ trait Fuzz {
 
 mod fixed;
 mod random;
-
-mod cfgfiles;
+pub mod cfgfiles;
 
 
 ///
