@@ -4,9 +4,6 @@
 //! HanishKVC, 2022
 //!
 
-use std::collections::VecDeque;
-
-
 ///
 /// The trait that needs to be implemented by the different fuzzers
 ///
@@ -20,12 +17,10 @@ trait Fuzz {
     fn append_fuzzed_immut(&self, step: usize, buf: &mut Vec<u8>);
 }
 
-trait FromStringVec {
-    fn from_sv(sv: &mut VecDeque<String>) -> Self;
-}
-
 mod fixed;
 mod random;
+
+mod cfgfiles;
 
 
 ///
