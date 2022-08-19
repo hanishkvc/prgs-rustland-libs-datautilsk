@@ -4,6 +4,8 @@
 //! HanishKVC, 2022
 //!
 
+use std::rc::Rc;
+
 
 ///
 /// The trait that needs to be implemented by the different fuzzers
@@ -70,14 +72,14 @@ impl<'a> FuzzChain<'a> {
 /// Allow a chain of immuttable fuzzers (whose internal contexts cant change) to be created,
 /// so that byte buffer with the reqd pattern of data can be generated.
 ///
-struct FuzzChainImmuts<'a> {
-    chain: Vec<&'a dyn Fuzz>,
+struct FuzzChainImmuts {
+    chain: Vec<Rc<dyn Fuzz>>,
     step: usize,
 }
 
-impl<'a> FuzzChainImmuts<'a> {
+impl FuzzChainImmuts {
 
-    pub fn new() -> FuzzChainImmuts<'a> {
+    pub fn new() -> FuzzChainImmuts {
         FuzzChainImmuts {
             chain: Vec::new(),
             step: 0,
@@ -85,7 +87,7 @@ impl<'a> FuzzChainImmuts<'a> {
     }
 
     /// Chain a immuttable fuzzer, as part of setting up to achieve the reqd data pattern
-    fn append(&mut self, fuzzer: &'a dyn Fuzz) {
+    fn append(&mut self, fuzzer: Rc<dyn Fuzz>) {
         self.chain.push(fuzzer);
     }
 
@@ -107,6 +109,7 @@ impl<'a> FuzzChainImmuts<'a> {
 #[cfg(test)]
 mod tests {
     use crate::{fixed::{self, RandomFixedStringsFuzzer}, random::{self, RandomFixedFuzzer}, Fuzz, FuzzChain, FuzzChainImmuts};
+    use std::rc::Rc;
 
     #[test]
     fn it_works() {
@@ -201,14 +204,18 @@ mod tests {
     fn fuzzchainimmuts_t2() {
         let mut fc1 = FuzzChainImmuts::new();
         let rfsf = RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        let rfsf = Rc::new(rfsf);
         let rspacesf1 = RandomFixedStringsFuzzer::new(vec![" ".to_string(), "  ".to_string()]);
+        let rspacesf1 = Rc::new(rspacesf1);
         let rspacesf2 = RandomFixedFuzzer::new(1, 5, vec![' ' as u8]);
+        let rspacesf2 = Rc::new(rspacesf2);
         let rfpf = RandomFixedFuzzer::new_printables(3, 10);
-        fc1.append(&rfsf);
-        fc1.append(&rspacesf1);
-        fc1.append(&rfpf);
-        fc1.append(&rspacesf2);
-        fc1.append(&rfpf); // The same fuzzer instance can be chained multiple times, if data pattern reqd dictates it.
+        let rfpf = Rc::new(rfpf);
+        fc1.append(rfsf);
+        fc1.append(rspacesf1);
+        fc1.append(rfpf.clone());
+        fc1.append(rspacesf2);
+        fc1.append(rfpf); // The same fuzzer instance can be chained multiple times, if data pattern reqd dictates it.
         for i in 0..8 {
             let fuzzed = fc1.get();
             println!("TEST:FuzzChainImmutsT2:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
