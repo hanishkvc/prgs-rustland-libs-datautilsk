@@ -21,6 +21,7 @@ trait Fuzz {
 mod fixed;
 mod random;
 pub mod cfgfiles;
+mod rtm;
 
 
 ///
