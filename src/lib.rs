@@ -18,6 +18,10 @@ trait Fuzz {
     fn append_fuzzed_immut(&self, step: usize, buf: &mut Vec<u8>);
 }
 
+trait FromStringVec<T> {
+    fn from_sv(vs: &mut Vec<String>) -> T;
+}
+
 mod fixed;
 mod random;
 
