@@ -74,7 +74,6 @@ impl<'a> FuzzChain<'a> {
 ///
 pub struct FuzzChainImmuts {
     chain: Vec<Rc<dyn Fuzz>>,
-    step: usize,
 }
 
 impl FuzzChainImmuts {
@@ -82,7 +81,6 @@ impl FuzzChainImmuts {
     pub fn new() -> FuzzChainImmuts {
         FuzzChainImmuts {
             chain: Vec::new(),
-            step: 0,
         }
     }
 
@@ -93,12 +91,11 @@ impl FuzzChainImmuts {
 
     /// Get a byte buffer, whose data matches the pattern specified by the
     /// chain of Fuzzers in this FuzzChainImmuts instance
-    fn get(&mut self) -> Vec<u8> {
+    pub fn get(&self, step: usize) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         for i in 0..self.chain.len() {
-            self.chain[i].append_fuzzed_immut(self.step, &mut buf)
+            self.chain[i].append_fuzzed_immut(step, &mut buf)
         }
-        self.step += 1;
         buf
     }
 
@@ -217,7 +214,7 @@ mod tests {
         fc1.append(rspacesf2);
         fc1.append(rfpf); // The same fuzzer instance can be chained multiple times, if data pattern reqd dictates it.
         for i in 0..8 {
-            let fuzzed = fc1.get();
+            let fuzzed = fc1.get(i);
             println!("TEST:FuzzChainImmutsT2:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
         }
     }
