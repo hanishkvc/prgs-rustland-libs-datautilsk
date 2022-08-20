@@ -24,6 +24,7 @@ mod fixed;
 mod random;
 pub mod cfgfiles;
 pub mod rtm;
+mod datautils;
 
 
 ///
