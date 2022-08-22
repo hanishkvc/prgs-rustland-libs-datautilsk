@@ -32,11 +32,13 @@ pub mod iob;
 /// Allow a chain of muttable fuzzers (whose internal contexts can be modified) to be created,
 /// so that byte buffer with the reqd pattern of data can be generated.
 ///
+#[allow(dead_code)]
 struct FuzzChain<'a> {
     chain: Vec<&'a mut dyn Fuzz>,
     step: usize,
 }
 
+#[allow(dead_code)]
 impl<'a> FuzzChain<'a> {
 
     pub fn new() -> FuzzChain<'a> {
