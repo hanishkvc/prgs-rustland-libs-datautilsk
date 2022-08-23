@@ -41,6 +41,32 @@ enum Op {
     IfLt(String, String, String, String),
 }
 
+impl Op {
+
+    fn run(&self, ctxt: &mut Context) {
+        match self {
+            Self::None => (),
+            Self::LetStr(vid, vval ) => {
+                ctxt.strs.insert(vid.to_string(), vval.to_string());
+            },
+            Self::LetInt(vid, vval) => {
+                ctxt.ints.insert(vid.to_string(), *vval);
+            },
+            Self::Inc(vid) => {
+                let mut val = *ctxt.ints.get(vid).unwrap();
+                val += 1;
+                ctxt.ints.insert(vid.to_string(), val);
+            }
+            Self::Dec(vid) => {
+                let mut val = *ctxt.ints.get(vid).unwrap();
+                val -= 1;
+                ctxt.ints.insert(vid.to_string(), val);
+            }
+        }
+    }
+
+}
+
 
 struct VM {
     ctxt: Context,
