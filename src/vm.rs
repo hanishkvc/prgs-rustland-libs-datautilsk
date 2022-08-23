@@ -6,6 +6,8 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::thread;
+use std::time::Duration;
 
 use loggerk::log_e;
 use crate::iob::IOBridge;
@@ -45,6 +47,7 @@ enum Op {
     IobFlush(String),
     IobClose(String),
     IfLt(String, String, String, String),
+    SleepMSec(u64),
 }
 
 impl Op {
@@ -105,6 +108,9 @@ impl Op {
                     log_e(&format!("ERRR:FuzzerK:VM:Op:IobClose:{}:{}", ioid, gotr.unwrap_err()));
                 }
                 ctxt.iobs.remove(ioid);
+            }
+            Self::SleepMSec(msec) => {
+                thread::sleep(Duration::from_millis(*msec));
             }
             _ => todo!(),
         }
