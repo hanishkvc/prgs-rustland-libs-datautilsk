@@ -64,7 +64,7 @@ impl Op {
 
     fn compile(opplus: &str) -> Result<Op, String> {
         let msgtag = "FuzzerK:VM:Op:Compile";
-        let (sop, sargs) = opplus.split_once(' ').expect(&format!("ERRR:{}:{}", msgtag, opplus));
+        let (sop, sargs) = opplus.split_once(' ').expect(&format!("ERRR:{}:ExtractingOp+:{}", msgtag, opplus));
         let sargs = sargs.trim();
         match sop {
             "none" => {
@@ -255,11 +255,14 @@ impl VM {
     }
 
     pub fn compile(&mut self, ops: Vec<String>) {
+        let mut linenum = -1;
         for sop in ops {
+            linenum += 1;
             let sop = sop.trim();
-            if sop.starts_with("#") {
+            if sop.starts_with("#") || (sop.len() == 0) {
                 continue;
             }
+            log_d(&format!("DBUG:FuzzerK:VM:Compile:Op:{}:{}", linenum, sop));
             if sop.starts_with("!") {
                 self.compile_directive(sop);
                 continue;
