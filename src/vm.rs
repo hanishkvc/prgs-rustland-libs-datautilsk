@@ -129,7 +129,23 @@ impl Op {
                 ctxt.bufs.insert(bufid.to_string(), gotfuzz);
                 ctxt.stepu += 1;
             }
-            _ => todo!(),
+            Self::IfLt(sval, vid, sop , oparg) => {
+                let chkval = isize::from_str_radix(sval, 10).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:ChkVal:{}:Conversion", sval));
+                let curval = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:Var:{}", vid));
+                let mut opdo = false;
+                if chkval < curval {
+                    opdo = true;
+                }
+                if opdo {
+                    if sop == "goto" {
+                        // Translating the label here at runtime, rather than during compile time, allows goto to refer to label
+                        // that might not yet have been defined at the point where goto or rather the IfLt is encountered.
+                        // Especially when only a single pass parsing of the program is done.
+                        ctxt.iptr = *ctxt.lbls.get(oparg).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:GoTo:Label:{}", oparg));
+                        ctxt.iptrupdate = false;
+                    }
+                }
+            }
         }
     }
 
