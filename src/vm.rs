@@ -82,6 +82,12 @@ impl Op {
             "dec" => {
                 return Ok(Op::Dec(sargs.to_string()));
             }
+            "iobflush" => {
+                return Ok(Op::IobFlush(sargs.to_string()));
+            }
+            "iobclose" => {
+                return Ok(Op::IobClose(sargs.to_string()));
+            }
             _ => todo!()
         }
     }
