@@ -26,6 +26,7 @@ pub mod cfgfiles;
 pub mod rtm;
 mod datautils;
 pub mod iob;
+pub mod vm;
 
 
 ///
