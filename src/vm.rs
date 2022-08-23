@@ -29,27 +29,27 @@ impl Context {
 }
 
 
-enum Op<'a> {
+enum Op {
     None,
-    LetStr(&'a mut Context, String, String),
-    LetInt(&'a mut Context, String, isize),
-    Inc(&'a mut Context, String),
-    Dec(&'a mut Context, String),
-    IobNew(&'a mut Context, String, String),
-    IobWrite(&'a mut Context, String),
-    IobFlush(&'a mut Context, String),
-    IfLt(&'a mut Context, String, String, String, String),
+    LetStr(String, String),
+    LetInt(String, isize),
+    Inc(String),
+    Dec(String),
+    IobNew(String, String),
+    IobWrite(String),
+    IobFlush(String),
+    IfLt(String, String, String, String),
 }
 
 
-struct VM<'a> {
+struct VM {
     ctxt: Context,
-    ops: Vec<Op<'a>>,
+    ops: Vec<Op>,
 }
 
-impl<'a> VM<'a> {
+impl VM {
 
-    fn new() -> VM<'a> {
+    fn new() -> VM {
         VM {
             ctxt: Context::new(),
             ops: Vec::new(),
@@ -64,7 +64,7 @@ impl<'a> VM<'a> {
         self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
     }
 
-    pub fn compile(ops: Vec<String>) -> VM<'a> {
+    pub fn compile(ops: Vec<String>) -> VM {
         let vm = VM::new();
         for sop in ops {
             let sop = sop.trim();
@@ -75,7 +75,7 @@ impl<'a> VM<'a> {
         vm
     }
 
-    pub fn load_prg(prgfile: String) -> VM<'a> {
+    pub fn load_prg(prgfile: String) -> VM {
         let mut ops = Vec::<String>::new();
         let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
