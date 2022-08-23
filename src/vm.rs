@@ -97,14 +97,16 @@ impl Op {
                 }
                 let ioid = args[0].to_string();
                 let ioaddr = args[1].to_string();
-                let mut sioargs = "";
+                let mut sioargs = String::new();
                 if args.len() == 3 {
-                    sioargs = args[2];
+                    sioargs = args[2].to_string();
                 }
                 let mut ioargs = HashMap::new();
                 let lioargs = sioargs.split(" ").collect::<Vec<&str>>();
-                log_d(&format!("DBUG:{}:lioargs:[{:?}]", msgtag, lioargs));
                 for sioarg in lioargs {
+                    if sioarg.len() == 0 {
+                        continue;
+                    }
                     let (k, v) = sioarg.split_once("=").expect(&format!("ERRR:{}:IobNew:IoArgs:{}", msgtag, sioargs));
                     ioargs.insert(k.to_string(), v.to_string());
                 }
