@@ -23,6 +23,8 @@ struct Context {
     bufs: HashMap<String, Vec<u8>>,
     stepu: usize,
     fcrtm: RunTimeManager,
+    iptr: usize,
+    iptrupdate: bool,
 }
 
 impl Context {
@@ -35,11 +37,14 @@ impl Context {
             bufs: HashMap::new(),
             stepu: 0,
             fcrtm: RunTimeManager::new(),
+            iptr: 0,
+            iptrupdate: true,
         }
     }
 }
 
 
+#[derive(Debug)]
 enum Op {
     None,
     LetStr(String, String),
@@ -185,6 +190,18 @@ impl VM {
 
     pub fn load_fcrtm(&mut self, cfgfc: &str) {
         cfgfiles::parse_file(cfgfc, &mut self.ctxt.fcrtm);
+    }
+
+    pub fn run(&mut self) {
+        loop {
+            let theop = &self.ops[self.ctxt.iptr];
+            log_d(&format!("INFO:FuzzerK:VM:Op:{}:{:?}", self.ctxt.iptr, theop));
+            self.ctxt.iptrupdate = true;
+            theop.run(&mut self.ctxt);
+            if self.ctxt.iptrupdate {
+                self.ctxt.iptr += 1;
+            }
+        }
     }
 
 }
