@@ -286,12 +286,14 @@ impl VM {
 
     pub fn predefined_prg(&mut self, fc: &str, loopcnt: usize) {
         let mut runcmds = Vec::<String>::new();
-        runcmds.push("iob new".to_string());
-        runcmds.push(format!("fc {}", fc));
-        runcmds.push("iob write".to_string());
-        runcmds.push("iob flush".to_string());
-        runcmds.push("loop inc".to_string());
-        runcmds.push(format!("loop iflt {} abspos 1", loopcnt));
+        runcmds.push("letint loopcnt 0".to_string());
+        runcmds.push("!label freshstart".to_string());
+        runcmds.push(format!("iobnew srvX {} {}", ioaddr, ioargs));
+        runcmds.push(format!("fcget {} fuzzgot", fc));
+        runcmds.push("iobwrite srvX fuzzgot".to_string());
+        runcmds.push("iobflush srvX".to_string());
+        runcmds.push("inc loopcnt".to_string());
+        runcmds.push(format!("iflt {} loopcnt goto freshstart", loopcnt));
         self.compile(runcmds);
     }
 
