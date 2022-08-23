@@ -57,12 +57,12 @@ impl Op {
                 ctxt.ints.insert(vid.to_string(), *vval);
             },
             Self::Inc(vid) => {
-                let mut val = *ctxt.ints.get(vid).unwrap();
+                let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Inc:{}", vid));
                 val += 1;
                 ctxt.ints.insert(vid.to_string(), val);
             }
             Self::Dec(vid) => {
-                let mut val = *ctxt.ints.get(vid).unwrap();
+                let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Dec:{}", vid));
                 val -= 1;
                 ctxt.ints.insert(vid.to_string(), val);
             }
@@ -82,11 +82,11 @@ impl Op {
                 ctxt.iobs.insert(ioid.to_string(), zenio);
             }
             Self::IobWrite(ioid, bufid) => {
-                let buf = ctxt.bufs.get(bufid).unwrap();
-                let zenio = ctxt.iobs.get_mut(ioid).unwrap();
+                let buf = ctxt.bufs.get(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:IobWrite:FromBuf:{}", bufid));
+                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}", ioid));
                 let gotr = zenio.write(buf);
                 if gotr.is_err() {
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}:{}:{}", ioid, bufid, gotr.unwrap_err()));
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}:FromBuf:{}:{}", ioid, bufid, gotr.unwrap_err()));
                 }
             }
             Self::IobFlush(ioid) => {
