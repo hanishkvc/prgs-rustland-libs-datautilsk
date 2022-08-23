@@ -62,8 +62,28 @@ enum Op {
 
 impl Op {
 
-    fn compile(sop: &str) -> Result<Op, String> {
-        Ok(Self::None)
+    fn compile(opplus: &str) -> Result<Op, String> {
+        let msgtag = "FuzzerK:VM:Op:Compile";
+        let (sop, sargs) = opplus.split_once(' ').expect(&format!("ERRR:{}:{}", msgtag, opplus));
+        let sargs = sargs.trim();
+        match sop {
+            "letstr" => {
+                let (vid, vval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetStr:{}", msgtag, sargs));
+                return Ok(Op::LetStr(vid.to_string(), vval.to_string()));
+            }
+            "letint" => {
+                let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetInt:{}", msgtag, sargs));
+                let ival = isize::from_str_radix(sval, 10).expect(&format!("ERRR:{}:LetInt:Value:{}", msgtag, sval));
+                return Ok(Op::LetInt(vid.to_string(), ival));
+            }
+            "inc" => {
+                return Ok(Op::Inc(sargs.to_string()));
+            }
+            "dec" => {
+                return Ok(Op::Dec(sargs.to_string()));
+            }
+            _ => todo!()
+        }
     }
 
 }
