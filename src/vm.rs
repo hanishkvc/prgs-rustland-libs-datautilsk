@@ -301,6 +301,9 @@ impl VM {
 
     pub fn run(&mut self) {
         loop {
+            if self.ctxt.iptr >= self.ops.len() {
+                break;
+            }
             let theop = &self.ops[self.ctxt.iptr];
             log_d(&format!("INFO:FuzzerK:VM:Op:{}:{:?}", self.ctxt.iptr, theop));
             self.ctxt.iptrupdate = true;
