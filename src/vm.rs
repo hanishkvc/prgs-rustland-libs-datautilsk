@@ -9,7 +9,7 @@ use std::fs;
 use std::thread;
 use std::time::Duration;
 
-use loggerk::log_e;
+use loggerk::{log_e, log_d};
 use crate::iob::IOBridge;
 use crate::rtm::RunTimeManager;
 use crate::cfgfiles;
@@ -21,6 +21,8 @@ struct Context {
     iobs: HashMap<String, IOBridge>,
     lbls: HashMap<String, usize>,
     bufs: HashMap<String, Vec<u8>>,
+    stepu: usize,
+    fcrtm: RunTimeManager,
 }
 
 impl Context {
@@ -31,6 +33,8 @@ impl Context {
             iobs: HashMap::new(),
             lbls: HashMap::new(),
             bufs: HashMap::new(),
+            stepu: 0,
+            fcrtm: RunTimeManager::new(),
         }
     }
 }
@@ -48,6 +52,7 @@ enum Op {
     IobClose(String),
     IfLt(String, String, String, String),
     SleepMSec(u64),
+    FcGet(String, String),
 }
 
 impl Op {
@@ -112,6 +117,13 @@ impl Op {
             Self::SleepMSec(msec) => {
                 thread::sleep(Duration::from_millis(*msec));
             }
+            Self::FcGet(fcid, bufid) => {
+                let fci = ctxt.fcrtm.fcimmuts(&fcid).unwrap();
+                let gotfuzz = fci.get(ctxt.stepu);
+                log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
+                ctxt.bufs.insert(bufid.to_string(), gotfuzz);
+                ctxt.stepu += 1;
+            }
             _ => todo!(),
         }
     }
@@ -122,7 +134,6 @@ impl Op {
 pub struct VM {
     ctxt: Context,
     ops: Vec<Op>,
-    fcrtm: RunTimeManager,
 }
 
 impl VM {
@@ -131,7 +142,6 @@ impl VM {
         VM {
             ctxt: Context::new(),
             ops: Vec::new(),
-            fcrtm: RunTimeManager::new(),
         }
     }
 
@@ -174,7 +184,7 @@ impl VM {
     }
 
     pub fn load_fcrtm(&mut self, cfgfc: &str) {
-        cfgfiles::parse_file(cfgfc, &mut self.fcrtm);
+        cfgfiles::parse_file(cfgfc, &mut self.ctxt.fcrtm);
     }
 
 }
