@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::fs;
 
 use crate::iob::IOBridge;
 
@@ -44,8 +45,22 @@ impl VM {
         self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
     }
 
-    pub fn compile(prgfile: String) -> VM {
+    pub fn compile(ops: Vec<String>) -> VM {
+        for sop in ops {
+            
+        }
 
     }
+
+    pub fn load_prg(prgfile: String) -> VM {
+        let mut ops = Vec::<String>::new();
+        let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
+        let prgdata: Vec<&str> =  prgdata.split("\n").collect();
+        for l in prgdata {
+            ops.push(l.to_string());
+        }
+        Self::compile(ops)
+    }
+
 
 }
