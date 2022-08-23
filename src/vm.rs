@@ -82,11 +82,19 @@ impl Op {
             "dec" => {
                 return Ok(Op::Dec(sargs.to_string()));
             }
+            "iobwrite" => {
+                let (ioid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:IobWrite:{}", msgtag, sargs));
+                return Ok(Op::IobWrite(ioid.to_string(), bufid.to_string()));
+            }
             "iobflush" => {
                 return Ok(Op::IobFlush(sargs.to_string()));
             }
             "iobclose" => {
                 return Ok(Op::IobClose(sargs.to_string()));
+            }
+            "fcget" => {
+                let (fcid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:FcGet:{}", msgtag, sargs));
+                return Ok(Op::FcGet(fcid.to_string(), bufid.to_string()));
             }
             _ => todo!()
         }
