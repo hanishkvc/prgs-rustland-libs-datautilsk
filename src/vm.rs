@@ -9,6 +9,8 @@ use std::fs;
 
 use loggerk::log_e;
 use crate::iob::IOBridge;
+use crate::rtm::RunTimeManager;
+use crate::cfgfiles;
 
 
 struct Context {
@@ -111,17 +113,19 @@ impl Op {
 }
 
 
-struct VM {
+pub struct VM {
     ctxt: Context,
     ops: Vec<Op>,
+    fcrtm: RunTimeManager,
 }
 
 impl VM {
 
-    fn new() -> VM {
+    pub fn new() -> VM {
         VM {
             ctxt: Context::new(),
             ops: Vec::new(),
+            fcrtm: RunTimeManager::new(),
         }
     }
 
@@ -133,26 +137,38 @@ impl VM {
         self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
     }
 
-    pub fn compile(ops: Vec<String>) -> VM {
-        let vm = VM::new();
+    pub fn compile(&mut self, ops: Vec<String>) {
         for sop in ops {
             let sop = sop.trim();
             if sop.starts_with("#") {
                 continue;
             }
         }
-        vm
     }
 
-    pub fn load_prg(prgfile: String) -> VM {
+    pub fn load_prg(&mut self, prgfile: &str) {
         let mut ops = Vec::<String>::new();
         let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
         for l in prgdata {
             ops.push(l.to_string());
         }
-        Self::compile(ops)
+        self.compile(ops);
     }
 
+    pub fn predefined_prg(&mut self, fc: &str, loopcnt: usize) {
+        let mut runcmds = Vec::<String>::new();
+        runcmds.push("iob new".to_string());
+        runcmds.push(format!("fc {}", fc));
+        runcmds.push("iob write".to_string());
+        runcmds.push("iob flush".to_string());
+        runcmds.push("loop inc".to_string());
+        runcmds.push(format!("loop iflt {} abspos 1", loopcnt));
+        self.compile(runcmds);
+    }
+
+    pub fn load_fcrtm(&mut self, cfgfc: &str) {
+        cfgfiles::parse_file(cfgfc, &mut self.fcrtm);
+    }
 
 }
