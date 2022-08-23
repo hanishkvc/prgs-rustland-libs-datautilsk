@@ -97,9 +97,9 @@ impl Op {
                 }
                 let ioid = args[0].to_string();
                 let ioaddr = args[1].to_string();
-                let mut sioargs = String::new();
+                let mut sioargs = "";
                 if args.len() == 3 {
-                    sioargs = args[2].to_string();
+                    sioargs = args[2];
                 }
                 let mut ioargs = HashMap::new();
                 let lioargs = sioargs.split(" ").collect::<Vec<&str>>();
