@@ -212,7 +212,8 @@ impl Op {
                 let chkval = isize::from_str_radix(sval, 10).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:ChkVal:{}:Conversion", sval));
                 let curval = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:Var:{}", vid));
                 let mut opdo = false;
-                if chkval < curval {
+                //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", chkval, curval, sop, oparg));
+                if curval < chkval {
                     opdo = true;
                 }
                 if opdo {
@@ -222,6 +223,7 @@ impl Op {
                         // Especially when only a single pass parsing of the program is done.
                         ctxt.iptr = *ctxt.lbls.get(oparg).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:GoTo:Label:{}", oparg));
                         ctxt.iptrupdate = false;
+                        //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:Goto:{}:{}", oparg, ctxt.iptr));
                     }
                 }
             }
@@ -248,7 +250,7 @@ impl VM {
     fn compile_directive(&mut self, sdirplus: &str) {
         let (sdir, sargs) = sdirplus.split_once(' ').expect(&format!("ERRR:FuzzerK:VM:CompileDirective:{}", sdirplus));
         if sdir == "!label" {
-            self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
+            self.ctxt.lbls.insert(sargs.to_string(), self.ops.len());
         } else {
             panic!("ERRR:FuzzerK:VM:CompileDirective:Unknown:{}", sdirplus);
         }
