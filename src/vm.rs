@@ -62,9 +62,10 @@ enum Op {
 
 impl Op {
 
-    fn compile(sop: &str) -> Op {
-        Self::None
+    fn compile(sop: &str) -> Result<Op, String> {
+        Ok(Self::None)
     }
+
 }
 
 impl Op {
@@ -192,7 +193,7 @@ impl VM {
                 self.compile_directive(sop);
                 continue;
             }
-            let op = Op::compile(sop);
+            let op = Op::compile(sop).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
             self.ops.push(op);
         }
     }
