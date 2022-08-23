@@ -67,6 +67,12 @@ impl Op {
         let (sop, sargs) = opplus.split_once(' ').expect(&format!("ERRR:{}:{}", msgtag, opplus));
         let sargs = sargs.trim();
         match sop {
+            "none" => {
+                // Wont reach here bcas opplus split_once will fail, just to keep Compiler from warning about None not used.
+                // May remove None
+                return Ok(Op::None);
+            }
+
             "letstr" => {
                 let (vid, vval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetStr:{}", msgtag, sargs));
                 return Ok(Op::LetStr(vid.to_string(), vval.to_string()));
@@ -76,11 +82,28 @@ impl Op {
                 let ival = isize::from_str_radix(sval, 10).expect(&format!("ERRR:{}:LetInt:Value:{}", msgtag, sval));
                 return Ok(Op::LetInt(vid.to_string(), ival));
             }
+
             "inc" => {
                 return Ok(Op::Inc(sargs.to_string()));
             }
             "dec" => {
                 return Ok(Op::Dec(sargs.to_string()));
+            }
+
+            "iobnew" => {
+                let args: Vec<&str> = sargs.splitn(3, ' ').collect();
+                if args.len() != 3 {
+                    panic!("ERRR:{}:IobNew:InsufficientArgs:{}", msgtag, sargs);
+                }
+                let ioid = args[0].to_string();
+                let ioaddr = args[1].to_string();
+                let sioargs = args[2];
+                let mut ioargs = HashMap::new();
+                for sioarg in sioargs.split(" ").collect::<Vec<&str>>() {
+                    let (k, v) = sioarg.split_once("=").expect(&format!("ERRR:{}:IobNew:IoArgs:{}", msgtag, sioargs));
+                    ioargs.insert(k.to_string(), v.to_string());
+                }
+                return Ok(Op::IobNew(ioid, ioaddr, ioargs));
             }
             "iobwrite" => {
                 let (ioid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:IobWrite:{}", msgtag, sargs));
@@ -92,10 +115,20 @@ impl Op {
             "iobclose" => {
                 return Ok(Op::IobClose(sargs.to_string()));
             }
+
+            "iflt" => {
+                let args: Vec<&str> = sargs.splitn(4, ' ').collect();
+                if args.len() != 4 {
+                    panic!("ERRR:{}:IfLt:InsufficientArgs:{}", msgtag, sargs);
+                }
+                return Ok(Op::IfLt(args[0].to_string(), args[1].to_string(), args[2].to_string(), args[3].to_string()));
+            }
+
             "sleepmsec" => {
                 let uval = u64::from_str_radix(sargs, 10).expect(&format!("ERRR:{}:SleepMSec:Value:{}", msgtag, sargs));
                 return Ok(Op::SleepMSec(uval));
             }
+
             "fcget" => {
                 let (fcid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:FcGet:{}", msgtag, sargs));
                 return Ok(Op::FcGet(fcid.to_string(), bufid.to_string()));
