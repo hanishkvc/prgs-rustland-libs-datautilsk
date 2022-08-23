@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 use std::fs;
 
+use loggerk::log_e;
 use crate::iob::IOBridge;
 
 
@@ -35,9 +36,10 @@ enum Op {
     LetInt(String, isize),
     Inc(String),
     Dec(String),
-    IobNew(String, String),
+    IobNew(String, String, HashMap<String, String>),
     IobWrite(String),
     IobFlush(String),
+    IobClose(String),
     IfLt(String, String, String, String),
 }
 
@@ -61,6 +63,21 @@ impl Op {
                 let mut val = *ctxt.ints.get(vid).unwrap();
                 val -= 1;
                 ctxt.ints.insert(vid.to_string(), val);
+            }
+            Self::IobNew(name, ioaddr, ioargs) => {
+                let zenio = ctxt.iobs.get_mut(name);
+                if zenio.is_some() {
+                    let zenio = zenio.unwrap();
+                    if let IOBridge::None = zenio {
+                    } else {
+                        let gotr = zenio.close();
+                        if gotr.is_err() {
+                            log_e(&format!("ERRR:FuzzerK:VM:Op:IobNew:Close4New:{}:{}", name, gotr.unwrap_err()));
+                        }
+                    }
+                }
+                let zenio = IOBridge::new(&ioaddr, &ioargs);
+                ctxt.iobs.insert(name.to_string(), zenio);
             }
         }
     }
