@@ -13,6 +13,7 @@ struct Context {
     strs: HashMap<String, String>,
     ints: HashMap<String, isize>,
     iobs: HashMap<String, IOBridge>,
+    lbls: HashMap<String, usize>,
 }
 
 enum Op {
@@ -28,15 +29,23 @@ enum Op {
 }
 
 
-struct Prg {
-    ctxt: Context,
+struct VM {
+    ctxt: Rc<Context>,
     ops: Vec<Op>,
 }
 
-impl Prg {
+impl VM {
 
-    fn compile_letstr(&mut self, sargs: &str) -> Op {
-        Op::None
+    fn compile_letstr(&mut self, sargs: &str) {
+        self.ops.push(Op::None);
+    }
+
+    fn compile0_label(&mut self, sargs: &str) {
+        self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
+    }
+
+    pub fn compile(prgfile: String) -> VM {
+
     }
 
 }
