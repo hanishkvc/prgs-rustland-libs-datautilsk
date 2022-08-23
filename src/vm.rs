@@ -16,6 +16,7 @@ struct Context {
     ints: HashMap<String, isize>,
     iobs: HashMap<String, IOBridge>,
     lbls: HashMap<String, usize>,
+    bufs: HashMap<String, Vec<u8>>,
 }
 
 impl Context {
@@ -25,6 +26,7 @@ impl Context {
             ints: HashMap::new(),
             iobs: HashMap::new(),
             lbls: HashMap::new(),
+            bufs: HashMap::new(),
         }
     }
 }
@@ -37,7 +39,7 @@ enum Op {
     Inc(String),
     Dec(String),
     IobNew(String, String, HashMap<String, String>),
-    IobWrite(String),
+    IobWrite(String, String),
     IobFlush(String),
     IobClose(String),
     IfLt(String, String, String, String),
@@ -64,21 +66,37 @@ impl Op {
                 val -= 1;
                 ctxt.ints.insert(vid.to_string(), val);
             }
-            Self::IobNew(name, ioaddr, ioargs) => {
-                let zenio = ctxt.iobs.get_mut(name);
+            Self::IobNew(ioid, ioaddr, ioargs) => {
+                let zenio = ctxt.iobs.get_mut(ioid);
                 if zenio.is_some() {
                     let zenio = zenio.unwrap();
                     if let IOBridge::None = zenio {
                     } else {
                         let gotr = zenio.close();
                         if gotr.is_err() {
-                            log_e(&format!("ERRR:FuzzerK:VM:Op:IobNew:Close4New:{}:{}", name, gotr.unwrap_err()));
+                            log_e(&format!("ERRR:FuzzerK:VM:Op:IobNew:Close4New:{}:{}", ioid, gotr.unwrap_err()));
                         }
                     }
                 }
                 let zenio = IOBridge::new(&ioaddr, &ioargs);
-                ctxt.iobs.insert(name.to_string(), zenio);
+                ctxt.iobs.insert(ioid.to_string(), zenio);
             }
+            Self::IobWrite(ioid, bufid) => {
+                let buf = ctxt.bufs.get(bufid).unwrap();
+                let zenio = ctxt.iobs.get_mut(ioid).unwrap();
+                let gotr = zenio.write(buf);
+                if gotr.is_err() {
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}:{}:{}", ioid, bufid, gotr.unwrap_err()));
+                }
+            }
+            Self::IobFlush(ioid) => {
+                let zenio = ctxt.iobs.get_mut(ioid).unwrap();
+                let gotr = zenio.flush();
+                if gotr.is_err() {
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobFlush:{}:{}", ioid, gotr.unwrap_err()));
+                }
+            }
+            _ => todo!(),
         }
     }
 
