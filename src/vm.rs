@@ -62,6 +62,13 @@ enum Op {
 
 impl Op {
 
+    fn compile(sop: &str) -> Op {
+        Self::None
+    }
+}
+
+impl Op {
+
     fn run(&self, ctxt: &mut Context) {
         match self {
             Self::None => (),
@@ -166,12 +173,13 @@ impl VM {
         }
     }
 
-    fn compile_letstr(&mut self, sargs: &str) {
-        self.ops.push(Op::None);
-    }
-
-    fn compile0_label(&mut self, sargs: &str) {
-        self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
+    fn compile_directive(&mut self, sdirplus: &str) {
+        let (sdir, sargs) = sdirplus.split_once(' ').expect(&format!("ERRR:FuzzerK:VM:CompileDirective:{}", sdirplus));
+        if sdir == "!label" {
+            self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
+        } else {
+            panic!("ERRR:FuzzerK:VM:CompileDirective:Unknown:{}", sdirplus);
+        }
     }
 
     pub fn compile(&mut self, ops: Vec<String>) {
@@ -180,6 +188,12 @@ impl VM {
             if sop.starts_with("#") {
                 continue;
             }
+            if sop.starts_with("!") {
+                self.compile_directive(sop);
+                continue;
+            }
+            let op = Op::compile(sop);
+            self.ops.push(op);
         }
     }
 
