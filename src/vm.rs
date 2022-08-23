@@ -92,6 +92,10 @@ impl Op {
             "iobclose" => {
                 return Ok(Op::IobClose(sargs.to_string()));
             }
+            "sleepmsec" => {
+                let uval = u64::from_str_radix(sargs, 10).expect(&format!("ERRR:{}:SleepMSec:Value:{}", msgtag, sargs));
+                return Ok(Op::SleepMSec(uval));
+            }
             "fcget" => {
                 let (fcid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:FcGet:{}", msgtag, sargs));
                 return Ok(Op::FcGet(fcid.to_string(), bufid.to_string()));
