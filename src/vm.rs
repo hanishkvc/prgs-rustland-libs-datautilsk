@@ -5,7 +5,6 @@
 //!
 
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::fs;
 
 use crate::iob::IOBridge;
@@ -30,29 +29,29 @@ impl Context {
 }
 
 
-enum Op {
+enum Op<'a> {
     None,
-    LetStr(Rc<Context>, String, String),
-    LetInt(Rc<Context>, String, isize),
-    Inc(Rc<Context>, String),
-    Dec(Rc<Context>, String),
-    IobNew(Rc<Context>, String, String),
-    IobWrite(Rc<Context>, String),
-    IobFlush(Rc<Context>, String),
-    IfLt(Rc<Context>, String, String, String, String),
+    LetStr(&'a mut Context, String, String),
+    LetInt(&'a mut Context, String, isize),
+    Inc(&'a mut Context, String),
+    Dec(&'a mut Context, String),
+    IobNew(&'a mut Context, String, String),
+    IobWrite(&'a mut Context, String),
+    IobFlush(&'a mut Context, String),
+    IfLt(&'a mut Context, String, String, String, String),
 }
 
 
-struct VM {
-    ctxt: Rc<Context>,
-    ops: Vec<Op>,
+struct VM<'a> {
+    ctxt: Context,
+    ops: Vec<Op<'a>>,
 }
 
-impl VM {
+impl<'a> VM<'a> {
 
-    fn new() -> VM {
+    fn new() -> VM<'a> {
         VM {
-            ctxt: Rc::new(Context::new()),
+            ctxt: Context::new(),
             ops: Vec::new(),
         }
     }
@@ -65,7 +64,7 @@ impl VM {
         self.ctxt.lbls.insert(sargs.to_string(), self.ops.len()-1);
     }
 
-    pub fn compile(ops: Vec<String>) -> VM {
+    pub fn compile(ops: Vec<String>) -> VM<'a> {
         let vm = VM::new();
         for sop in ops {
             let sop = sop.trim();
@@ -76,7 +75,7 @@ impl VM {
         vm
     }
 
-    pub fn load_prg(prgfile: String) -> VM {
+    pub fn load_prg(prgfile: String) -> VM<'a> {
         let mut ops = Vec::<String>::new();
         let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
