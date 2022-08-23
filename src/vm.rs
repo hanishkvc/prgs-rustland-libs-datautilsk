@@ -284,7 +284,12 @@ impl VM {
         self.compile(ops);
     }
 
-    pub fn predefined_prg(&mut self, fc: &str, loopcnt: usize) {
+    pub fn predefined_prg(&mut self, fc: &str, loopcnt: usize, ioaddr: &str, ioargshm: &HashMap<String, String>) {
+        let mut ioargs = String::new();
+        for ioarg in ioargshm {
+            let sioarg = format!("{}={} ", ioarg.0, ioarg.1);
+            ioargs.push_str(&sioarg);
+        }
         let mut runcmds = Vec::<String>::new();
         runcmds.push("letint loopcnt 0".to_string());
         runcmds.push("!label freshstart".to_string());
