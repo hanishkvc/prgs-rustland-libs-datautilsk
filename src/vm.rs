@@ -96,6 +96,14 @@ impl Op {
                     log_e(&format!("ERRR:FuzzerK:VM:Op:IobFlush:{}:{}", ioid, gotr.unwrap_err()));
                 }
             }
+            Self::IobClose(ioid) => {
+                let zenio = ctxt.iobs.get_mut(ioid).unwrap();
+                let gotr = zenio.close();
+                if gotr.is_err() {
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobClose:{}:{}", ioid, gotr.unwrap_err()));
+                }
+                ctxt.iobs.remove(ioid);
+            }
             _ => todo!(),
         }
     }
