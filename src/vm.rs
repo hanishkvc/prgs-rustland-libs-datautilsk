@@ -11,6 +11,7 @@ use std::time;
 use std::time::Duration;
 
 use loggerk::{log_e, log_d};
+use rand::Rng;
 use crate::datautils;
 use crate::iob::IOBridge;
 use crate::rtm::RunTimeManager;
@@ -270,10 +271,18 @@ impl Op {
                 ctxt.bufs.insert(bufid.to_string(), buf);
             }
             Self::LetBuf(bufid, bufdata) => {
-                let vdata;
+                let mut vdata;
                 if bufdata == "__TIME__STAMP__" {
                     let ts = format!("{:?}",time::SystemTime::now());
                     vdata = Vec::from(ts);
+                } else if bufdata.starts_with("__RANDOM__BYTES__") {
+                    let (_random, bytelen) = bufdata.split_once("__BYTES__").expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
+                    let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
+                    let mut rng = rand::thread_rng();
+                    vdata = Vec::new();
+                    for _i in 0..bytelen {
+                        vdata.push(rng.gen_range(0..=255)); // rusty 0..256
+                    }
                 } else if bufdata.starts_with("0x") {
                     vdata = datautils::vu8_from_hex(&bufdata[2..]).expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:HexData:{}", bufdata));
                 } else {
