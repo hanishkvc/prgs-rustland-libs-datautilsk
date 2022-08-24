@@ -271,7 +271,7 @@ impl Op {
             }
             Self::LetBuf(bufid, bufdata) => {
                 let vdata;
-                if bufdata == "__TIME_STAMP__" {
+                if bufdata == "__TIME__STAMP__" {
                     let ts = format!("{:?}",time::SystemTime::now());
                     vdata = Vec::from(ts);
                 } else if bufdata.starts_with("0x") {
