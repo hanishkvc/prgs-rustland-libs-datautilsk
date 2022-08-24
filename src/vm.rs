@@ -64,6 +64,7 @@ enum Op {
     FcGet(String, String),
     BufNew(String, usize),
     LetBuf(String, String),
+    Buf8Randomize(String, isize, isize, isize, u8, u8),
 }
 
 impl Op {
@@ -159,6 +160,46 @@ impl Op {
             "letbuf" => {
                 let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf:{}", msgtag, sargs));
                 return Ok(Op::LetBuf(bufid.to_string(), bufdata.to_string()));
+            }
+            "buf8randomize" => {
+                let parts: Vec<&str> = sargs.split(" ").collect();
+                let bufid = parts[0].to_string();
+
+                let randcount;
+                let startoffset;
+                let endoffset;
+                let startval;
+                let endval;
+
+                if parts.len() >= 2 {
+                    randcount = isize::from_str_radix(parts[1], 10).expect(&format!("ERRR:{}:Buf8Randomize:RandCount:{}", msgtag, parts[1]));
+                } else {
+                    randcount = -1;
+                }
+                if parts.len() >= 3 {
+                    startoffset = isize::from_str_radix(parts[2], 10).expect(&format!("ERRR:{}:Buf8Randomize:StartOffset:{}", msgtag, parts[2]));
+                } else {
+                    startoffset = -1;
+                }
+                if parts.len() >= 4 {
+                    endoffset = isize::from_str_radix(parts[3], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndOffset:{}", msgtag, parts[3]));
+                } else {
+                    endoffset = -1;
+                }
+                if parts.len() >= 5 {
+                    startval = u8::from_str_radix(parts[4], 10).expect(&format!("ERRR:{}:Buf8Randomize:StartVal:{}", msgtag, parts[4]));
+                } else {
+                    startval = 0;
+                }
+                if parts.len() == 6 {
+                    endval = u8::from_str_radix(parts[5], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5]));
+                } else {
+                    endval = 255;
+                }
+                if parts.len() > 6 {
+                    panic!("ERRR:{}:Buf8Randomize:Too many args:{}", msgtag, sargs);
+                }
+                return Ok(Op::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval))
             }
             _ => todo!()
         }
@@ -289,6 +330,35 @@ impl Op {
                     vdata = Vec::from(bufdata.clone());
                 }
                 ctxt.bufs.insert(bufid.to_string(), vdata);
+            }
+            Self::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval) => {
+                let buf = ctxt.bufs.get_mut(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:Buf8Randomize:Buf:{}", bufid));
+                let trandcount;
+                if *randcount < 0 {
+                    trandcount = rand::random::<usize>() % buf.len();
+                } else {
+                    trandcount = *randcount as usize;
+                }
+                let tstartoffset;
+                if *startoffset < 0 {
+                    tstartoffset = 0;
+                } else {
+                    tstartoffset = *startoffset as usize;
+                }
+                let tendoffset;
+                if *endoffset < 0 {
+                    tendoffset = buf.len()-1;
+                } else {
+                    tendoffset = *endoffset as usize;
+                }
+                let mut rng = rand::thread_rng();
+                let offsetwidth = tendoffset - tstartoffset + 1;
+                let valwidth = endval - startval + 1;
+                for _i in 0..trandcount {
+                    let curind = tstartoffset + (rng.gen::<usize>() % offsetwidth);
+                    let curval = startval + (rng.gen::<u8>() % valwidth);
+                    buf[curind] = curval;
+                }
             }
         }
     }
