@@ -58,6 +58,7 @@ enum Op {
     IfLt(String, String, String, String),
     SleepMSec(u64),
     FcGet(String, String),
+    BufNew(String, usize),
 }
 
 impl Op {
@@ -139,6 +140,12 @@ impl Op {
             "fcget" => {
                 let (fcid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:FcGet:{}", msgtag, sargs));
                 return Ok(Op::FcGet(fcid.to_string(), bufid.to_string()));
+            }
+
+            "bufnew" => {
+                let (bufid, bufsize) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufNew:{}", msgtag, sargs));
+                let bufsize = usize::from_str_radix(bufsize, 10).expect(&format!("ERRR:{}:BufNew:Size:{}", msgtag, bufsize));
+                return Ok(Op::BufNew(bufid.to_string(), bufsize));
             }
             _ => todo!()
         }
@@ -234,6 +241,12 @@ impl Op {
                     }
                 }
             }
+            Self::BufNew(bufid, bufsize) => {
+                let mut buf = Vec::<u8>::new();
+                buf.resize(*bufsize, 0);
+                ctxt.bufs.insert(bufid.to_string(), buf);
+            }
+
         }
     }
 
