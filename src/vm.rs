@@ -60,6 +60,7 @@ enum Op {
     IobRead(String, String),
     IobClose(String),
     IfLt(String, String, String, String),
+    CheckJump(String, String, String, String, String),
     SleepMSec(u64),
     FcGet(String, String),
     BufNew(String, usize),
@@ -140,6 +141,13 @@ impl Op {
                     panic!("ERRR:{}:IfLt:InsufficientArgs:{}", msgtag, sargs);
                 }
                 return Ok(Op::IfLt(args[0].to_string(), args[1].to_string(), args[2].to_string(), args[3].to_string()));
+            }
+            "checkjump" => {
+                let args: Vec<&str> = sargs.splitn(5, ' ').collect();
+                if args.len() != 5 {
+                    panic!("ERRR:{}:CheckJump:InsufficientArgs:{}", msgtag, sargs);
+                }
+                return Ok(Op::CheckJump(args[0].to_string(), args[1].to_string(), args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
 
             "sleepmsec" => {
@@ -304,6 +312,32 @@ impl Op {
                         ctxt.iptrupdate = false;
                         //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:Goto:{}:{}", oparg, ctxt.iptr));
                     }
+                }
+            }
+            Self::CheckJump(arg1, arg2, ltlabel, eqlabel, gtlabel) => {
+                let varg1;
+                if arg1.starts_with("$") {
+                    varg1 = isize::from_str_radix(&arg1[1..], 10).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg1Val");
+                } else {
+                    varg1 = *ctxt.ints.get(arg1).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg1Var");
+                }
+                let varg2;
+                if arg2.starts_with("$") {
+                    varg2 = isize::from_str_radix(&arg2[1..], 10).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg2Val");
+                } else {
+                    varg2 = *ctxt.ints.get(arg2).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg2Var");
+                }
+                let label;
+                if varg1 < varg2 {
+                    label = ltlabel;
+                } else if varg1 == varg2 {
+                    label = eqlabel;
+                } else {
+                    label = gtlabel;
+                }
+                if label != "__NEXT__" {
+                    ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:CheckJump:Label:{}", label));
+                    ctxt.iptrupdate = false;
                 }
             }
             Self::BufNew(bufid, bufsize) => {
