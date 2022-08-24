@@ -7,9 +7,11 @@
 use std::collections::HashMap;
 use std::fs;
 use std::thread;
+use std::time;
 use std::time::Duration;
 
 use loggerk::{log_e, log_d};
+use crate::datautils;
 use crate::iob::IOBridge;
 use crate::rtm::RunTimeManager;
 use crate::cfgfiles;
@@ -60,6 +62,7 @@ enum Op {
     SleepMSec(u64),
     FcGet(String, String),
     BufNew(String, usize),
+    LetBuf(String, String),
 }
 
 impl Op {
@@ -151,6 +154,10 @@ impl Op {
                 let (bufid, bufsize) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufNew:{}", msgtag, sargs));
                 let bufsize = usize::from_str_radix(bufsize, 10).expect(&format!("ERRR:{}:BufNew:Size:{}", msgtag, bufsize));
                 return Ok(Op::BufNew(bufid.to_string(), bufsize));
+            }
+            "letbuf" => {
+                let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf:{}", msgtag, sargs));
+                return Ok(Op::LetBuf(bufid.to_string(), bufdata.to_string()));
             }
             _ => todo!()
         }
@@ -262,7 +269,18 @@ impl Op {
                 buf.resize(*bufsize, 0);
                 ctxt.bufs.insert(bufid.to_string(), buf);
             }
-
+            Self::LetBuf(bufid, bufdata) => {
+                let vdata;
+                if bufdata == "__TIME_STAMP__" {
+                    let ts = format!("{:?}",time::SystemTime::now());
+                    vdata = Vec::from(ts);
+                } else if bufdata.starts_with("0x") {
+                    vdata = datautils::vu8_from_hex(&bufdata[2..]).expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:HexData:{}", bufdata));
+                } else {
+                    vdata = Vec::from(bufdata.clone());
+                }
+                ctxt.bufs.insert(bufid.to_string(), vdata);
+            }
         }
     }
 
