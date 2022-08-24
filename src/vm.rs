@@ -209,7 +209,7 @@ impl Op {
                 thread::sleep(Duration::from_millis(*msec));
             }
             Self::FcGet(fcid, bufid) => {
-                let fci = ctxt.fcrtm.fcimmuts(&fcid).unwrap();
+                let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:FuzzerK:VM:Op:FcGet:UnknownFC???:{}", fcid));
                 let gotfuzz = fci.get(ctxt.stepu);
                 log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
                 ctxt.bufs.insert(bufid.to_string(), gotfuzz);
