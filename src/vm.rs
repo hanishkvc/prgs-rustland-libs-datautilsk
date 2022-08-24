@@ -54,6 +54,7 @@ enum Op {
     IobNew(String, String, HashMap<String, String>),
     IobWrite(String, String),
     IobFlush(String),
+    IobRead(String, String),
     IobClose(String),
     IfLt(String, String, String, String),
     SleepMSec(u64),
@@ -119,6 +120,10 @@ impl Op {
             }
             "iobflush" => {
                 return Ok(Op::IobFlush(sargs.to_string()));
+            }
+            "iobread" => {
+                let (ioid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:IobRead:{}", msgtag, sargs));
+                return Ok(Op::IobRead(ioid.to_string(), bufid.to_string()));
             }
             "iobclose" => {
                 return Ok(Op::IobClose(sargs.to_string()));
@@ -202,6 +207,14 @@ impl Op {
                 let gotr = zenio.flush();
                 if gotr.is_err() {
                     log_e(&format!("ERRR:FuzzerK:VM:Op:IobFlush:{}:{}", ioid, gotr.unwrap_err()));
+                }
+            }
+            Self::IobRead(ioid, bufid) => {
+                let buf = ctxt.bufs.get_mut(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:ToBuf:{}", bufid));
+                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}", ioid));
+                let gotr = zenio.read(buf);
+                if gotr.is_err() {
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}:ToBuf:{}:{}", ioid, bufid, gotr.unwrap_err()));
                 }
             }
             Self::IobClose(ioid) => {
