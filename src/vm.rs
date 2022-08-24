@@ -214,8 +214,11 @@ impl Op {
                 let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}", ioid));
                 let gotr = zenio.read(buf);
                 if gotr.is_err() {
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}:ToBuf:{}:{}", ioid, bufid, gotr.unwrap_err()));
+                    let errmsg = gotr.as_ref().unwrap_err();
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}:ToBuf:{}:{}", ioid, bufid, errmsg));
                 }
+                let readsize = gotr.unwrap();
+                buf.resize(readsize, 0);
             }
             Self::IobClose(ioid) => {
                 let zenio = ctxt.iobs.get_mut(ioid).unwrap();
