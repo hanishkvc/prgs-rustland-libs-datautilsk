@@ -5,6 +5,7 @@
 //!
 
 use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::fs;
 use std::thread;
 use std::time;
@@ -212,7 +213,7 @@ impl Op {
                 return Ok(Op::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval))
             }
             "bufsmerge" => {
-                let mut parts: Vec<&str> = sargs.split_whitespace().collect();
+                let mut parts: VecDeque<&str> = sargs.split_whitespace().collect();
                 let numparts = parts.len();
                 if numparts < 2 {
                     panic!("ERRR:{}:BufsMerge:Too few bufs:{}", msgtag, sargs);
@@ -220,11 +221,12 @@ impl Op {
                 if numparts == 2 {
                     log_w(&format!("WARN:{}:BufsMerge:Only a copy will occur, specify more buffers to concat:{}", msgtag, sargs));
                 }
-                let bufid = parts.pop().unwrap().to_string();
+                let bufid = parts.pop_front().unwrap().to_string();
                 let mut vbufs = Vec::new();
                 for sbuf in parts {
                     vbufs.push(sbuf.to_string());
                 }
+                //log_d(&format!("DBUG:{}:BufsMerge:{} <- {:?}", msgtag, bufid, vbufs));
                 return Ok(Op::BufsMerge(bufid, vbufs));
             }
             _ => todo!()
