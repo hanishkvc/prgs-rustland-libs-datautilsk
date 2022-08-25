@@ -7,6 +7,9 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fs;
+use std::isize;
+use std::ops::Add;
+use std::ops::Mul;
 use std::thread;
 use std::time;
 use std::time::Duration;
@@ -69,6 +72,18 @@ enum Op {
     LetBuf(String, String),
     Buf8Randomize(String, isize, isize, isize, u8, u8),
     BufsMerge(String, Vec<String>),
+}
+
+//fn intvalue<T: Add + Mul>(sval: &str, exceptmsg: &str) -> T {
+fn intvalue<T>(sval: &str, exceptmsg: &str) -> T {
+    let sval = sval.trim();
+    let ival;
+    if sval.starts_with("0x") {
+        ival = T::from_str_radix(sval, 16).expect(exceptmsg);
+    } else {
+        ival = T::from_str_radix(sval, 10).expect(exceptmsg);
+    }
+    return ival;
 }
 
 impl Op {
@@ -194,11 +209,14 @@ impl Op {
                 }
                 if parts.len() >= 4 {
                     endoffset = isize::from_str_radix(parts[3], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndOffset:{}", msgtag, parts[3]));
+                    let t1: isize = intvalue("123", "testme");
                 } else {
                     endoffset = -1;
                 }
                 if parts.len() >= 5 {
                     startval = u8::from_str_radix(parts[4], 10).expect(&format!("ERRR:{}:Buf8Randomize:StartVal:{}", msgtag, parts[4]));
+                    let t2: u8 = intvalue("123", "testme");
+                    strconv
                 } else {
                     startval = 0;
                 }
