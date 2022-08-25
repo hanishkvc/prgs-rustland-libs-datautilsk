@@ -25,18 +25,15 @@ pub struct U8X(pub u8);
 impl TryInto<u8> for U8X {
     type Error = String;
     fn try_into(self) -> Result<u8, Self::Error> {
-        if let U8X(u8val) = self {
-            return Ok(u8val);
-        } else {
-            return Err(format!("ERRR:FuzzerK:DataUtils:U8X:TryInto u8:{:?}", self));
-        }
+        let U8X(u8val) = self;
+        return Ok(u8val);
     }
 }
 
 impl From<isize> for U8X {
     fn from(ival: isize) -> Self {
         if (ival < 0) || (ival > u8::MAX.into()) {
-            panic!();
+            panic!("ERRR:DU:U8XFromISize:isize{} beyond u8 range", ival);
         }
         let uval = ival as usize;
         return U8X(uval as u8);
