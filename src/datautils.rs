@@ -22,11 +22,10 @@ pub fn vu8_from_hex(ins: &str) -> Result<Vec<u8>, String> {
 #[derive(Debug)]
 pub struct U8X(pub u8);
 
-impl TryInto<u8> for U8X {
-    type Error = String;
-    fn try_into(self) -> Result<u8, Self::Error> {
+impl Into<u8> for U8X {
+    fn into(self) -> u8 {
         let U8X(u8val) = self;
-        return Ok(u8val);
+        return u8val;
     }
 }
 

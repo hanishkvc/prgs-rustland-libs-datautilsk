@@ -208,8 +208,7 @@ impl Op {
                 }
                 if parts.len() == 6 {
                     //endval = u8::from_str_radix(parts[5], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5]));
-                    let tendval: datautils::U8X = datautils::intvalue(parts[5], &format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5]));
-                    endval = tendval.try_into().unwrap();
+                    endval = datautils::intvalue::<datautils::U8X>(parts[5], &format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5])).into();
                 } else {
                     endval = 255;
                 }
