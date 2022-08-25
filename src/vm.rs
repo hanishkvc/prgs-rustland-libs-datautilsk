@@ -7,9 +7,6 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fs;
-use std::isize;
-use std::ops::Add;
-use std::ops::Mul;
 use std::thread;
 use std::time;
 use std::time::Duration;
@@ -74,17 +71,6 @@ enum Op {
     BufsMerge(String, Vec<String>),
 }
 
-//fn intvalue<T: Add + Mul>(sval: &str, exceptmsg: &str) -> T {
-fn intvalue<T>(sval: &str, exceptmsg: &str) -> T {
-    let sval = sval.trim();
-    let ival;
-    if sval.starts_with("0x") {
-        ival = T::from_str_radix(sval, 16).expect(exceptmsg);
-    } else {
-        ival = T::from_str_radix(sval, 10).expect(exceptmsg);
-    }
-    return ival;
-}
 
 impl Op {
 
@@ -208,20 +194,22 @@ impl Op {
                     startoffset = -1;
                 }
                 if parts.len() >= 4 {
-                    endoffset = isize::from_str_radix(parts[3], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndOffset:{}", msgtag, parts[3]));
-                    let t1: isize = intvalue("123", "testme");
+                    //endoffset = isize::from_str_radix(parts[3], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndOffset:{}", msgtag, parts[3]));
+                    endoffset = datautils::intvalue(parts[3], &format!("ERRR:{}:Buf8Randomize:EndOffset:{}", msgtag, parts[3]));
                 } else {
                     endoffset = -1;
                 }
                 if parts.len() >= 5 {
-                    startval = u8::from_str_radix(parts[4], 10).expect(&format!("ERRR:{}:Buf8Randomize:StartVal:{}", msgtag, parts[4]));
-                    let t2: u8 = intvalue("123", "testme");
-                    strconv
+                    //startval = u8::from_str_radix(parts[4], 10).expect(&format!("ERRR:{}:Buf8Randomize:StartVal:{}", msgtag, parts[4]));
+                    let tstartval: datautils::U8X = datautils::intvalue(parts[4], &format!("ERRR:{}:Buf8Randomize:StartVal:{}", msgtag, parts[4]));
+                    startval = tstartval.try_into().unwrap();
                 } else {
                     startval = 0;
                 }
                 if parts.len() == 6 {
-                    endval = u8::from_str_radix(parts[5], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5]));
+                    //endval = u8::from_str_radix(parts[5], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5]));
+                    let tendval: datautils::U8X = datautils::intvalue(parts[5], &format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5]));
+                    endval = tendval.try_into().unwrap();
                 } else {
                     endval = 255;
                 }
