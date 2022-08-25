@@ -407,10 +407,10 @@ impl Op {
                 }
                 let mut rng = rand::thread_rng();
                 let offsetwidth = tendoffset - tstartoffset + 1;
-                let valwidth = endval - startval + 1;
+                let valwidth: u16 = *endval as u16 - *startval as u16 + 1;
                 for _i in 0..trandcount {
                     let curind = tstartoffset + (rng.gen::<usize>() % offsetwidth);
-                    let curval = startval + (rng.gen::<u8>() % valwidth);
+                    let curval = *startval + (rng.gen::<u16>() % valwidth) as u8;
                     buf[curind] = curval;
                 }
             }
@@ -472,6 +472,10 @@ impl VM {
     }
 
     pub fn load_prg(&mut self, prgfile: &str) {
+        if prgfile.len() == 0 {
+            log_w("WARN:FuzzerK:VM:LoadPRG:Empty filename passed, skipping...");
+            return;
+        }
         let mut ops = Vec::<String>::new();
         let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
@@ -500,6 +504,10 @@ impl VM {
     }
 
     pub fn load_fcrtm(&mut self, cfgfc: &str) {
+        if cfgfc.len() == 0 {
+            log_w("WARN:FuzzerK:VM:LoadFCRTM:Empty filename passed, skipping...");
+            return;
+        }
         cfgfiles::parse_file(cfgfc, &mut self.ctxt.fcrtm);
     }
 
