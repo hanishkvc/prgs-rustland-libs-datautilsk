@@ -10,6 +10,7 @@ use std::thread;
 use std::time;
 use std::time::Duration;
 
+use loggerk::log_w;
 use loggerk::{log_e, log_d};
 use rand::Rng;
 use crate::datautils;
@@ -66,6 +67,7 @@ enum Op {
     BufNew(String, usize),
     LetBuf(String, String),
     Buf8Randomize(String, isize, isize, isize, u8, u8),
+    BufsMerge(String, Vec<String>),
 }
 
 impl Op {
@@ -208,6 +210,22 @@ impl Op {
                     panic!("ERRR:{}:Buf8Randomize:Too many args:{}", msgtag, sargs);
                 }
                 return Ok(Op::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval))
+            }
+            "bufsmerge" => {
+                let mut parts: Vec<&str> = sargs.split_whitespace().collect();
+                let numparts = parts.len();
+                if numparts < 2 {
+                    panic!("ERRR:{}:BufsMerge:Too few bufs:{}", msgtag, sargs);
+                }
+                if numparts == 2 {
+                    log_w(&format!("WARN:{}:BufsMerge:Only a copy will occur, specify more buffers to concat:{}", msgtag, sargs));
+                }
+                let bufid = parts.pop().unwrap().to_string();
+                let mut vbufs = Vec::new();
+                for sbuf in parts {
+                    vbufs.push(sbuf.to_string());
+                }
+                return Ok(Op::BufsMerge(bufid, vbufs));
             }
             _ => todo!()
         }
@@ -393,6 +411,16 @@ impl Op {
                     let curval = startval + (rng.gen::<u8>() % valwidth);
                     buf[curind] = curval;
                 }
+            }
+            Self::BufsMerge(destbufid, srcbufids) => {
+                //let destbuf = ctxt.bufs.get_mut(destbufid).expect(&format!("ERRR:FuzzerK:VM:Op:BufsMerge:Dest:{}", destbufid));
+                let mut destbuf = Vec::new();
+                for srcbufid in srcbufids {
+                    let srcbuf = ctxt.bufs.get_mut(srcbufid).expect(&format!("ERRR:FuzzerK:VM:Op:BufsMerge:SrcBuf:{}", srcbufid));
+                    let mut dupbuf = srcbuf.clone();
+                    destbuf.append(&mut dupbuf);
+                }
+                ctxt.bufs.insert(destbufid.to_string(), destbuf);
             }
         }
     }
