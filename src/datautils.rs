@@ -43,7 +43,7 @@ pub fn intvalue<T: std::convert::From<isize>>(sval: &str, exceptmsg: &str) -> T 
     let sval = sval.trim();
     let ival;
     if sval.starts_with("0x") {
-        ival = isize::from_str_radix(sval, 16).expect(exceptmsg);
+        ival = isize::from_str_radix(&sval[2..], 16).expect(exceptmsg);
     } else {
         ival = isize::from_str_radix(sval, 10).expect(exceptmsg);
     }
