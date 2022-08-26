@@ -29,7 +29,7 @@ struct Context {
     stepu: usize,
     fcrtm: RunTimeManager,
     iptr: usize,
-    iptrupdate: bool,
+    iptr_commonupdate: bool,
 }
 
 impl Context {
@@ -43,7 +43,7 @@ impl Context {
             stepu: 0,
             fcrtm: RunTimeManager::new(),
             iptr: 0,
-            iptrupdate: true,
+            iptr_commonupdate: true,
         }
     }
 }
@@ -338,7 +338,7 @@ impl Op {
                         // that might not yet have been defined at the point where goto or rather the IfLt is encountered.
                         // Especially when only a single pass parsing of the program is done.
                         ctxt.iptr = *ctxt.lbls.get(oparg).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:GoTo:Label:{}", oparg));
-                        ctxt.iptrupdate = false;
+                        ctxt.iptr_commonupdate = false;
                         //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:Goto:{}:{}", oparg, ctxt.iptr));
                     }
                 }
@@ -366,13 +366,13 @@ impl Op {
                 }
                 if label != "__NEXT__" {
                     ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:CheckJump:Label:{}", label));
-                    ctxt.iptrupdate = false;
+                    ctxt.iptr_commonupdate = false;
                 }
             }
             Self::Jump(label) => {
                 if label != "__NEXT__" {
                     ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Jump:Label:{}", label));
-                    ctxt.iptrupdate = false;
+                    ctxt.iptr_commonupdate = false;
                 }
             }
             Self::BufNew(bufid, bufsize) => {
@@ -533,9 +533,9 @@ impl VM {
             }
             let theop = &self.ops[self.ctxt.iptr];
             log_d(&format!("INFO:FuzzerK:VM:Op:{}:{:?}", self.ctxt.iptr, theop));
-            self.ctxt.iptrupdate = true;
+            self.ctxt.iptr_commonupdate = true;
             theop.run(&mut self.ctxt);
-            if self.ctxt.iptrupdate {
+            if self.ctxt.iptr_commonupdate {
                 self.ctxt.iptr += 1;
             }
         }
