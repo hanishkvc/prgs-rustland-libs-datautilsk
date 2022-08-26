@@ -63,6 +63,7 @@ enum Op {
     IobClose(String),
     IfLt(String, String, String, String),
     CheckJump(String, String, String, String, String),
+    Jump(String),
     SleepMSec(u64),
     FcGet(String, String),
     BufNew(String, usize),
@@ -152,6 +153,9 @@ impl Op {
                     panic!("ERRR:{}:CheckJump:InsufficientArgs:{}", msgtag, sargs);
                 }
                 return Ok(Op::CheckJump(args[0].to_string(), args[1].to_string(), args[2].to_string(), args[3].to_string(), args[4].to_string()));
+            }
+            "jump" => {
+                return Ok(Op::Jump(sargs.to_string()));
             }
 
             "sleepmsec" => {
@@ -362,6 +366,12 @@ impl Op {
                 }
                 if label != "__NEXT__" {
                     ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:CheckJump:Label:{}", label));
+                    ctxt.iptrupdate = false;
+                }
+            }
+            Self::Jump(label) => {
+                if label != "__NEXT__" {
+                    ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Jump:Label:{}", label));
                     ctxt.iptrupdate = false;
                 }
             }
