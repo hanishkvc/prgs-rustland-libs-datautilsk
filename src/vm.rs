@@ -30,6 +30,7 @@ struct Context {
     fcrtm: RunTimeManager,
     iptr: usize,
     iptr_commonupdate: bool,
+    callstack: Vec<usize>,
 }
 
 impl Context {
@@ -44,6 +45,7 @@ impl Context {
             fcrtm: RunTimeManager::new(),
             iptr: 0,
             iptr_commonupdate: true,
+            callstack: Vec::new(),
         }
     }
 }
@@ -64,6 +66,8 @@ enum Op {
     IfLt(String, String, String, String),
     CheckJump(String, String, String, String, String),
     Jump(String),
+    Call(String),
+    Ret,
     SleepMSec(u64),
     FcGet(String, String),
     BufNew(String, usize),
@@ -156,6 +160,12 @@ impl Op {
             }
             "jump" => {
                 return Ok(Op::Jump(sargs.to_string()));
+            }
+            "call" => {
+                return Ok(Op::Call(sargs.to_string()));
+            }
+            "ret" => {
+                return Ok(Op::Ret);
             }
 
             "sleepmsec" => {
@@ -375,6 +385,15 @@ impl Op {
                     ctxt.iptr_commonupdate = false;
                 }
             }
+            Self::Call(label) => {
+                ctxt.callstack.push(ctxt.iptr);
+                ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Label:{}", label));
+                ctxt.iptr_commonupdate = false;
+            }
+            Self::Ret => {
+                ctxt.iptr = ctxt.callstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallStack");
+            }
+
             Self::BufNew(bufid, bufsize) => {
                 let mut buf = Vec::<u8>::new();
                 buf.resize(*bufsize, 0);
