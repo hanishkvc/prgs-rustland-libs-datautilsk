@@ -53,7 +53,7 @@ impl Context {
 
 #[derive(Debug)]
 enum Op {
-    None,
+    Nop,
     LetStr(String, String),
     LetInt(String, isize),
     Inc(String),
@@ -92,9 +92,8 @@ impl Op {
         }
         let sargs = sargs.trim();
         match sop {
-            "none" => {
-                // May remove None or rather rename it has Nop
-                return Ok(Op::None);
+            "nop" => {
+                return Ok(Op::Nop);
             }
 
             "letstr" => {
@@ -265,7 +264,7 @@ impl Op {
 
     fn run(&self, ctxt: &mut Context) {
         match self {
-            Self::None => (),
+            Self::Nop => (),
             Self::LetStr(vid, vval ) => {
                 ctxt.strs.insert(vid.to_string(), vval.to_string());
             },
