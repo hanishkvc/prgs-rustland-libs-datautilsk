@@ -81,12 +81,19 @@ impl Op {
 
     fn compile(opplus: &str) -> Result<Op, String> {
         let msgtag = "FuzzerK:VM:Op:Compile";
-        let (sop, sargs) = opplus.split_once(' ').expect(&format!("ERRR:{}:ExtractingOp+:{}", msgtag, opplus));
+        let sop;
+        let sargs;
+        let op_and_args= opplus.split_once(' ');
+        if op_and_args.is_some() {
+            (sop, sargs) = op_and_args.unwrap();
+        } else {
+            sop = opplus;
+            sargs = "";
+        }
         let sargs = sargs.trim();
         match sop {
             "none" => {
-                // Wont reach here bcas opplus split_once will fail, just to keep Compiler from warning about None not used.
-                // May remove None
+                // May remove None or rather rename it has Nop
                 return Ok(Op::None);
             }
 
