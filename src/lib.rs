@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn fuzzer_fixedstrings() {
         // LoopFixedStringsFuzzer
-        let mut fsf = fixed::LoopFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        let mut fsf = fixed::LoopFixedStringsFuzzer::new(vec![Vec::from("Hello"), Vec::from("World")]);
         let mut buf:Vec<u8> = Vec::new();
         for i in 0..16 {
             fsf.append_fuzzed(i, &mut buf)
@@ -130,7 +130,7 @@ mod tests {
         println!("TEST:FuzzerLoopFixedStrings:{:?}", buf);
         println!("TEST:FuzzerLoopFixedStrings:{:?}", String::from_utf8(buf));
         // RandomFixedStringsFuzzer
-        let mut fsf = fixed::RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        let mut fsf = fixed::RandomFixedStringsFuzzer::new(vec![Vec::from("Hello"), Vec::from("World")]);
         let mut buf:Vec<u8> = Vec::new();
         for i in 0..16 {
             fsf.append_fuzzed(i, &mut buf)
@@ -185,8 +185,8 @@ mod tests {
     #[test]
     fn fuzzchain_t1() {
         let mut fc1 = FuzzChain::new();
-        let mut rfsf = RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
-        let mut rspacesf1 = RandomFixedStringsFuzzer::new(vec![" ".to_string(), "  ".to_string()]);
+        let mut rfsf = RandomFixedStringsFuzzer::new(vec![Vec::from("Hello"), Vec::from("World")]);
+        let mut rspacesf1 = RandomFixedStringsFuzzer::new(vec![Vec::from(" "), Vec::from("  ")]);
         let mut rspacesf2 = RandomFixedFuzzer::new(1, 5, vec![' ' as u8]);
         let mut rfpf = RandomFixedFuzzer::new_printables(3, 10);
         let mut rfpf2 = RandomFixedFuzzer::new_printables(3, 10);
@@ -205,9 +205,9 @@ mod tests {
     #[test]
     fn fuzzchainimmuts_t2() {
         let mut fc1 = FuzzChainImmuts::new();
-        let rfsf = RandomFixedStringsFuzzer::new(vec!["Hello".to_string(), "World".to_string()]);
+        let rfsf = RandomFixedStringsFuzzer::new(vec![Vec::from("Hello"), Vec::from("World")]);
         let rfsf = Rc::new(rfsf);
-        let rspacesf1 = RandomFixedStringsFuzzer::new(vec![" ".to_string(), "  ".to_string()]);
+        let rspacesf1 = RandomFixedStringsFuzzer::new(vec![Vec::from(" "), Vec::from("  ")]);
         let rspacesf1 = Rc::new(rspacesf1);
         let rspacesf2 = RandomFixedFuzzer::new(1, 5, vec![' ' as u8]);
         let rspacesf2 = Rc::new(rspacesf2);
