@@ -106,7 +106,7 @@ enum Op {
     IobRead(String, String),
     IobClose(String),
     IfLt(DataM, DataM, String, String),
-    CheckJump(String, String, String, String, String),
+    CheckJump(DataM, DataM, String, String, String),
     Jump(String),
     Call(String),
     Ret,
@@ -206,7 +206,9 @@ impl Op {
                 if args.len() != 5 {
                     panic!("ERRR:{}:CheckJump:InsufficientArgs:{}", msgtag, sargs);
                 }
-                return Ok(Op::CheckJump(args[0].to_string(), args[1].to_string(), args[2].to_string(), args[3].to_string(), args[4].to_string()));
+                let arg1dm = DataM::compile(args[0], "isize", &format!("ERRR:{}:CheckJump:Arg1:{}", msgtag, args[0]));
+                let arg2dm = DataM::compile(args[1], "isize", &format!("ERRR:{}:CheckJump:Arg2:{}", msgtag, args[1]));
+                return Ok(Op::CheckJump(arg1dm, arg2dm, args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
             "jump" => {
                 return Ok(Op::Jump(sargs.to_string()));
@@ -408,18 +410,8 @@ impl Op {
                 }
             }
             Self::CheckJump(arg1, arg2, ltlabel, eqlabel, gtlabel) => {
-                let varg1;
-                if arg1.starts_with("$") {
-                    varg1 = isize::from_str_radix(&arg1[1..], 10).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg1Val");
-                } else {
-                    varg1 = *ctxt.ints.get(arg1).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg1Var");
-                }
-                let varg2;
-                if arg2.starts_with("$") {
-                    varg2 = isize::from_str_radix(&arg2[1..], 10).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg2Val");
-                } else {
-                    varg2 = *ctxt.ints.get(arg2).expect("ERRR:FuzzerK:VM:Op:CheckJump:Arg2Var");
-                }
+                let varg1 = arg1.get_isize(ctxt, "ERRR:FuzzerK:VM:Op:CheckJump:GetArg1");
+                let varg2 = arg2.get_isize(ctxt, "ERRR:FuzzerK:VM:Op:CheckJump:GetArg2");
                 let label;
                 if varg1 < varg2 {
                     label = ltlabel;
