@@ -53,8 +53,8 @@ impl Context {
 
 #[derive(Debug)]
 enum DataM {
-    GetIntLiteral(String, isize),
-    GetIntVar(String, String),
+    GetIntLiteral(isize),
+    GetIntVar(String),
 }
 
 
@@ -63,27 +63,20 @@ impl DataM {
     fn compile(sdata: &str, _stype: &str, smsg: &str) -> DataM {
         if sdata.starts_with("$") {
             let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:FuzzerK:VM:DataM:Compile:IntLiteral:{}", smsg));
-            return DataM::GetIntLiteral(sdata.to_string(), idata);
+            return DataM::GetIntLiteral(idata);
         }
         if sdata.trim() == "" {
             panic!("ERRR:FuzzerK:VM:DataM:Compile:IntVar:Empty:{}", smsg);
         }
-        return DataM::GetIntVar(sdata.to_string(), sdata.to_string());
-    }
-
-    fn raw(&self) -> String {
-        match self {
-            DataM::GetIntLiteral(sraw, _) => return sraw.clone(),
-            DataM::GetIntVar(sraw, _) => return sraw.clone(),
-        }
+        return DataM::GetIntVar(sdata.to_string());
     }
 
     fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
         match self {
-            Self::GetIntLiteral(_sraw, ival) => {
+            Self::GetIntLiteral(ival) => {
                 return *ival;
             },
-            Self::GetIntVar(_sraw, vid) => {
+            Self::GetIntVar(vid) => {
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:DataM:Run:{}", smsg));
                 return ival;
             }
@@ -315,8 +308,7 @@ impl Op {
                 ctxt.strs.insert(vid.to_string(), vval.to_string());
             },
             Self::LetInt(vid, vval) => {
-                let valraw = vval.raw();
-                let ival = vval.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:LetInt:{} {}", vid, valraw));
+                let ival = vval.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:LetInt:{} {:?}", vid, vval));
                 ctxt.ints.insert(vid.to_string(), ival);
             },
             Self::Inc(vid) => {
@@ -389,10 +381,8 @@ impl Op {
                 ctxt.stepu += 1;
             }
             Self::IfLt(chkvaldm, curvaldm, sop , oparg) => {
-                let chkvalraw = chkvaldm.raw();
-                let chkval = chkvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetChkAgainstVal:{}", chkvalraw));
-                let curvalraw = curvaldm.raw();
-                let curval = curvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetCurVal:{}", curvalraw));
+                let chkval = chkvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetChkAgainstVal:{:?}", chkvaldm));
+                let curval = curvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetCurVal:{:?}", curvaldm));
                 let mut opdo = false;
                 //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", chkval, curval, sop, oparg));
                 if curval < chkval {
@@ -410,8 +400,8 @@ impl Op {
                 }
             }
             Self::CheckJump(arg1, arg2, ltlabel, eqlabel, gtlabel) => {
-                let varg1 = arg1.get_isize(ctxt, "ERRR:FuzzerK:VM:Op:CheckJump:GetArg1");
-                let varg2 = arg2.get_isize(ctxt, "ERRR:FuzzerK:VM:Op:CheckJump:GetArg2");
+                let varg1 = arg1.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:CheckJump:GetArg1:{:?}", arg1));
+                let varg2 = arg2.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:CheckJump:GetArg2:{:?}", arg2));
                 let label;
                 if varg1 < varg2 {
                     label = ltlabel;
