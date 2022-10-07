@@ -103,7 +103,7 @@ enum Op {
     Jump(String),
     Call(String),
     Ret,
-    SleepMSec(u64),
+    SleepMSec(DataM),
     FcGet(String, String),
     BufNew(String, usize),
     LetBuf(String, String),
@@ -214,8 +214,8 @@ impl Op {
             }
 
             "sleepmsec" => {
-                let uval = u64::from_str_radix(sargs, 10).expect(&format!("ERRR:{}:SleepMSec:Value:{}", msgtag, sargs));
-                return Ok(Op::SleepMSec(uval));
+                let msecdm = DataM::compile(sargs, "isize", &format!("ERRR:{}:SleepMSec:Value:{}", msgtag, sargs));
+                return Ok(Op::SleepMSec(msecdm));
             }
 
             "fcget" => {
@@ -370,8 +370,9 @@ impl Op {
                 }
                 ctxt.iobs.remove(ioid);
             }
-            Self::SleepMSec(msec) => {
-                thread::sleep(Duration::from_millis(*msec));
+            Self::SleepMSec(msecdm) => {
+                let msec = msecdm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:SleepMSec:Value:{:?}", msecdm));
+                thread::sleep(Duration::from_millis(msec as u64));
             }
             Self::FcGet(fcid, bufid) => {
                 let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:FuzzerK:VM:Op:FcGet:UnknownFC???:{}", fcid));
