@@ -572,14 +572,14 @@ impl VM {
             ioargs.push_str(&sioarg);
         }
         let mut runcmds = Vec::<String>::new();
-        runcmds.push("letint loopcnt 0".to_string());
+        runcmds.push("letint loopcnt $0".to_string());
         runcmds.push("!label freshstart".to_string());
         runcmds.push(format!("iobnew srvX {} {}", ioaddr, ioargs));
         runcmds.push(format!("fcget {} fuzzgot", fc));
         runcmds.push("iobwrite srvX fuzzgot".to_string());
         runcmds.push("iobflush srvX".to_string());
         runcmds.push("inc loopcnt".to_string());
-        runcmds.push(format!("iflt {} loopcnt goto freshstart", loopcnt));
+        runcmds.push(format!("iflt ${} loopcnt goto freshstart", loopcnt));
         self.compile(runcmds);
     }
 
