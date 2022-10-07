@@ -154,7 +154,7 @@ mod tests {
 
     fn gen_randbytes(size: usize) -> Vec<u8> {
         let mut randbytes = Vec::new();
-        for i in 0..size {
+        for _i in 0..size {
             randbytes.push(rand::random());
         }
         randbytes
