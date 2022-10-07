@@ -53,8 +53,8 @@ impl Context {
 
 #[derive(Debug)]
 enum DataM {
-    GetIntLiteral(isize),
-    GetIntVar(String),
+    GetIntLiteral(String, isize),
+    GetIntVar(String, String),
 }
 
 
@@ -63,20 +63,27 @@ impl DataM {
     fn compile(sdata: &str, _stype: &str, smsg: &str) -> DataM {
         if sdata.starts_with("$") {
             let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:FuzzerK:VM:DataM:Compile:IntLiteral:{}", smsg));
-            return DataM::GetIntLiteral(idata);
+            return DataM::GetIntLiteral(sdata.to_string(), idata);
         }
         if sdata.trim() == "" {
             panic!("ERRR:FuzzerK:VM:DataM:Compile:IntVar:Empty:{}", smsg);
         }
-        return DataM::GetIntVar(sdata.to_string());
+        return DataM::GetIntVar(sdata.to_string(), sdata.to_string());
+    }
+
+    fn raw(&self) -> String {
+        match self {
+            DataM::GetIntLiteral(sraw, _) => return sraw.clone(),
+            DataM::GetIntVar(sraw, _) => return sraw.clone(),
+        }
     }
 
     fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
         match self {
-            Self::GetIntLiteral(ival) => {
+            Self::GetIntLiteral(_sraw, ival) => {
                 return *ival;
             },
-            Self::GetIntVar(vid) => {
+            Self::GetIntVar(_sraw, vid) => {
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:DataM:Run:{}", smsg));
                 return ival;
             }
@@ -306,7 +313,8 @@ impl Op {
                 ctxt.strs.insert(vid.to_string(), vval.to_string());
             },
             Self::LetInt(vid, vval) => {
-                let ival = vval.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:LetInt:{}", vid));
+                let valraw = vval.raw();
+                let ival = vval.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:LetInt:{} {}", vid, valraw));
                 ctxt.ints.insert(vid.to_string(), ival);
             },
             Self::Inc(vid) => {
@@ -379,8 +387,10 @@ impl Op {
                 ctxt.stepu += 1;
             }
             Self::IfLt(chkvaldm, curvaldm, sop , oparg) => {
-                let chkval = chkvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetChkAgainstVal:"));
-                let curval = curvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetCurVal"));
+                let chkvalraw = chkvaldm.raw();
+                let chkval = chkvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetChkAgainstVal:{}", chkvalraw));
+                let curvalraw = curvaldm.raw();
+                let curval = curvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetCurVal:{}", curvalraw));
                 let mut opdo = false;
                 //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", chkval, curval, sop, oparg));
                 if curval < chkval {
