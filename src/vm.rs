@@ -51,6 +51,7 @@ impl Context {
 }
 
 
+#[derive(Debug)]
 enum DataM {
     GetIntLiteral(isize),
     GetIntVar(String),
@@ -59,7 +60,7 @@ enum DataM {
 
 impl DataM {
 
-    fn compile(sdata: &str, _stype: char, smsg: &str) -> DataM {
+    fn compile(sdata: &str, _stype: &str, smsg: &str) -> DataM {
         if sdata.starts_with("$") {
             let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:FuzzerK:VM:DataM:Compile:IntLiteral:{}", smsg));
             return DataM::GetIntLiteral(idata);
@@ -70,7 +71,7 @@ impl DataM {
         return DataM::GetIntVar(sdata.to_string());
     }
 
-    fn run(&self, ctxt: &mut Context, smsg: &str) -> isize {
+    fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
         match self {
             Self::GetIntLiteral(ival) => {
                 return *ival;
@@ -84,11 +85,12 @@ impl DataM {
 
 }
 
+
 #[derive(Debug)]
 enum Op {
     Nop,
     LetStr(String, String),
-    LetInt(String, isize),
+    LetInt(String, DataM),
     Inc(String),
     Dec(String),
     IobNew(String, String, HashMap<String, String>),
@@ -135,8 +137,8 @@ impl Op {
             }
             "letint" => {
                 let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetInt:{}", msgtag, sargs));
-                let ival = isize::from_str_radix(sval, 10).expect(&format!("ERRR:{}:LetInt:Value:{}", msgtag, sval));
-                return Ok(Op::LetInt(vid.to_string(), ival));
+                let dm = DataM::compile(sval, "isize", &format!("ERRR:{}:LetInt:Value:{}", msgtag, sval));
+                return Ok(Op::LetInt(vid.to_string(), dm));
             }
 
             "inc" => {
@@ -302,7 +304,8 @@ impl Op {
                 ctxt.strs.insert(vid.to_string(), vval.to_string());
             },
             Self::LetInt(vid, vval) => {
-                ctxt.ints.insert(vid.to_string(), *vval);
+                let ival = vval.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:LetInt:{}", vid));
+                ctxt.ints.insert(vid.to_string(), ival);
             },
             Self::Inc(vid) => {
                 let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Inc:{}", vid));
