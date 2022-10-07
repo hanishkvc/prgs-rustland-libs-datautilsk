@@ -62,11 +62,11 @@ impl DataM {
 
     fn compile(sdata: &str, _stype: &str, smsg: &str) -> DataM {
         if sdata.starts_with("$") {
-            let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:FuzzerK:VM:DataM:Compile:IntLiteral:{}", smsg));
+            let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
             return DataM::GetIntLiteral(idata);
         }
         if sdata.trim() == "" {
-            panic!("ERRR:FuzzerK:VM:DataM:Compile:IntVar:Empty:{}", smsg);
+            panic!("ERRR:{}:DataM:IntVar:Empty", smsg);
         }
         return DataM::GetIntVar(sdata.to_string());
     }
@@ -77,8 +77,26 @@ impl DataM {
                 return *ival;
             },
             Self::GetIntVar(vid) => {
-                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:DataM:Run:{}", smsg));
+                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:Failed to get var", smsg));
                 return ival;
+            }
+        }
+    }
+
+    fn get_usize(&self, ctxt: &mut Context, smsg: &str) -> usize {
+        match self {
+            Self::GetIntLiteral(ival) => {
+                if *ival < 0 {
+                    panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
+                }
+                return *ival as usize;
+            },
+            Self::GetIntVar(vid) => {
+                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:Failed to get var", smsg));
+                if ival < 0 {
+                    panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
+                }
+                return ival as usize;
             }
         }
     }
@@ -137,7 +155,7 @@ impl Op {
             }
             "letint" => {
                 let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetInt:{}", msgtag, sargs));
-                let dm = DataM::compile(sval, "isize", &format!("ERRR:{}:LetInt:Value:{}", msgtag, sval));
+                let dm = DataM::compile(sval, "isize", &format!("{}:LetInt:Value:{}", msgtag, sval));
                 return Ok(Op::LetInt(vid.to_string(), dm));
             }
 
@@ -190,8 +208,8 @@ impl Op {
                 if args.len() != 4 {
                     panic!("ERRR:{}:IfLt:InsufficientArgs:{}", msgtag, sargs);
                 }
-                let chkvaldm = DataM::compile(args[0], "isize", &format!("ERRR:{}:IfLt:CheckAgainstValue:{}", msgtag, args[0]));
-                let curvaldm = DataM::compile(args[1], "isize", &format!("ERRR:{}:IfLt:CurValue:{}", msgtag, args[1]));
+                let chkvaldm = DataM::compile(args[0], "isize", &format!("{}:IfLt:CheckAgainstValue:{}", msgtag, args[0]));
+                let curvaldm = DataM::compile(args[1], "isize", &format!("{}:IfLt:CurValue:{}", msgtag, args[1]));
                 return Ok(Op::IfLt(chkvaldm, curvaldm, args[2].to_string(), args[3].to_string()));
             }
             "checkjump" => {
@@ -199,8 +217,8 @@ impl Op {
                 if args.len() != 5 {
                     panic!("ERRR:{}:CheckJump:InsufficientArgs:{}", msgtag, sargs);
                 }
-                let arg1dm = DataM::compile(args[0], "isize", &format!("ERRR:{}:CheckJump:Arg1:{}", msgtag, args[0]));
-                let arg2dm = DataM::compile(args[1], "isize", &format!("ERRR:{}:CheckJump:Arg2:{}", msgtag, args[1]));
+                let arg1dm = DataM::compile(args[0], "isize", &format!("{}:CheckJump:Arg1:{}", msgtag, args[0]));
+                let arg2dm = DataM::compile(args[1], "isize", &format!("{}:CheckJump:Arg2:{}", msgtag, args[1]));
                 return Ok(Op::CheckJump(arg1dm, arg2dm, args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
             "jump" => {
@@ -214,7 +232,7 @@ impl Op {
             }
 
             "sleepmsec" => {
-                let msecdm = DataM::compile(sargs, "isize", &format!("ERRR:{}:SleepMSec:Value:{}", msgtag, sargs));
+                let msecdm = DataM::compile(sargs, "isize", &format!("{}:SleepMSec:Value:{}", msgtag, sargs));
                 return Ok(Op::SleepMSec(msecdm));
             }
 
@@ -308,7 +326,7 @@ impl Op {
                 ctxt.strs.insert(vid.to_string(), vval.to_string());
             },
             Self::LetInt(vid, vval) => {
-                let ival = vval.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:LetInt:{} {:?}", vid, vval));
+                let ival = vval.get_isize(ctxt, &format!("FuzzerK:VM:Op:LetInt:{} {:?}", vid, vval));
                 ctxt.ints.insert(vid.to_string(), ival);
             },
             Self::Inc(vid) => {
@@ -371,7 +389,7 @@ impl Op {
                 ctxt.iobs.remove(ioid);
             }
             Self::SleepMSec(msecdm) => {
-                let msec = msecdm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:SleepMSec:Value:{:?}", msecdm));
+                let msec = msecdm.get_usize(ctxt, &format!("FuzzerK:VM:Op:SleepMSec:Value:{:?}", msecdm));
                 thread::sleep(Duration::from_millis(msec as u64));
             }
             Self::FcGet(fcid, bufid) => {
@@ -382,8 +400,8 @@ impl Op {
                 ctxt.stepu += 1;
             }
             Self::IfLt(chkvaldm, curvaldm, sop , oparg) => {
-                let chkval = chkvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetChkAgainstVal:{:?}", chkvaldm));
-                let curval = curvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetCurVal:{:?}", curvaldm));
+                let chkval = chkvaldm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetChkAgainstVal:{:?}", chkvaldm));
+                let curval = curvaldm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetCurVal:{:?}", curvaldm));
                 let mut opdo = false;
                 //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", chkval, curval, sop, oparg));
                 if curval < chkval {
@@ -401,8 +419,8 @@ impl Op {
                 }
             }
             Self::CheckJump(arg1, arg2, ltlabel, eqlabel, gtlabel) => {
-                let varg1 = arg1.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:CheckJump:GetArg1:{:?}", arg1));
-                let varg2 = arg2.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:CheckJump:GetArg2:{:?}", arg2));
+                let varg1 = arg1.get_isize(ctxt, &format!("FuzzerK:VM:Op:CheckJump:GetArg1:{:?}", arg1));
+                let varg2 = arg2.get_isize(ctxt, &format!("FuzzerK:VM:Op:CheckJump:GetArg2:{:?}", arg2));
                 let label;
                 if varg1 < varg2 {
                     label = ltlabel;
