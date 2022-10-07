@@ -98,7 +98,7 @@ enum Op {
     IobFlush(String),
     IobRead(String, String),
     IobClose(String),
-    IfLt(String, String, String, String),
+    IfLt(DataM, DataM, String, String),
     CheckJump(String, String, String, String, String),
     Jump(String),
     Call(String),
@@ -190,7 +190,9 @@ impl Op {
                 if args.len() != 4 {
                     panic!("ERRR:{}:IfLt:InsufficientArgs:{}", msgtag, sargs);
                 }
-                return Ok(Op::IfLt(args[0].to_string(), args[1].to_string(), args[2].to_string(), args[3].to_string()));
+                let chkvaldm = DataM::compile(args[0], "isize", &format!("ERRR:{}:IfLt:CheckAgainstValue:{}", msgtag, args[0]));
+                let curvaldm = DataM::compile(args[1], "isize", &format!("ERRR:{}:IfLt:CurValue:{}", msgtag, args[1]));
+                return Ok(Op::IfLt(chkvaldm, curvaldm, args[2].to_string(), args[3].to_string()));
             }
             "checkjump" => {
                 let args: Vec<&str> = sargs.splitn(5, ' ').collect();
@@ -376,9 +378,9 @@ impl Op {
                 ctxt.bufs.insert(bufid.to_string(), gotfuzz);
                 ctxt.stepu += 1;
             }
-            Self::IfLt(sval, vid, sop , oparg) => {
-                let chkval = isize::from_str_radix(sval, 10).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:ChkVal:{}:Conversion", sval));
-                let curval = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:Var:{}", vid));
+            Self::IfLt(chkvaldm, curvaldm, sop , oparg) => {
+                let chkval = chkvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetChkAgainstVal:"));
+                let curval = curvaldm.get_isize(ctxt, &format!("ERRR:FuzzerK:VM:Op:IfLt:GetCurVal"));
                 let mut opdo = false;
                 //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", chkval, curval, sop, oparg));
                 if curval < chkval {
