@@ -51,6 +51,39 @@ impl Context {
 }
 
 
+enum DataM {
+    GetIntLiteral(isize),
+    GetIntVar(String),
+}
+
+
+impl DataM {
+
+    fn compile(sdata: &str, _stype: char, smsg: &str) -> DataM {
+        if sdata.starts_with("$") {
+            let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:FuzzerK:VM:DataM:Compile:IntLiteral:{}", smsg));
+            return DataM::GetIntLiteral(idata);
+        }
+        if sdata.trim() == "" {
+            panic!("ERRR:FuzzerK:VM:DataM:Compile:IntVar:Empty:{}", smsg);
+        }
+        return DataM::GetIntVar(sdata.to_string());
+    }
+
+    fn run(&self, ctxt: &mut Context, smsg: &str) -> isize {
+        match self {
+            Self::GetIntLiteral(ival) => {
+                return *ival;
+            },
+            Self::GetIntVar(vid) => {
+                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:DataM:Run:{}", smsg));
+                return ival;
+            }
+        }
+    }
+
+}
+
 #[derive(Debug)]
 enum Op {
     Nop,
