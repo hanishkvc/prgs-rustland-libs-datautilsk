@@ -312,7 +312,7 @@ enum ALUOP {
 #[derive(Debug)]
 enum Op {
     Nop,
-    LetStr(String, String),
+    LetStr(String, DataM),
     LetInt(String, DataM),
     Inc(String),
     Dec(String),
@@ -356,8 +356,9 @@ impl Op {
             }
 
             "letstr" => {
-                let (vid, vval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetStr:{}", msgtag, sargs));
-                return Ok(Op::LetStr(vid.to_string(), vval.to_string()));
+                let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetStr:{}", msgtag, sargs));
+                let dm = DataM::compile(sval, "string", &format!("{}:LetStr:Value:{}", msgtag, sval));
+                return Ok(Op::LetStr(vid.to_string(), dm));
             }
             "letint" => {
                 let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetInt:{}", msgtag, sargs));
@@ -544,8 +545,9 @@ impl Op {
     fn run(&self, ctxt: &mut Context) {
         match self {
             Self::Nop => (),
-            Self::LetStr(vid, vval ) => {
-                ctxt.strs.insert(vid.to_string(), vval.to_string());
+            Self::LetStr(vid, vdm) => {
+                let sval = vdm.get_string(ctxt, &format!("FuzzerK:VM:Op:LetStr:{} {:?}", vid, vdm));
+                ctxt.strs.insert(vid.to_string(), sval);
             },
             Self::LetInt(vid, vval) => {
                 let ival = vval.get_isize(ctxt, &format!("FuzzerK:VM:Op:LetInt:{} {:?}", vid, vval));
