@@ -534,7 +534,7 @@ impl Op {
                 //log_d(&format!("DBUG:{}:BufsMerge:{} <- {:?}", msgtag, bufid, vbufs));
                 return Ok(Op::BufsMerge(bufid, vbufs));
             }
-            _ => todo!()
+            _ => panic!("ERRR:{}:UnknownOp:{}", msgtag, sop)
         }
     }
 
