@@ -462,7 +462,7 @@ impl Op {
                 return Ok(Op::FcGet(fcid.to_string(), bufid.to_string()));
             }
 
-            "bufnew" => {
+            "bufnew" => { // TODO use DataM wrt BufSize
                 let (bufid, bufsize) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufNew:{}", msgtag, sargs));
                 let bufsize = usize::from_str_radix(bufsize, 10).expect(&format!("ERRR:{}:BufNew:Size:{}", msgtag, bufsize));
                 return Ok(Op::BufNew(bufid.to_string(), bufsize));
@@ -472,7 +472,7 @@ impl Op {
                 let dm = DataM::compile(bufdata, "any", &format!("{}:LetBuf:Value:{}", msgtag, bufdata));
                 return Ok(Op::LetBuf(bufid.to_string(), dm));
             }
-            "buf8randomize" => {
+            "buf8randomize" => { // TODO use DataM wrt int values
                 let parts: Vec<&str> = sargs.split(" ").collect();
                 let bufid = parts[0].to_string();
 
