@@ -55,13 +55,16 @@ impl Context {
 enum DataM {
     IntLiteral(isize),
     IntVar(String),
+    StringLiteral(String),
+    StringVar(String)
 }
 
 
 impl DataM {
 
-    fn compile(sdata: &str, stype: &str, smsg: &str) -> DataM {
-        if sdata.trim() == "" {
+    fn compile(mut sdata: &str, stype: &str, smsg: &str) -> DataM {
+        sdata = sdata.trim();
+        if sdata == "" {
             panic!("ERRR:{}:DataM:{}:Empty", smsg, stype);
         }
         if stype == "isize" {
@@ -70,6 +73,19 @@ impl DataM {
                 return DataM::IntLiteral(idata);
             }
             return DataM::IntVar(sdata.to_string());
+        }
+        if stype == "string" {
+            if sdata.len() >= 2 {
+                let schar = sdata.chars().nth(0).unwrap();
+                let echar = sdata.chars().last().unwrap();
+                if schar == '"' || echar == '"' {
+                    let mut rdata = sdata.clone();
+                    rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at start of {}", smsg, sdata));
+                    rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at end of {}", smsg, sdata));
+                    return DataM::StringLiteral(rdata.to_string());
+                }
+            }
+            return DataM::StringVar(sdata.to_string())
         }
         panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
     }
