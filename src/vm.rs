@@ -53,8 +53,8 @@ impl Context {
 
 #[derive(Debug)]
 enum DataM {
-    GetIntLiteral(isize),
-    GetIntVar(String),
+    IntLiteral(isize),
+    IntVar(String),
 }
 
 
@@ -63,20 +63,20 @@ impl DataM {
     fn compile(sdata: &str, _stype: &str, smsg: &str) -> DataM {
         if sdata.starts_with("$") {
             let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
-            return DataM::GetIntLiteral(idata);
+            return DataM::IntLiteral(idata);
         }
         if sdata.trim() == "" {
             panic!("ERRR:{}:DataM:IntVar:Empty", smsg);
         }
-        return DataM::GetIntVar(sdata.to_string());
+        return DataM::IntVar(sdata.to_string());
     }
 
     fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
         match self {
-            Self::GetIntLiteral(ival) => {
+            Self::IntLiteral(ival) => {
                 return *ival;
             },
-            Self::GetIntVar(vid) => {
+            Self::IntVar(vid) => {
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:Failed to get var", smsg));
                 return ival;
             }
@@ -85,13 +85,13 @@ impl DataM {
 
     fn get_usize(&self, ctxt: &mut Context, smsg: &str) -> usize {
         match self {
-            Self::GetIntLiteral(ival) => {
+            Self::IntLiteral(ival) => {
                 if *ival < 0 {
                     panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
                 }
                 return *ival as usize;
             },
-            Self::GetIntVar(vid) => {
+            Self::IntVar(vid) => {
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:Failed to get var", smsg));
                 if ival < 0 {
                     panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
