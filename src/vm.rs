@@ -58,7 +58,9 @@ enum DataM {
     StringLiteral(String),
     StringVar(String),
     BufData(Vec<u8>),
-    AnyVar(String)
+    AnyVar(String),
+    XTimeStamp,
+    XRandomBytes(usize)
 }
 
 
@@ -69,6 +71,7 @@ impl DataM {
     /// * int literals should start with $
     /// * string literals should be in double quotes ""
     /// * buf8 literals should start with 0x
+    /// * special literals should start with __
     /// * anything else is treated as a Var name, which could either be a IntVar or StringVar or Buf8Var
     ///
     fn compile(mut sdata: &str, stype: &str, smsg: &str) -> DataM {
@@ -110,9 +113,22 @@ impl DataM {
                     rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at end of {}", smsg, sdata));
                     return DataM::StringLiteral(rdata.to_string());
                 }
-                if (sdata.len() > 2) && (sdata.starts_with("0x")) {
-                    let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:HexString:Conversion:{}", smsg, sdata));
-                    return DataM::BufData(bdata);
+                if sdata.len() > 2 {
+                    if sdata.starts_with("0x") {
+                        let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:HexString:Conversion:{}", smsg, sdata));
+                        return DataM::BufData(bdata);
+                    }
+                    if sdata.starts_with("__") {
+                        if sdata == "__TIME__STAMP__" {
+                            return DataM::XTimeStamp;
+                        }
+                        if sdata.starts_with("__RANDOM__BYTES__") {
+                            let (_random, bytelen) = sdata.split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
+                            let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
+                            return DataM::XRandomBytes(bytelen);
+                        }
+                        panic!("ERRR:{}:DataM:{}:Unknown Special Tag {}???", smsg, stype, sdata);
+                    }
                 }
             }
             return DataM::AnyVar(sdata.to_string())
@@ -194,6 +210,17 @@ impl DataM {
                     return String::from_utf8_lossy(sval.unwrap()).to_string();
                 }
                 panic!("ERRR:{}:DataM:GetString:AnyVar:Unknown:{}", smsg, vid);
+            },
+            DataM::XTimeStamp => {
+                return format!("{:?}",time::SystemTime::now());
+            },
+            DataM::XRandomBytes(bytelen) => {
+                let mut rng = rand::thread_rng();
+                let mut vdata: Vec<u8> = Vec::new();
+                for _i in 0..*bytelen {
+                    vdata.push(rng.gen_range(0..=255)); // rusty 0..256
+                }
+                return String::new();
             }
         }
     }
@@ -600,25 +627,7 @@ impl Op {
                 ctxt.bufs.insert(bufid.to_string(), buf);
             }
             Self::LetBuf(bufid, bufdm) => {
-                let mut vdata;
-                if let DataM::StringLiteral(bufdata) = bufdm {
-                    if bufdata == "__TIME__STAMP__" {
-                        let ts = format!("{:?}",time::SystemTime::now());
-                        vdata = Vec::from(ts);
-                    } else if bufdata.starts_with("__RANDOM__BYTES__") {
-                        let (_random, bytelen) = bufdata.split_once("__BYTES__").expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
-                        let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
-                        let mut rng = rand::thread_rng();
-                        vdata = Vec::new();
-                        for _i in 0..bytelen {
-                            vdata.push(rng.gen_range(0..=255)); // rusty 0..256
-                        }
-                    } else {
-                        vdata = Vec::from(bufdata.to_string());
-                    }
-                } else {
-                    vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetBufData");
-                }
+                let vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetSrcData");
                 ctxt.bufs.insert(bufid.to_string(), vdata);
             }
             Self::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval) => {
