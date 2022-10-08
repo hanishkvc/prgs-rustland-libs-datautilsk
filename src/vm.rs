@@ -105,12 +105,23 @@ impl DataM {
 
 
 #[derive(Debug)]
+enum ALUOP {
+    Add,
+    Sub,
+    Mult,
+    Div,
+    Mod,
+}
+
+
+#[derive(Debug)]
 enum Op {
     Nop,
     LetStr(String, String),
     LetInt(String, DataM),
     Inc(String),
     Dec(String),
+    Alu(ALUOP, String, DataM, DataM),
     IobNew(String, String, HashMap<String, String>),
     IobWrite(String, String),
     IobFlush(String),
@@ -164,6 +175,21 @@ impl Op {
             }
             "dec" => {
                 return Ok(Op::Dec(sargs.to_string()));
+            }
+
+            "add" | "sub" | "mult" | "div" | "mod" => {
+                let aluop = match sop {
+                    "add" => ALUOP::Add,
+                    "sub" => ALUOP::Sub,
+                    "mult" => ALUOP::Mult,
+                    "div" => ALUOP::Div,
+                    "mod" => ALUOP::Mod,
+                    _ => todo!(),
+                };
+                let args: Vec<&str> = sargs.split_whitespace().collect();
+                let dmsrc1 = DataM::compile(args[1], "isize", &format!("{}:{}:SrcArg1", msgtag, sop));
+                let dmsrc2 = DataM::compile(args[1], "isize", &format!("{}:{}:SrcArg1", msgtag, sop));
+                return Ok(Op::Alu(aluop, args[0].to_string(), dmsrc1, dmsrc2));
             }
 
             "iobnew" => {
@@ -338,7 +364,19 @@ impl Op {
                 let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Dec:{}", vid));
                 val -= 1;
                 ctxt.ints.insert(vid.to_string(), val);
-            }
+            },
+            Self::Alu(aluop, destvid, dmsrc1, dmsrc2) => {
+                let src1 = dmsrc1.get_isize(ctxt, "FuzzerK:VM:Op:Alu:Src1");
+                let src2 = dmsrc2.get_isize(ctxt, "FuzzerK:VM:Op:Alu:Src2");
+                let res = match aluop {
+                    ALUOP::Add => src1 + src2,
+                    ALUOP::Sub => src1 - src2,
+                    ALUOP::Mult => src1 * src2,
+                    ALUOP::Div => src1 / src2,
+                    ALUOP::Mod => src1 % src2,
+                };
+                ctxt.ints.insert(destvid.to_string(), res);
+            },
             Self::IobNew(ioid, ioaddr, ioargs) => {
                 let zenio = ctxt.iobs.get_mut(ioid);
                 if zenio.is_some() {
