@@ -477,20 +477,16 @@ impl Op {
                 let bufsize = usize::from_str_radix(bufsize, 10).expect(&format!("ERRR:{}:BufNew:Size:{}", msgtag, bufsize));
                 return Ok(Op::BufNew(bufid.to_string(), bufsize));
             }
-            "letbuf" => {
-                let (bufid, bufdataplus) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf:{}", msgtag, sargs));
-                let data_type = bufdataplus.split_once(' ');
-                let bufdata;
-                if data_type.is_none() {
-                    bufdata = bufdataplus;
-                } else {
-                    bufdata = data_type.unwrap().0;
-                }
-                let dm = DataM::compile(bufdata, "any", &format!("{}:LetBuf:Value:{}", msgtag, bufdata));
-                if data_type.is_none() {
+            "letbuf" | "letbuf.s" => {
+                let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf+:{}", msgtag, sargs));
+                let dm = DataM::compile(bufdata, "any", &format!("{}:LetBuf+:Value:{}", msgtag, bufdata));
+                if sop == "letbuf" {
                     return Ok(Op::LetBuf(bufid.to_string(), dm));
+                } else if sop == "letbuf.s" {
+                    return Ok(Op::LetBufStr(bufid.to_string(), dm));
+                } else {
+                    return Err(format!("ERRR:{}:LetBuf+:Unknown Variant:{}", msgtag, sop))
                 }
-                return Ok(Op::LetBufStr(bufid.to_string(), dm));
             }
             "buf8randomize" => { // TODO use DataM wrt int values
                 let parts: Vec<&str> = sargs.split(" ").collect();
