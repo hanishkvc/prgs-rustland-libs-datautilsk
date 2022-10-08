@@ -158,28 +158,11 @@ impl DataM {
     }
 
     fn get_usize(&self, ctxt: &mut Context, smsg: &str) -> usize {
-        match self {
-            Self::IntLiteral(ival) => {
-                if *ival < 0 {
-                    panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
-                }
-                return *ival as usize;
-            },
-            Self::IntVar(vid) => {
-                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:Failed to get var", smsg));
-                if ival < 0 {
-                    panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
-                }
-                return ival as usize;
-            },
-            Self::StringLiteral(sval) => {
-                return datautils::intvalue::<isize>(sval, &format!("ERRR:{}:DataM:GetUSize:StringLiteral: Conversion failed", smsg)) as usize;
-            },
-            Self::StringVar(vid) => {
-                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:StringVar: Failed to get var", smsg));
-                return datautils::intvalue::<isize>(sval, &format!("ERRR:{}:DataM:GetUSize:StringVar: Conversion failed", smsg)) as usize;
-            },
+        let ival = self.get_isize(ctxt, &format!("{}:DataM:GetUSize",smsg));
+        if ival < 0 {
+            panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
         }
+        return ival as usize;
     }
 
     fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
