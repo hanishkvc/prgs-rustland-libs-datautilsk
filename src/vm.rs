@@ -149,6 +149,11 @@ impl DataM {
         }
     }
 
+    fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
+        let sval = self.get_string(ctxt, smsg);
+        Vec::from(sval)
+    }
+
 }
 
 
