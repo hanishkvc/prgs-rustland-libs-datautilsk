@@ -198,6 +198,10 @@ impl DataM {
         }
     }
 
+    ///
+    /// TODO: Need to have explicit logic rather than depend on GetString,
+    /// bcas GetString needs valid utf8 strings, else invalid chars gets replaced with place holder.
+    ///
     fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
         let sval = self.get_string(ctxt, smsg);
         Vec::from(sval)
@@ -237,7 +241,7 @@ enum Op {
     SleepMSec(DataM),
     FcGet(String, String),
     BufNew(String, usize),
-    LetBuf(String, String),
+    LetBuf(String, DataM),
     Buf8Randomize(String, isize, isize, isize, u8, u8),
     BufsMerge(String, Vec<String>),
 }
@@ -376,7 +380,8 @@ impl Op {
             }
             "letbuf" => {
                 let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf:{}", msgtag, sargs));
-                return Ok(Op::LetBuf(bufid.to_string(), bufdata.to_string()));
+                let dm = DataM::compile(bufdata, "any", &format!("{}:LetBuf:Value:{}", msgtag, bufdata));
+                return Ok(Op::LetBuf(bufid.to_string(), dm));
             }
             "buf8randomize" => {
                 let parts: Vec<&str> = sargs.split(" ").collect();
@@ -539,7 +544,7 @@ impl Op {
                 ctxt.bufs.insert(bufid.to_string(), gotfuzz);
                 ctxt.stepu += 1;
             }
-            Self::IfLt(chkvaldm, curvaldm, sop , oparg) => {
+            Self::IfLt(chkvaldm, curvaldm, sop , oparg) => { // TODO: Switch chkval and curval order/location
                 let chkval = chkvaldm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetChkAgainstVal:{:?}", chkvaldm));
                 let curval = curvaldm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetCurVal:{:?}", curvaldm));
                 let mut opdo = false;
@@ -594,8 +599,9 @@ impl Op {
                 buf.resize(*bufsize, 0);
                 ctxt.bufs.insert(bufid.to_string(), buf);
             }
-            Self::LetBuf(bufid, bufdata) => {
+            Self::LetBuf(bufid, bufdm) => {
                 let mut vdata;
+                let bufdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetBuf:CheckSpecial:GetString");
                 if bufdata == "__TIME__STAMP__" {
                     let ts = format!("{:?}",time::SystemTime::now());
                     vdata = Vec::from(ts);
@@ -607,10 +613,8 @@ impl Op {
                     for _i in 0..bytelen {
                         vdata.push(rng.gen_range(0..=255)); // rusty 0..256
                     }
-                } else if bufdata.starts_with("0x") {
-                    vdata = datautils::vu8_from_hex(&bufdata[2..]).expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:HexData:{}", bufdata));
                 } else {
-                    vdata = Vec::from(bufdata.clone());
+                    vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetBufData");
                 }
                 ctxt.bufs.insert(bufid.to_string(), vdata);
             }
