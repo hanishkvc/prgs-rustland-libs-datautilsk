@@ -740,6 +740,7 @@ impl Op {
                     let mut dupbuf = srcbuf.clone();
                     destbuf.append(&mut dupbuf);
                 }
+                log_d(&format!("DBUG:VM:Op:BufsMerge:{}:{:?}", destbufid, destbuf));
                 ctxt.bufs.insert(destbufid.to_string(), destbuf);
             }
         }
