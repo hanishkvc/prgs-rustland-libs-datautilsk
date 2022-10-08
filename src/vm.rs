@@ -339,6 +339,7 @@ enum Op {
     FcGet(String, String),
     BufNew(String, usize),
     LetBuf(String, DataM),
+    LetBufStr(String, DataM),
     Buf8Randomize(String, isize, isize, isize, u8, u8),
     BufsMerge(String, Vec<String>),
 }
@@ -477,9 +478,19 @@ impl Op {
                 return Ok(Op::BufNew(bufid.to_string(), bufsize));
             }
             "letbuf" => {
-                let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf:{}", msgtag, sargs));
+                let (bufid, bufdataplus) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf:{}", msgtag, sargs));
+                let data_type = bufdataplus.split_once(' ');
+                let bufdata;
+                if data_type.is_none() {
+                    bufdata = bufdataplus;
+                } else {
+                    bufdata = data_type.unwrap().0;
+                }
                 let dm = DataM::compile(bufdata, "any", &format!("{}:LetBuf:Value:{}", msgtag, bufdata));
-                return Ok(Op::LetBuf(bufid.to_string(), dm));
+                if data_type.is_none() {
+                    return Ok(Op::LetBuf(bufid.to_string(), dm));
+                }
+                return Ok(Op::LetBufStr(bufid.to_string(), dm));
             }
             "buf8randomize" => { // TODO use DataM wrt int values
                 let parts: Vec<&str> = sargs.split(" ").collect();
@@ -702,6 +713,11 @@ impl Op {
                 let vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetSrcData");
                 log_d(&format!("DBUG:VM:Op:LetBuf:{}:{:?}", bufid, vdata));
                 ctxt.bufs.insert(bufid.to_string(), vdata);
+            }
+            Self::LetBufStr(bufid, bufdm) => {
+                let vdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetBufStr:GetSrcData");
+                log_d(&format!("DBUG:VM:Op:LetBufStr:{}:{:?}", bufid, vdata));
+                ctxt.bufs.insert(bufid.to_string(), Vec::from(vdata));
             }
             Self::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval) => {
                 let buf = ctxt.bufs.get_mut(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:Buf8Randomize:Buf:{}", bufid));
