@@ -56,12 +56,21 @@ enum DataM {
     IntLiteral(isize),
     IntVar(String),
     StringLiteral(String),
-    StringVar(String)
+    StringVar(String),
+    BufData(Vec<u8>),
+    AnyVar(String)
 }
 
 
 impl DataM {
 
+    ///
+    /// If stype == any
+    /// * int literals should start with $
+    /// * string literals should be in double quotes ""
+    /// * buf8 literals should start with 0x
+    /// * anything else is treated as a Var name, which could either be a IntVar or StringVar or Buf8Var
+    ///
     fn compile(mut sdata: &str, stype: &str, smsg: &str) -> DataM {
         sdata = sdata.trim();
         if sdata == "" {
@@ -86,6 +95,27 @@ impl DataM {
                 }
             }
             return DataM::StringVar(sdata.to_string())
+        }
+        if stype == "any" {
+            if sdata.starts_with("$") {
+                let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
+                return DataM::IntLiteral(idata);
+            }
+            if sdata.len() >= 2 {
+                let schar = sdata.chars().nth(0).unwrap();
+                let echar = sdata.chars().last().unwrap();
+                if schar == '"' || echar == '"' {
+                    let mut rdata = sdata.clone();
+                    rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at start of {}", smsg, sdata));
+                    rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at end of {}", smsg, sdata));
+                    return DataM::StringLiteral(rdata.to_string());
+                }
+                if (sdata.len() > 2) && (sdata.starts_with("0x")) {
+                    let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:HexString:Conversion:{}", smsg, sdata));
+                    return DataM::BufData(bdata);
+                }
+            }
+            return DataM::AnyVar(sdata.to_string())
         }
         panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
     }
