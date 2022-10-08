@@ -169,14 +169,32 @@ impl DataM {
         match self {
             DataM::IntLiteral(ival) => format!("{}", ival),
             DataM::IntVar(vid) => {
-                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:Failed to get var", smsg));
+                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetString:IntVar: Failed to get var", smsg));
                 format!("{}", ival)
             },
             DataM::StringLiteral(sval) => sval.clone(),
             DataM::StringVar(vid) => {
-                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:StringVar: Failed to get var", smsg));
+                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetString:StringVar: Failed to get var", smsg));
                 sval.clone()
             },
+            DataM::BufData(bval) => {
+                return String::from_utf8_lossy(bval).to_string();
+            },
+            DataM::AnyVar(vid) => {
+                let ival  = ctxt.ints.get(vid);
+                if ival.is_some() {
+                    return format!("{}", ival.unwrap()); // TODO: Will it automatically dereference?
+                }
+                let sval = ctxt.strs.get(vid);
+                if sval.is_some() {
+                    return sval.unwrap().to_string();
+                }
+                let sval = ctxt.bufs.get(vid);
+                if sval.is_some() {
+                    return String::from_utf8_lossy(sval.unwrap()).to_string();
+                }
+                panic!("ERRR:{}:DataM:GetString:AnyVar:Unknown:{}", smsg, vid);
+            }
         }
     }
 
