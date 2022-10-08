@@ -60,15 +60,18 @@ enum DataM {
 
 impl DataM {
 
-    fn compile(sdata: &str, _stype: &str, smsg: &str) -> DataM {
-        if sdata.starts_with("$") {
-            let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
-            return DataM::IntLiteral(idata);
-        }
+    fn compile(sdata: &str, stype: &str, smsg: &str) -> DataM {
         if sdata.trim() == "" {
-            panic!("ERRR:{}:DataM:IntVar:Empty", smsg);
+            panic!("ERRR:{}:DataM:{}:Empty", smsg, stype);
         }
-        return DataM::IntVar(sdata.to_string());
+        if stype == "isize" {
+            if sdata.starts_with("$") {
+                let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
+                return DataM::IntLiteral(idata);
+            }
+            return DataM::IntVar(sdata.to_string());
+        }
+        panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
     }
 
     fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
