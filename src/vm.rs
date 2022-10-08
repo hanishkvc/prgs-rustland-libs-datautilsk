@@ -601,17 +601,20 @@ impl Op {
             }
             Self::LetBuf(bufid, bufdm) => {
                 let mut vdata;
-                let bufdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetBuf:CheckSpecial:GetString");
-                if bufdata == "__TIME__STAMP__" {
-                    let ts = format!("{:?}",time::SystemTime::now());
-                    vdata = Vec::from(ts);
-                } else if bufdata.starts_with("__RANDOM__BYTES__") {
-                    let (_random, bytelen) = bufdata.split_once("__BYTES__").expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
-                    let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
-                    let mut rng = rand::thread_rng();
-                    vdata = Vec::new();
-                    for _i in 0..bytelen {
-                        vdata.push(rng.gen_range(0..=255)); // rusty 0..256
+                if let DataM::StringLiteral(bufdata) = bufdm {
+                    if bufdata == "__TIME__STAMP__" {
+                        let ts = format!("{:?}",time::SystemTime::now());
+                        vdata = Vec::from(ts);
+                    } else if bufdata.starts_with("__RANDOM__BYTES__") {
+                        let (_random, bytelen) = bufdata.split_once("__BYTES__").expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
+                        let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:FuzzerK:VM:Op:LetBuf:RandomBytes:{}", bufdata));
+                        let mut rng = rand::thread_rng();
+                        vdata = Vec::new();
+                        for _i in 0..bytelen {
+                            vdata.push(rng.gen_range(0..=255)); // rusty 0..256
+                        }
+                    } else {
+                        vdata = Vec::from(bufdata.to_string());
                     }
                 } else {
                     vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetBufData");
