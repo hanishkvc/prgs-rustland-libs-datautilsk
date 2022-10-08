@@ -439,9 +439,9 @@ impl Op {
                 if args.len() != 4 {
                     panic!("ERRR:{}:IfLt:InsufficientArgs:{}", msgtag, sargs);
                 }
-                let chkvaldm = DataM::compile(args[0], "isize", &format!("{}:IfLt:CheckAgainstValue:{}", msgtag, args[0]));
-                let curvaldm = DataM::compile(args[1], "isize", &format!("{}:IfLt:CurValue:{}", msgtag, args[1]));
-                return Ok(Op::IfLt(chkvaldm, curvaldm, args[2].to_string(), args[3].to_string()));
+                let val1dm = DataM::compile(args[0], "isize", &format!("{}:IfLt:CheckValue1:{}", msgtag, args[0]));
+                let val2dm = DataM::compile(args[1], "isize", &format!("{}:IfLt:CheckValue2:{}", msgtag, args[1]));
+                return Ok(Op::IfLt(val1dm, val2dm, args[2].to_string(), args[3].to_string()));
             }
             "checkjump" => {
                 let args: Vec<&str> = sargs.splitn(5, ' ').collect();
@@ -650,12 +650,12 @@ impl Op {
                 ctxt.bufs.insert(bufid.to_string(), gotfuzz);
                 ctxt.stepu += 1;
             }
-            Self::IfLt(chkvaldm, curvaldm, sop , oparg) => { // TODO: Switch chkval and curval order/location
-                let chkval = chkvaldm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetChkAgainstVal:{:?}", chkvaldm));
-                let curval = curvaldm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetCurVal:{:?}", curvaldm));
+            Self::IfLt(val1dm, val2dm, sop , oparg) => {
+                let val1 = val1dm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetVal1:{:?}", val1dm));
+                let val2 = val2dm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetVal2:{:?}", val2dm));
                 let mut opdo = false;
-                //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", chkval, curval, sop, oparg));
-                if curval < chkval {
+                //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", val1, val2, sop, oparg));
+                if val1 < val2 {
                     opdo = true;
                 }
                 if opdo {
@@ -830,7 +830,7 @@ impl VM {
         runcmds.push("iobwrite srvX fuzzgot".to_string());
         runcmds.push("iobflush srvX".to_string());
         runcmds.push("inc loopcnt".to_string());
-        runcmds.push(format!("iflt ${} loopcnt goto freshstart", loopcnt));
+        runcmds.push(format!("iflt loopcnt ${} goto freshstart", loopcnt));
         self.compile(runcmds);
     }
 
