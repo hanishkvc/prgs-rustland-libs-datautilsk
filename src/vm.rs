@@ -136,6 +136,24 @@ impl DataM {
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:StringVar: Failed to get var", smsg));
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
             },
+            Self::BufData(sval) => {
+                return datautils::intvalue(&String::from_utf8_lossy(sval), &format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg));
+            },
+            Self::AnyVar(vid) => {
+                let ival  = ctxt.ints.get(vid);
+                if ival.is_some() {
+                    return *ival.unwrap();
+                }
+                let sval = ctxt.strs.get(vid);
+                if sval.is_some() {
+                    return datautils::intvalue(sval.unwrap(), &format!("ERRR:{}:DataM:GetISize:AnyVarString: Conversion failed", smsg));
+                }
+                let sval = ctxt.bufs.get(vid);
+                if sval.is_some() {
+                    return datautils::intvalue(&String::from_utf8_lossy(sval.unwrap()), &format!("ERRR:{}:DataM:GetISize:AnyVarBuf: Conversion failed", smsg));
+                }
+                panic!("ERRR:{}:DataM:GetISize:AnyVar:Unknown:{}", smsg, vid);
+            },
         }
     }
 
