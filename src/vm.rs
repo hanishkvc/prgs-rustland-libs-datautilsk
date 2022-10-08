@@ -81,7 +81,7 @@ impl DataM {
         }
         if stype == "isize" {
             if sdata.starts_with("$") {
-                let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
+                let idata = datautils::intvalue(&sdata[1..], &format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
                 return DataM::IntLiteral(idata);
             }
             return DataM::IntVar(sdata.to_string());
@@ -101,7 +101,7 @@ impl DataM {
         }
         if stype == "any" {
             if sdata.starts_with("$") {
-                let idata = isize::from_str_radix(&sdata[1..], 10).expect(&format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
+                let idata = datautils::intvalue(&sdata[1..], &format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
                 return DataM::IntLiteral(idata);
             }
             if sdata.len() >= 2 {
