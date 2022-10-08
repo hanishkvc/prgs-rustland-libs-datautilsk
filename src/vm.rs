@@ -134,6 +134,21 @@ impl DataM {
         }
     }
 
+    fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
+        match self {
+            DataM::IntLiteral(ival) => format!("{}", ival),
+            DataM::IntVar(vid) => {
+                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:Failed to get var", smsg));
+                format!("{}", ival)
+            },
+            DataM::StringLiteral(sval) => sval.clone(),
+            DataM::StringVar(vid) => {
+                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:StringVar: Failed to get var", smsg));
+                sval.clone()
+            },
+        }
+    }
+
 }
 
 
