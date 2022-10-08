@@ -392,7 +392,7 @@ impl Op {
                 };
                 let args: Vec<&str> = sargs.split_whitespace().collect();
                 let dmsrc1 = DataM::compile(args[1], "isize", &format!("{}:{}:SrcArg1", msgtag, sop));
-                let dmsrc2 = DataM::compile(args[1], "isize", &format!("{}:{}:SrcArg1", msgtag, sop));
+                let dmsrc2 = DataM::compile(args[2], "isize", &format!("{}:{}:SrcArg2", msgtag, sop));
                 return Ok(Op::Alu(aluop, args[0].to_string(), dmsrc1, dmsrc2));
             }
 
