@@ -170,6 +170,23 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetISize:AnyVar:Unknown:{}", smsg, vid);
             },
+            Self::XTimeStamp => {
+                let ts = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap();
+                let uts = ts.as_millis();
+                return uts as isize;
+            },
+            Self::XRandomBytes(bytelen) => {
+                let mut rng = rand::thread_rng();
+                let mut vdata: Vec<u8> = Vec::new();
+                let mut ibytes = isize::BITS/8;
+                if (ibytes as usize) > *bytelen {
+                    ibytes = *bytelen as u32;
+                }
+                for _i in 0..ibytes {
+                    vdata.push(rng.gen_range(0..=255)); // rusty 0..256
+                }
+                return isize::from_le_bytes(vdata.as_slice().try_into().unwrap());
+            }
         }
     }
 
