@@ -198,12 +198,16 @@ impl DataM {
         return ival as usize;
     }
 
+    ///
+    /// * Returns Int values to equivalent string literal form
+    /// * Returns Buf8 data as String after doing utf8_lossy conversion
+    /// * AnyVar follows the order of 1st check IntVars, then StrVars and then finally BufVars
     fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
         match self {
-            DataM::IntLiteral(ival) => format!("{}", ival),
+            DataM::IntLiteral(ival) => ival.to_string(),
             DataM::IntVar(vid) => {
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetString:IntVar: Failed to get var", smsg));
-                format!("{}", ival)
+                ival.to_string()
             },
             DataM::StringLiteral(sval) => sval.clone(),
             DataM::StringVar(vid) => {
@@ -216,7 +220,7 @@ impl DataM {
             DataM::AnyVar(vid) => {
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
-                    return format!("{}", ival.unwrap()); // TODO: Will it automatically dereference?
+                    return ival.unwrap().to_string();
                 }
                 let sval = ctxt.strs.get(vid);
                 if sval.is_some() {
@@ -237,18 +241,59 @@ impl DataM {
                 for _i in 0..*bytelen {
                     vdata.push(rng.gen_range(0..=255)); // rusty 0..256
                 }
-                return String::new();
+                return String::from_utf8_lossy(&vdata).to_string();
             }
         }
     }
 
     ///
-    /// TODO: Need to have explicit logic rather than depend on GetString,
-    /// bcas GetString needs valid utf8 strings, else invalid chars gets replaced with place holder.
+    /// * returns int values as byte buffer in the native endianess format
+    /// * AnyVar follows the order of 1st check IntVars, then StrVars and then finally BufVars
     ///
+    /// TODO:ThinkAgain: Should I return a fixed endian format like network byte order (BigEndian) or little endian
+    /// rather than native byte order (If testing between systems having different endianess, it could help)
     fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
-        let sval = self.get_string(ctxt, smsg);
-        Vec::from(sval)
+        match self {
+            DataM::IntLiteral(ival) => Vec::from(ival.to_ne_bytes()),
+            DataM::IntVar(vid) => {
+                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:IntVar: Failed to get var", smsg));
+                Vec::from(ival.to_ne_bytes())
+            },
+            DataM::StringLiteral(sval) => Vec::from(sval.to_string()),
+            DataM::StringVar(vid) => {
+                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:StringVar: Failed to get var", smsg));
+                Vec::from(sval.to_string())
+            },
+            DataM::BufData(bval) => {
+                return bval.to_vec();
+            },
+            DataM::AnyVar(vid) => {
+                let ival  = ctxt.ints.get(vid);
+                if ival.is_some() {
+                    return Vec::from(ival.unwrap().to_ne_bytes())
+                }
+                let sval = ctxt.strs.get(vid);
+                if sval.is_some() {
+                    return Vec::from(sval.unwrap().to_string())
+                }
+                let sval = ctxt.bufs.get(vid);
+                if sval.is_some() {
+                    return sval.unwrap().to_vec();
+                }
+                panic!("ERRR:{}:DataM:GetBuf:AnyVar:Unknown:{}", smsg, vid);
+            },
+            DataM::XTimeStamp => {
+                return time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().as_millis().to_ne_bytes().to_vec();
+            },
+            DataM::XRandomBytes(bytelen) => {
+                let mut rng = rand::thread_rng();
+                let mut vdata: Vec<u8> = Vec::new();
+                for _i in 0..*bytelen {
+                    vdata.push(rng.gen_range(0..=255)); // rusty 0..256
+                }
+                return vdata;
+            }
+        }
     }
 
 }
