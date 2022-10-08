@@ -257,11 +257,13 @@ impl DataM {
             DataM::IntLiteral(ival) => Vec::from(ival.to_ne_bytes()),
             DataM::IntVar(vid) => {
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:IntVar: Failed to get var", smsg));
+                log_d(&format!("DBUG:DataM:GetBufVU8:IntVar:{}:{}", vid, ival));
                 Vec::from(ival.to_ne_bytes())
             },
             DataM::StringLiteral(sval) => Vec::from(sval.to_string()),
             DataM::StringVar(vid) => {
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:StringVar: Failed to get var", smsg));
+                log_d(&format!("DBUG:DataM:GetBufVU8:StrVar:{}:{}", vid, sval));
                 Vec::from(sval.to_string())
             },
             DataM::BufData(bval) => {
@@ -270,15 +272,21 @@ impl DataM {
             DataM::AnyVar(vid) => {
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
-                    return Vec::from(ival.unwrap().to_ne_bytes())
+                    let ival = ival.unwrap().to_ne_bytes();
+                    log_d(&format!("DBUG:DataM:GetBufVU8:AnyIntVar:{}:{:?}", vid, ival));
+                    return Vec::from(ival)
                 }
                 let sval = ctxt.strs.get(vid);
                 if sval.is_some() {
-                    return Vec::from(sval.unwrap().to_string())
+                    let sval = sval.unwrap().to_string();
+                    log_d(&format!("DBUG:DataM:GetBufVU8:AnyStrVar:{}:{}", vid, sval));
+                    return Vec::from(sval)
                 }
                 let sval = ctxt.bufs.get(vid);
                 if sval.is_some() {
-                    return sval.unwrap().to_vec();
+                    let bval = sval.unwrap().to_vec();
+                    log_d(&format!("DBUG:DataM:GetBufVU8:AnyBufVar:{}:{:?}", vid, bval));
+                    return bval;
                 }
                 panic!("ERRR:{}:DataM:GetBuf:AnyVar:Unknown:{}", smsg, vid);
             },
@@ -692,6 +700,7 @@ impl Op {
             }
             Self::LetBuf(bufid, bufdm) => {
                 let vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetSrcData");
+                log_d(&format!("DBUG:VM:Op:LetBuf:{}:{:?}", bufid, vdata));
                 ctxt.bufs.insert(bufid.to_string(), vdata);
             }
             Self::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval) => {
