@@ -96,9 +96,16 @@ impl DataM {
                 return *ival;
             },
             Self::IntVar(vid) => {
-                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:Failed to get var", smsg));
+                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:IntVar: Failed to get var", smsg));
                 return ival;
-            }
+            },
+            Self::StringLiteral(sval) => {
+                return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringLiteral: Conversion failed", smsg));
+            },
+            Self::StringVar(vid) => {
+                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:StringVar: Failed to get var", smsg));
+                return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
+            },
         }
     }
 
@@ -116,7 +123,14 @@ impl DataM {
                     panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
                 }
                 return ival as usize;
-            }
+            },
+            Self::StringLiteral(sval) => {
+                return datautils::intvalue::<isize>(sval, &format!("ERRR:{}:DataM:GetUSize:StringLiteral: Conversion failed", smsg)) as usize;
+            },
+            Self::StringVar(vid) => {
+                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetUSize:StringVar: Failed to get var", smsg));
+                return datautils::intvalue::<isize>(sval, &format!("ERRR:{}:DataM:GetUSize:StringVar: Conversion failed", smsg)) as usize;
+            },
         }
     }
 

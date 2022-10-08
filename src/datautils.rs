@@ -39,6 +39,11 @@ impl From<isize> for U8X {
     }
 }
 
+///
+/// Convert given string value to a isize, by treating it has a decimal
+/// or hexdecimal (if starts with 0x) string value.
+///
+/// Inturn try convert the isize to specified type.
 pub fn intvalue<T: std::convert::From<isize>>(sval: &str, exceptmsg: &str) -> T {
     let sval = sval.trim();
     let ival;
