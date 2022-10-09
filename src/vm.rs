@@ -79,61 +79,58 @@ impl DataM {
         if sdata == "" {
             panic!("ERRR:{}:DataM:{}:Empty", smsg, stype);
         }
-        if stype == "isize" {
-            if sdata.starts_with("$") {
-                let idata = datautils::intvalue(&sdata[1..], &format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
-                return DataM::IntLiteral(idata);
-            }
-            return DataM::IntVar(sdata.to_string());
+        let schar = sdata.chars().nth(0).unwrap();
+        let echar = sdata.chars().last().unwrap();
+
+        if schar.is_numeric() {
+            let idata = datautils::intvalue(sdata, &format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
+            return DataM::IntLiteral(idata);
         }
-        if stype == "string" {
-            if sdata.len() >= 2 {
-                let schar = sdata.chars().nth(0).unwrap();
-                let echar = sdata.chars().last().unwrap();
-                if schar == '"' || echar == '"' {
-                    let mut rdata = sdata.clone();
-                    rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at start of {}", smsg, sdata));
-                    rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at end of {}", smsg, sdata));
-                    return DataM::StringLiteral(rdata.to_string());
-                }
+
+        if sdata.len() >= 2 {
+
+            if schar == '"' || echar == '"' {
+                let mut rdata = sdata.clone();
+                rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at start of {}", smsg, sdata));
+                rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at end of {}", smsg, sdata));
+                return DataM::StringLiteral(rdata.to_string());
             }
-            return DataM::StringVar(sdata.to_string())
-        }
-        if stype == "any" {
-            if sdata.starts_with("$") {
-                let idata = datautils::intvalue(&sdata[1..], &format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
-                return DataM::IntLiteral(idata);
-            }
-            if sdata.len() >= 2 {
-                let schar = sdata.chars().nth(0).unwrap();
-                let echar = sdata.chars().last().unwrap();
-                if schar == '"' || echar == '"' {
-                    let mut rdata = sdata.clone();
-                    rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at start of {}", smsg, sdata));
-                    rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at end of {}", smsg, sdata));
-                    return DataM::StringLiteral(rdata.to_string());
+
+            if sdata.len() > 2 {
+                if sdata.starts_with("$0x") {
+                    let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:HexString:Conversion:{}", smsg, sdata));
+                    return DataM::BufData(bdata);
                 }
-                if sdata.len() > 2 {
-                    if sdata.starts_with("0x") {
-                        let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:HexString:Conversion:{}", smsg, sdata));
-                        return DataM::BufData(bdata);
+                if sdata.starts_with("__") {
+                    if sdata == "__TIME__STAMP__" {
+                        return DataM::XTimeStamp;
                     }
-                    if sdata.starts_with("__") {
-                        if sdata == "__TIME__STAMP__" {
-                            return DataM::XTimeStamp;
-                        }
-                        if sdata.starts_with("__RANDOM__BYTES__") {
-                            let (_random, bytelen) = sdata.split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
-                            let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
-                            return DataM::XRandomBytes(bytelen);
-                        }
-                        panic!("ERRR:{}:DataM:{}:Unknown Special Tag {}???", smsg, stype, sdata);
+                    if sdata.starts_with("__RANDOM__BYTES__") {
+                        let (_random, bytelen) = sdata.split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
+                        let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
+                        return DataM::XRandomBytes(bytelen);
                     }
+                    panic!("ERRR:{}:DataM:{}:Unknown Special Tag {}???", smsg, stype, sdata);
                 }
             }
-            return DataM::AnyVar(sdata.to_string())
+
         }
-        panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
+
+        match stype {
+            "isize" => {
+                return DataM::IntVar(sdata.to_string());
+            }
+            "string" => {
+                return DataM::StringVar(sdata.to_string())
+            }
+            "any" => {
+                return DataM::AnyVar(sdata.to_string())
+            }
+            _ => {
+                panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
+            }
+        }
+
     }
 
     fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
