@@ -67,12 +67,13 @@ enum DataM {
 impl DataM {
 
     ///
-    /// If stype == any
-    /// * int literals should start with $
+    /// * int literals should start with numeric char
     /// * string literals should be in double quotes ""
-    /// * buf8 literals should start with 0x
+    /// * buf8 literals should start with $0x
     /// * special literals should start with __
-    /// * anything else is treated as a Var name, which could either be a IntVar or StringVar or Buf8Var
+    /// * anything else is treated as a Var name.
+    ///   * it needs to start with a alpabhetic char
+    ///   * it could either be a IntVar or StringVar or Buf8Var
     ///
     fn compile(mut sdata: &str, stype: &str, smsg: &str) -> DataM {
         sdata = sdata.trim();
