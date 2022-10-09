@@ -192,6 +192,9 @@ impl DataM {
         }
     }
 
+    ///
+    /// Return a positive interger value.
+    /// If the underlying value is negative, then it will panic
     fn get_usize(&self, ctxt: &mut Context, smsg: &str) -> usize {
         let ival = self.get_isize(ctxt, &format!("{}:DataM:GetUSize",smsg));
         if ival < 0 {
@@ -339,7 +342,7 @@ enum Op {
     Ret,
     SleepMSec(DataM),
     FcGet(String, String),
-    BufNew(String, usize),
+    BufNew(String, DataM),
     LetBuf(String, DataM),
     LetBufStr(String, DataM),
     Buf8Randomize(String, isize, isize, isize, u8, u8),
@@ -476,8 +479,8 @@ impl Op {
 
             "bufnew" => { // TODO use DataM wrt BufSize
                 let (bufid, bufsize) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufNew:{}", msgtag, sargs));
-                let bufsize = usize::from_str_radix(bufsize, 10).expect(&format!("ERRR:{}:BufNew:Size:{}", msgtag, bufsize));
-                return Ok(Op::BufNew(bufid.to_string(), bufsize));
+                let dmbufsize = DataM::compile(bufsize, "isize", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
+                return Ok(Op::BufNew(bufid.to_string(), dmbufsize));
             }
             "letbuf" | "letbuf.s" => {
                 let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf+:{}", msgtag, sargs));
@@ -702,9 +705,10 @@ impl Op {
                 ctxt.iptr = ctxt.callstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallStack");
             }
 
-            Self::BufNew(bufid, bufsize) => {
+            Self::BufNew(bufid, dmbufsize) => {
                 let mut buf = Vec::<u8>::new();
-                buf.resize(*bufsize, 0);
+                let bufsize = dmbufsize.get_usize(ctxt, "FuzzerK:VM:Op:BufNew:BufSize");
+                buf.resize(bufsize, 0);
                 ctxt.bufs.insert(bufid.to_string(), buf);
             }
             Self::LetBuf(bufid, bufdm) => {
