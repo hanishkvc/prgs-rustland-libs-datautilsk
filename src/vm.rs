@@ -343,27 +343,27 @@ enum CondOp {
 
 impl CondOp {
 
-    fn check(&self, ctxt: &mut Context, val1: DataM, val2: DataM) -> bool {
+    fn check(&self, ctxt: &mut Context, val1: &DataM, val2: &DataM) -> bool {
         match self {
             CondOp::IfLtInt => {
-                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:Conds:IfLtInt:Val1");
-                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:Conds:IfLtInt:Val2");
+                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val1");
+                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val2");
                 if val1 < val2 {
                     return true;
                 }
                 return false;
             },
             CondOp::IfEqInt => {
-                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:Conds:IfEqInt:Val1");
-                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:Conds:IfEqInt:Val2");
+                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfEqInt:Val1");
+                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfEqInt:Val2");
                 if val1 == val2 {
                     return true;
                 }
                 return false;
             },
             CondOp::IfEqStr => {
-                let val1 = val1.get_string(ctxt, "FuzzerK:Vm:Conds:IfEqStr:Val1");
-                let val2 = val2.get_string(ctxt, "FuzzerK:Vm:Conds:IfEqStr:Val2");
+                let val1 = val1.get_string(ctxt, "FuzzerK:Vm:CondOp:IfEqStr:Val1");
+                let val2 = val2.get_string(ctxt, "FuzzerK:Vm:CondOp:IfEqStr:Val2");
                 if val1 == val2 {
                     return true;
                 }
@@ -731,12 +731,10 @@ impl Op {
                 ctxt.bufs.insert(bufid.to_string(), gotfuzz);
                 ctxt.stepu += 1;
             }
-            Self::IfLt(val1dm, val2dm, sop , oparg) => {
-                let val1 = val1dm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetVal1:{:?}", val1dm));
-                let val2 = val2dm.get_isize(ctxt, &format!("FuzzerK:VM:Op:IfLt:GetVal2:{:?}", val2dm));
+            Self::If(cop, val1dm, val2dm, sop , oparg) => {
                 let mut opdo = false;
                 //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", val1, val2, sop, oparg));
-                if val1 < val2 {
+                if cop.check(ctxt, val1dm, val2dm) {
                     opdo = true;
                 }
                 if opdo {
