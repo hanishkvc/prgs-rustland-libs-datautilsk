@@ -335,6 +335,46 @@ impl DataM {
 
 
 #[derive(Debug)]
+enum CondOp {
+    IfLtInt,
+    IfEqInt,
+    IfEqStr,
+}
+
+impl CondOp {
+
+    fn check(&self, ctxt: &mut Context, val1: DataM, val2: DataM) -> bool {
+        match self {
+            CondOp::IfLtInt => {
+                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:Conds:IfLtInt:Val1");
+                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:Conds:IfLtInt:Val2");
+                if val1 < val2 {
+                    return true;
+                }
+                return false;
+            },
+            CondOp::IfEqInt => {
+                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:Conds:IfEqInt:Val1");
+                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:Conds:IfEqInt:Val2");
+                if val1 == val2 {
+                    return true;
+                }
+                return false;
+            },
+            CondOp::IfEqStr => {
+                let val1 = val1.get_string(ctxt, "FuzzerK:Vm:Conds:IfEqStr:Val1");
+                let val2 = val2.get_string(ctxt, "FuzzerK:Vm:Conds:IfEqStr:Val2");
+                if val1 == val2 {
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+
+}
+
+#[derive(Debug)]
 enum ALUOP {
     Add,
     Sub,
@@ -357,7 +397,7 @@ enum Op {
     IobFlush(String),
     IobRead(String, String),
     IobClose(String),
-    IfLt(DataM, DataM, String, String),
+    If(CondOp, DataM, DataM, String, String),
     CheckJump(DataM, DataM, String, String, String),
     Jump(String),
     Call(String),
@@ -461,14 +501,20 @@ impl Op {
                 return Ok(Op::IobClose(sargs.to_string()));
             }
 
-            "iflt" => {
+            "iflt.i" | "ifeq.i" | "ifeq.s" => {
                 let args: Vec<&str> = sargs.splitn(4, ' ').collect();
                 if args.len() != 4 {
-                    panic!("ERRR:{}:IfLt:InsufficientArgs:{}", msgtag, sargs);
+                    panic!("ERRR:{}:{}:InsufficientArgs:{}", msgtag, sop, sargs);
                 }
-                let val1dm = DataM::compile(args[0], "isize", &format!("{}:IfLt:CheckValue1:{}", msgtag, args[0]));
-                let val2dm = DataM::compile(args[1], "isize", &format!("{}:IfLt:CheckValue2:{}", msgtag, args[1]));
-                return Ok(Op::IfLt(val1dm, val2dm, args[2].to_string(), args[3].to_string()));
+                let val1dm = DataM::compile(args[0], "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, args[0]));
+                let val2dm = DataM::compile(args[1], "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, args[1]));
+                let cop = match sop {
+                    "iflt.i" => CondOp::IfLtInt,
+                    "ifeq.i" => CondOp::IfEqInt,
+                    "ifeq.s" => CondOp::IfEqStr,
+                    _ => todo!(),
+                };
+                return Ok(Op::If(cop, val1dm, val2dm, args[2].to_string(), args[3].to_string()));
             }
             "checkjump" => {
                 let args: Vec<&str> = sargs.splitn(5, ' ').collect();
