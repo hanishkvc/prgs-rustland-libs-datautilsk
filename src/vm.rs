@@ -926,7 +926,7 @@ impl VM {
         runcmds.push("iobwrite srvX fuzzgot".to_string());
         runcmds.push("iobflush srvX".to_string());
         runcmds.push("inc loopcnt".to_string());
-        runcmds.push(format!("iflt loopcnt ${} goto freshstart", loopcnt));
+        runcmds.push(format!("iflt.i loopcnt ${} goto freshstart", loopcnt));
         self.compile(runcmds);
     }
 
