@@ -82,7 +82,7 @@ impl DataM {
         let schar = sdata.chars().nth(0).unwrap();
         let echar = sdata.chars().last().unwrap();
 
-        if schar.is_numeric() {
+        if schar.is_numeric() || schar == '+' || schar == '-' {
             let idata = datautils::intvalue(sdata, &format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
             return DataM::IntLiteral(idata);
         }
@@ -114,6 +114,10 @@ impl DataM {
                 }
             }
 
+        }
+
+        if !schar.is_alphabetic() {
+            panic!("ERRR:{}:DataM:{}:Variable name {} should start with a alphabetic char", smsg, stype, sdata);
         }
 
         match stype {
