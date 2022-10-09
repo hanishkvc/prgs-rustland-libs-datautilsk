@@ -78,13 +78,13 @@ impl DataM {
     fn compile(mut sdata: &str, stype: &str, smsg: &str) -> DataM {
         sdata = sdata.trim();
         if sdata == "" {
-            panic!("ERRR:{}:DataM:{}:Empty", smsg, stype);
+            panic!("ERRR:{}:DataM:Compile:{}:Data token empty", smsg, stype);
         }
         let schar = sdata.chars().nth(0).unwrap();
         let echar = sdata.chars().last().unwrap();
 
         if schar.is_numeric() || schar == '+' || schar == '-' {
-            let idata = datautils::intvalue(sdata, &format!("ERRR:{}:DataM:IntLiteral:Conversion", smsg));
+            let idata = datautils::intvalue(sdata, &format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
             return DataM::IntLiteral(idata);
         }
 
@@ -92,14 +92,14 @@ impl DataM {
 
             if schar == '"' || echar == '"' {
                 let mut rdata = sdata.clone();
-                rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at start of {}", smsg, sdata));
-                rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:StringLiteral:Missing double quote at end of {}", smsg, sdata));
+                rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at start of {}", smsg, sdata));
+                rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at end of {}", smsg, sdata));
                 return DataM::StringLiteral(rdata.to_string());
             }
 
             if sdata.len() > 2 {
                 if sdata.starts_with("$0x") {
-                    let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:HexString:Conversion:{}", smsg, sdata));
+                    let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:Compile:BufHexString:Conversion:{}", smsg, sdata));
                     return DataM::BufData(bdata);
                 }
                 if sdata.starts_with("__") {
@@ -107,11 +107,11 @@ impl DataM {
                         return DataM::XTimeStamp;
                     }
                     if sdata.starts_with("__RANDOM__BYTES__") {
-                        let (_random, bytelen) = sdata.split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
-                        let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:{}:DataM:RandomBytes:{}", smsg, sdata));
+                        let (_random, bytelen) = sdata.split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:Compile:RandomBytes:{}", smsg, sdata));
+                        let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:{}:DataM:Compile:RandomBytes:{}", smsg, sdata));
                         return DataM::XRandomBytes(bytelen);
                     }
-                    panic!("ERRR:{}:DataM:{}:Unknown Special Tag {}???", smsg, stype, sdata);
+                    panic!("ERRR:{}:DataM:Compile:{}:Unknown Special Tag {}???", smsg, stype, sdata);
                 }
             }
 
