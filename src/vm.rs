@@ -477,9 +477,9 @@ impl Op {
                 return Ok(Op::FcGet(fcid.to_string(), bufid.to_string()));
             }
 
-            "bufnew" => { // TODO use DataM wrt BufSize
+            "bufnew" => {
                 let (bufid, bufsize) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufNew:{}", msgtag, sargs));
-                let dmbufsize = DataM::compile(bufsize, "isize", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
+                let dmbufsize = DataM::compile(bufsize, "any", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
                 return Ok(Op::BufNew(bufid.to_string(), dmbufsize));
             }
             "letbuf" | "letbuf.s" => {
