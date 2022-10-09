@@ -515,7 +515,7 @@ impl Op {
                     return Err(format!("ERRR:{}:LetBuf+:Unknown Variant:{}", msgtag, sop))
                 }
             }
-            "buf8randomize" => { // TODO use DataM wrt int values
+            "buf8randomize" => {
                 let parts: Vec<&str> = sargs.split(" ").collect();
                 let bufid = parts[0].to_string();
 
