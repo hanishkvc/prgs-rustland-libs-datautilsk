@@ -19,6 +19,20 @@ pub fn vu8_from_hex(ins: &str) -> Result<Vec<u8>, String> {
     Ok(vu8)
 }
 
+
+pub fn hex_from_vu8(inv: &Vec<u8>) -> String {
+    let mut outs = String::new();
+    for i in 0..inv.len() {
+        let cu8 = inv[i];
+        let bhigh = (cu8 & 0xF0) >> 4;
+        let blow = cu8 & 0x0F;
+        outs.push_str(&bhigh.to_string());
+        outs.push_str(&blow.to_string());
+    }
+    outs
+}
+
+
 #[derive(Debug)]
 pub struct U8X(pub u8);
 

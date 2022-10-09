@@ -222,7 +222,10 @@ impl DataM {
                 sval.clone()
             },
             DataM::BufData(bval) => {
-                return String::from_utf8_lossy(bval).to_string();
+                //return String::from_utf8_lossy(bval).to_string();
+                //let mut bval = bval.clone();
+                //bval.reverse();
+                return datautils::hex_from_vu8(&bval);
             },
             DataM::AnyVar(vid) => {
                 let ival  = ctxt.ints.get(vid);
@@ -235,7 +238,8 @@ impl DataM {
                 }
                 let sval = ctxt.bufs.get(vid);
                 if sval.is_some() {
-                    return String::from_utf8_lossy(sval.unwrap()).to_string();
+                    //return String::from_utf8_lossy(sval.unwrap()).to_string();
+                    return datautils::hex_from_vu8(sval.unwrap());
                 }
                 panic!("ERRR:{}:DataM:GetString:AnyVar:Unknown:{}", smsg, vid);
             },
