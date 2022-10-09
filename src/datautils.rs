@@ -98,6 +98,12 @@ pub fn remove_extra_whitespaces(ins: &str) -> String {
 }
 
 
+///
+/// Allow conversion btw isize and u8 through a minimal wrapper around u8
+/// Additionally this allows conversion only if the isize value fits within u8 space
+/// else it will panic with a error message.
+///
+
 #[derive(Debug)]
 pub struct U8X(pub u8);
 

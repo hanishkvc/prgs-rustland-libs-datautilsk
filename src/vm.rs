@@ -367,7 +367,7 @@ enum Op {
     BufNew(String, DataM),
     LetBuf(String, DataM),
     LetBufStr(String, DataM),
-    Buf8Randomize(String, isize, isize, isize, u8, u8),
+    Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
     BufsMerge(String, Vec<String>),
 }
 
@@ -519,45 +519,53 @@ impl Op {
                 let parts: Vec<&str> = sargs.split(" ").collect();
                 let bufid = parts[0].to_string();
 
-                let randcount;
-                let startoffset;
-                let endoffset;
-                let startval;
-                let endval;
+                let dmrandcount;
+                let dmstartoffset;
+                let dmendoffset;
+                let dmstartval;
+                let dmendval;
+
+                let mut thepart;
 
                 if parts.len() >= 2 {
-                    randcount = isize::from_str_radix(parts[1], 10).expect(&format!("ERRR:{}:Buf8Randomize:RandCount:{}", msgtag, parts[1]));
+                    thepart = parts[1].to_string();
                 } else {
-                    randcount = -1;
+                    thepart = String::from("-1");
                 }
+                dmrandcount = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:RandCount:{}", msgtag, thepart));
+
                 if parts.len() >= 3 {
-                    startoffset = isize::from_str_radix(parts[2], 10).expect(&format!("ERRR:{}:Buf8Randomize:StartOffset:{}", msgtag, parts[2]));
+                    thepart = parts[2].to_string();
                 } else {
-                    startoffset = -1;
+                    thepart = String::from("-1");
                 }
+                dmstartoffset = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:StartOffset:{}", msgtag, thepart));
+
                 if parts.len() >= 4 {
-                    //endoffset = isize::from_str_radix(parts[3], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndOffset:{}", msgtag, parts[3]));
-                    endoffset = datautils::intvalue(parts[3], &format!("ERRR:{}:Buf8Randomize:EndOffset:{}", msgtag, parts[3]));
+                    thepart = parts[3].to_string();
                 } else {
-                    endoffset = -1;
+                    thepart = String::from("-1");
                 }
+                dmendoffset = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:EndOffset:{}", msgtag, thepart));
+
                 if parts.len() >= 5 {
-                    //startval = u8::from_str_radix(parts[4], 10).expect(&format!("ERRR:{}:Buf8Randomize:StartVal:{}", msgtag, parts[4]));
-                    let tstartval: datautils::U8X = datautils::intvalue(parts[4], &format!("ERRR:{}:Buf8Randomize:StartVal:{}", msgtag, parts[4]));
-                    startval = tstartval.try_into().unwrap();
+                    thepart = parts[4].to_string();
                 } else {
-                    startval = 0;
+                    thepart = String::from("0");
                 }
+                dmstartval = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:StartVal:{}", msgtag, thepart));
+
                 if parts.len() == 6 {
-                    //endval = u8::from_str_radix(parts[5], 10).expect(&format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5]));
-                    endval = datautils::intvalue::<datautils::U8X>(parts[5], &format!("ERRR:{}:Buf8Randomize:EndVal:{}", msgtag, parts[5])).into();
+                    thepart = parts[5].to_string();
                 } else {
-                    endval = 255;
+                    thepart = String::from("255");
                 }
+                dmendval = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:EndVal:{}", msgtag, thepart));
+
                 if parts.len() > 6 {
                     panic!("ERRR:{}:Buf8Randomize:Too many args:{}", msgtag, sargs);
                 }
-                return Ok(Op::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval))
+                return Ok(Op::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval))
             }
             "bufsmerge" => {
                 let mut parts: VecDeque<&str> = sargs.split_whitespace().collect();
@@ -743,34 +751,47 @@ impl Op {
                 log_d(&format!("DBUG:VM:Op:LetBufStr:{}:{:?}", bufid, vdata));
                 ctxt.bufs.insert(bufid.to_string(), Vec::from(vdata));
             }
-            Self::Buf8Randomize(bufid, randcount, startoffset, endoffset, startval, endval) => {
-                let buf = ctxt.bufs.get_mut(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:Buf8Randomize:Buf:{}", bufid));
+            Self::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval) => {
+                let b8rmsg = "FuzzerK:VM:Op:Buf8Randomize";
+                let mut buf = ctxt.bufs.get(bufid).expect(&format!("ERRR:{}:Buf:{}", b8rmsg, bufid)).clone();
+
+                let randcount = dmrandcount.get_isize(ctxt, &format!("{}:RandCount", b8rmsg));
                 let trandcount;
-                if *randcount < 0 {
+                if randcount < 0 {
                     trandcount = rand::random::<usize>() % buf.len();
                 } else {
-                    trandcount = *randcount as usize;
+                    trandcount = randcount as usize;
                 }
+
+                let startoffset = dmstartoffset.get_isize(ctxt, &format!("{}:StartOffset", b8rmsg));
                 let tstartoffset;
-                if *startoffset < 0 {
+                if startoffset < 0 {
                     tstartoffset = 0;
                 } else {
-                    tstartoffset = *startoffset as usize;
+                    tstartoffset = startoffset as usize;
                 }
+
+                let endoffset = dmendoffset.get_isize(ctxt, &format!("{}:EndOffset", b8rmsg));
                 let tendoffset;
-                if *endoffset < 0 {
+                if endoffset < 0 {
                     tendoffset = buf.len()-1;
                 } else {
-                    tendoffset = *endoffset as usize;
+                    tendoffset = endoffset as usize;
                 }
+
+                // TOTHINK: Should I truncate silently or should I panic if truncation required.
+                let startval = dmstartval.get_isize(ctxt, &format!("{}:StartVal", b8rmsg)) as u8;
+                let endval = dmendval.get_isize(ctxt, &format!("{}:EndVal", b8rmsg)) as u8;
+
                 let mut rng = rand::thread_rng();
                 let offsetwidth = tendoffset - tstartoffset + 1;
-                let valwidth: u16 = *endval as u16 - *startval as u16 + 1;
+                let valwidth: u16 = endval as u16 - startval as u16 + 1;
                 for _i in 0..trandcount {
                     let curind = tstartoffset + (rng.gen::<usize>() % offsetwidth);
-                    let curval = *startval + (rng.gen::<u16>() % valwidth) as u8;
+                    let curval = startval + (rng.gen::<u16>() % valwidth) as u8;
                     buf[curind] = curval;
                 }
+                ctxt.bufs.insert(bufid.to_string(), buf);
             }
             Self::BufsMerge(destbufid, srcbufids) => {
                 //let destbuf = ctxt.bufs.get_mut(destbufid).expect(&format!("ERRR:FuzzerK:VM:Op:BufsMerge:Dest:{}", destbufid));
