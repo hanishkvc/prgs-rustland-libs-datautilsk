@@ -6,7 +6,14 @@
 
 use core::convert::From;
 
+///
+/// Routines to help convert between hex string and Vec<u8>
+///
 
+
+///
+/// Convert hex string to Vec<u8>
+///
 pub fn vu8_from_hex(ins: &str) -> Result<Vec<u8>, String> {
     let mut vu8 = Vec::new();
     for i in (0..ins.len()).step_by(2) {
@@ -19,7 +26,9 @@ pub fn vu8_from_hex(ins: &str) -> Result<Vec<u8>, String> {
     Ok(vu8)
 }
 
-
+///
+/// Convert Vec<u8> to hex string
+///
 pub fn hex_from_vu8(inv: &Vec<u8>) -> String {
     let mut outs = String::new();
     for i in 0..inv.len() {
@@ -28,6 +37,61 @@ pub fn hex_from_vu8(inv: &Vec<u8>) -> String {
         let blow = cu8 & 0x0F;
         outs.push_str(&bhigh.to_string());
         outs.push_str(&blow.to_string());
+    }
+    outs
+}
+
+
+///
+/// Remove extra white space inbetween
+///
+pub fn remove_extra_whitespaces(ins: &str) -> String {
+    let mut outs = String::new();
+    let mut besc = false;
+    let mut binquotes = false;
+    let mut bwhitespace = false;
+    let incv: Vec<char> = ins.chars().collect();
+    for i in 0..incv.len() {
+        let c = incv[i];
+        if c == '"' {
+            bwhitespace = false;
+            if besc {
+                outs.push(c);
+                continue;
+            }
+            if binquotes {
+                binquotes = false;
+            } else {
+                binquotes = true;
+            }
+            outs.push(c);
+            continue;
+        }
+        if c == '\\' {
+            bwhitespace = false;
+            outs.push(c);
+            if binquotes {
+                if besc {
+                    besc = false;
+                } else {
+                    besc = true;
+                }
+            }
+            continue;
+        }
+        if c.is_whitespace() {
+            if binquotes {
+                outs.push(c);
+            } else {
+                if !bwhitespace {
+                    bwhitespace = true;
+                    outs.push(' ');
+                }
+            }
+            continue;
+        }
+        bwhitespace = false;
+        outs.push(c);
     }
     outs
 }
