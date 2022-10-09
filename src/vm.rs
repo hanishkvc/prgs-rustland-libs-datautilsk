@@ -155,7 +155,8 @@ impl DataM {
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
             },
             Self::BufData(sval) => {
-                return datautils::intvalue(&String::from_utf8_lossy(sval), &format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg));
+                //return datautils::intvalue(&String::from_utf8_lossy(sval), &format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg));
+                return isize::from_ne_bytes(sval.as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg)));
             },
             Self::AnyVar(vid) => {
                 let ival  = ctxt.ints.get(vid);
@@ -168,7 +169,8 @@ impl DataM {
                 }
                 let sval = ctxt.bufs.get(vid);
                 if sval.is_some() {
-                    return datautils::intvalue(&String::from_utf8_lossy(sval.unwrap()), &format!("ERRR:{}:DataM:GetISize:AnyVarBuf: Conversion failed", smsg));
+                    //return datautils::intvalue(&String::from_utf8_lossy(sval.unwrap()), &format!("ERRR:{}:DataM:GetISize:AnyVarBuf: Conversion failed", smsg));
+                    return isize::from_ne_bytes(sval.unwrap().as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:AnyVarBuf: Conversion failed", smsg)));
                 }
                 panic!("ERRR:{}:DataM:GetISize:AnyVar:Unknown:{}", smsg, vid);
             },
