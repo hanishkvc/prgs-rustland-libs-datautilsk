@@ -839,7 +839,10 @@ impl VM {
         let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
         for l in prgdata {
-            ops.push(l.to_string());
+            log_d(&format!("IN :{}\n", l));
+            let nl = datautils::remove_extra_whitespaces(l);
+            log_d(&format!("OUT:{}\n", nl));
+            ops.push(nl.to_string());
         }
         self.compile(ops);
     }

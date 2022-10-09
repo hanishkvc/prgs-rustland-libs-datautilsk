@@ -43,7 +43,12 @@ pub fn hex_from_vu8(inv: &Vec<u8>) -> String {
 
 
 ///
-/// Remove extra white space inbetween
+/// Remove extra space (ie beyond a single space) outside double quoted text in a line.
+/// Any whitespace inbetween a begin and end double quote, will be retained.
+///
+/// Outside double quoted text, \ is not treated has a escape sequence marker.
+/// Inside double quoted text, \ is treated has a escape sequence marker, and the char next to it,
+/// will be treated has a normal char and not treated has special, even if it is " or \.
 ///
 pub fn remove_extra_whitespaces(ins: &str) -> String {
     let mut outs = String::new();
