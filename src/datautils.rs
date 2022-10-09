@@ -53,32 +53,7 @@ pub fn remove_extra_whitespaces(ins: &str) -> String {
     let incv: Vec<char> = ins.chars().collect();
     for i in 0..incv.len() {
         let c = incv[i];
-        if c == '"' {
-            bwhitespace = false;
-            if besc {
-                outs.push(c);
-                continue;
-            }
-            if binquotes {
-                binquotes = false;
-            } else {
-                binquotes = true;
-            }
-            outs.push(c);
-            continue;
-        }
-        if c == '\\' {
-            bwhitespace = false;
-            outs.push(c);
-            if binquotes {
-                if besc {
-                    besc = false;
-                } else {
-                    besc = true;
-                }
-            }
-            continue;
-        }
+
         if c.is_whitespace() {
             if binquotes {
                 outs.push(c);
@@ -92,6 +67,27 @@ pub fn remove_extra_whitespaces(ins: &str) -> String {
         }
         bwhitespace = false;
         outs.push(c);
+
+        if besc {
+            besc = false;
+            continue;
+        }
+
+        if c == '"' {
+            if binquotes {
+                binquotes = false;
+            } else {
+                binquotes = true;
+            }
+            continue;
+        }
+
+        if c == '\\' {
+            if binquotes {
+                besc = true;
+            }
+            continue;
+        }
     }
     outs
 }
