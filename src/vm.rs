@@ -99,7 +99,7 @@ impl DataM {
 
             if sdata.len() > 2 {
                 if sdata.starts_with("$0x") {
-                    let bdata = datautils::vu8_from_hex(&sdata[2..]).expect(&format!("ERRR:{}:DataM:Compile:BufHexString:Conversion:{}", smsg, sdata));
+                    let bdata = datautils::vu8_from_hex(&sdata[3..]).expect(&format!("ERRR:{}:DataM:Compile:BufHexString:Conversion:{}", smsg, sdata));
                     return DataM::BufData(bdata);
                 }
                 if sdata.starts_with("__") {
