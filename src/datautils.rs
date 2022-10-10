@@ -125,6 +125,17 @@ pub fn next_token(ins: &str) -> Result<(String, String), String> {
                 itokend = i+1;
                 break;
             }
+            if bescmode {
+                // Handle esc sequence conversion to required char value, if reqd here
+                // This also requires that we dont blindly push ch to token at begin of if bstringmode block
+                bescmode = false;
+                continue;
+            }
+            if ch == '\\' {
+                bescmode = true;
+                continue;
+            }
+            continue;
         } else {
             if ch == ' ' {
                 itokend = i+1;
