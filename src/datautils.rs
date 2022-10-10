@@ -97,11 +97,60 @@ pub fn remove_extra_whitespaces(ins: &str) -> String {
     outs
 }
 
+///
+/// Extract the next token, taking into account a standalong word or a double quoted string of words
+///
+pub fn next_token(ins: &str) -> Result<(String, String), String> {
+    let mut tok = String::new();
+    let incv: Vec<char> = ins.chars().collect();
+    let mut bstart = true;
+    let mut bstringmode = false;
+    let mut bescmode = false;
+    let mut itokend = incv.len();
+    for i in 0..incv.len() {
+        let ch = incv[i];
+        if ch.is_whitespace() && bstart { // Skip any whitespace at the begining.
+            continue;
+        }
+        if ch == '"' && bstart {
+            bstringmode = true;
+            bstart = false;
+            tok.push(ch);
+            continue;
+        }
+        bstart = false;
+        if bstringmode {
+            tok.push(ch);
+            if ch == '"' && !bescmode {
+                itokend = i+1;
+                break;
+            }
+        } else {
+            if ch == ' ' {
+                itokend = i+1;
+                break;
+            }
+            tok.push(ch);
+            continue;
+        }
+
+    }
+    let outs;
+    if itokend == incv.len() {
+        outs = String::new();
+    } else {
+        let temp = incv.split_at(itokend);
+        outs = String::from_iter(temp.1);
+    }
+    Ok((outs,tok))
+}
+
 
 ///
 /// Allow conversion btw isize and u8 through a minimal wrapper around u8
 /// Additionally this allows conversion only if the isize value fits within u8 space
 /// else it will panic with a error message.
+/// This also helps make intvalue generic wrt the types I want (ie isize and u8 immidiately)
 ///
 
 #[derive(Debug)]
