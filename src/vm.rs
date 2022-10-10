@@ -910,8 +910,8 @@ impl VM {
             let mut tl = nl.clone();
             while tl.len() > 0 {
                 let (tok, tlnext) = datautils::next_token(&tl).unwrap();
+                log_d(&format!("[{}]=>\n\t[{}],\n\t[{}]", tl, tok, tlnext));
                 tl = tlnext;
-                log_d(&format!("[{}]", tok));
             }
             ops.push(nl.to_string());
         }

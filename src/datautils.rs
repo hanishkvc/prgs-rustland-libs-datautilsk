@@ -153,7 +153,7 @@ pub fn next_token(ins: &str) -> Result<(String, String), String> {
         let temp = incv.split_at(itokend);
         outs = String::from_iter(temp.1);
     }
-    Ok((outs,tok))
+    Ok((tok,outs))
 }
 
 
