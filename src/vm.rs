@@ -502,19 +502,23 @@ impl Op {
             }
 
             "iflt.i" | "ifeq.i" | "ifeq.s" => {
-                let args: Vec<&str> = sargs.splitn(4, ' ').collect();
-                if args.len() != 4 {
+                let next = datautils::next_token(sargs).unwrap();
+                let arg0 = next.0;
+                let next = datautils::next_token(&next.1).unwrap();
+                let arg1 = next.0;
+                let args: Vec<&str> = next.1.splitn(2, ' ').collect();
+                if args.len() != 2 {
                     panic!("ERRR:{}:{}:InsufficientArgs:{}", msgtag, sop, sargs);
                 }
-                let val1dm = DataM::compile(args[0], "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, args[0]));
-                let val2dm = DataM::compile(args[1], "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, args[1]));
+                let val1dm = DataM::compile(&arg0, "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, arg0));
+                let val2dm = DataM::compile(&arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
                 let cop = match sop {
                     "iflt.i" => CondOp::IfLtInt,
                     "ifeq.i" => CondOp::IfEqInt,
                     "ifeq.s" => CondOp::IfEqStr,
                     _ => todo!(),
                 };
-                return Ok(Op::If(cop, val1dm, val2dm, args[2].to_string(), args[3].to_string()));
+                return Ok(Op::If(cop, val1dm, val2dm, args[0].to_string(), args[1].to_string()));
             }
             "checkjump" => {
                 let args: Vec<&str> = sargs.splitn(5, ' ').collect();
