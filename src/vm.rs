@@ -907,14 +907,12 @@ impl VM {
             log_d(&format!("IN :{}\n", l));
             let nl = datautils::remove_extra_whitespaces(l);
             log_d(&format!("OUT:{}\n", nl));
-            /*
             let mut tl = nl.clone();
             while tl.len() > 0 {
                 let (tok, tlnext) = datautils::next_token(&tl).unwrap();
                 log_d(&format!("[{}]=>\n\t[{}],\n\t[{}]", tl, tok, tlnext));
                 tl = tlnext;
             }
-            */
             ops.push(nl.to_string());
         }
         self.compile(ops);
