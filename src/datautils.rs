@@ -120,8 +120,8 @@ pub fn next_token(ins: &str) -> Result<(String, String), String> {
         }
         bstart = false;
         if bstringmode {
-            tok.push(ch);
             if ch == '"' && !bescmode {
+                tok.push(ch);
                 itokend = i+1;
                 break;
             }
@@ -129,12 +129,20 @@ pub fn next_token(ins: &str) -> Result<(String, String), String> {
                 // Handle esc sequence conversion to required char value, if reqd here
                 // This also requires that we dont blindly push ch to token at begin of if bstringmode block
                 bescmode = false;
+                match ch {
+                    'n' => tok.push('\n'),
+                    't' => tok.push('\t'),
+                    'r' => tok.push('\r'),
+                    '"' => tok.push('"'),
+                    _ => todo!(),
+                }
                 continue;
             }
             if ch == '\\' {
                 bescmode = true;
                 continue;
             }
+            tok.push(ch);
             continue;
         } else {
             if ch == ' ' {
