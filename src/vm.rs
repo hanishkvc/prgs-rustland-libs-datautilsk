@@ -348,6 +348,7 @@ impl CondOp {
             CondOp::IfLtInt => {
                 let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val1");
                 let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val2");
+                log_d(&format!("DBUG:CondOp:IfLtInt:[{}] vs [{}]", val1, val2));
                 if val1 < val2 {
                     return true;
                 }
@@ -356,6 +357,7 @@ impl CondOp {
             CondOp::IfEqInt => {
                 let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfEqInt:Val1");
                 let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfEqInt:Val2");
+                log_d(&format!("DBUG:CondOp:IfEqInt:[{}] vs [{}]", val1, val2));
                 if val1 == val2 {
                     return true;
                 }
@@ -364,6 +366,7 @@ impl CondOp {
             CondOp::IfEqStr => {
                 let val1 = val1.get_string(ctxt, "FuzzerK:Vm:CondOp:IfEqStr:Val1");
                 let val2 = val2.get_string(ctxt, "FuzzerK:Vm:CondOp:IfEqStr:Val2");
+                log_d(&format!("DBUG:CondOp:IfEqStr:[{}] vs [{}]", val1, val2));
                 if val1 == val2 {
                     return true;
                 }
@@ -373,6 +376,7 @@ impl CondOp {
     }
 
 }
+
 
 #[derive(Debug)]
 enum ALUOP {
