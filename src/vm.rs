@@ -337,7 +337,9 @@ impl DataM {
 #[derive(Debug)]
 enum CondOp {
     IfLtInt,
+    IfGtInt,
     IfEqBuf,
+    IfNeBuf,
 }
 
 impl CondOp {
@@ -353,6 +355,9 @@ impl CondOp {
                 }
                 return false;
             },
+            CondOp::IfGtInt => {
+                return CondOp::IfLtInt.check(ctxt, val2, val1);
+            },
             CondOp::IfEqBuf => {
                 let val1 = val1.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val1");
                 let val2 = val2.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val2");
@@ -361,6 +366,9 @@ impl CondOp {
                     return true;
                 }
                 return false;
+            },
+            CondOp::IfNeBuf => {
+                return !CondOp::IfEqBuf.check(ctxt, val1, val2);
             }
         }
     }
@@ -495,7 +503,7 @@ impl Op {
                 return Ok(Op::IobClose(sargs.to_string()));
             }
 
-            "iflt" | "iflt.i" | "ifeq" | "ifeq.b" => {
+            "iflt" | "iflt.i" | "ifgt" | "ifgt.i" | "ifeq" | "ifeq.b" | "ifeq.i" | "ifeq.s" | "ifne" | "ifne.b" | "ifne.i" | "ifne.s" => {
                 let next = datautils::next_token(sargs).unwrap();
                 let arg0 = next.0;
                 let next = datautils::next_token(&next.1).unwrap();
@@ -508,7 +516,9 @@ impl Op {
                 let val2dm = DataM::compile(&arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
                 let cop = match sop {
                     "iflt" | "iflt.i" => CondOp::IfLtInt,
-                    "ifeq" | "ifeq.b" => CondOp::IfEqBuf,
+                    "ifgt" | "ifgt.i" => CondOp::IfGtInt,
+                    "ifeq" | "ifeq.b" | "ifeq.i" | "ifeq.s" => CondOp::IfEqBuf,
+                    "ifne" | "ifne.b" | "ifne.i" | "ifne.s" => CondOp::IfNeBuf,
                     _ => todo!(),
                 };
                 return Ok(Op::If(cop, val1dm, val2dm, args[0].to_string(), args[1].to_string()));
