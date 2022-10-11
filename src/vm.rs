@@ -270,8 +270,8 @@ impl DataM {
     }
 
     ///
-    /// * returns int values as byte buffer in the native endianess format
-    /// * Returns String as the underlying byte vector
+    /// * returns int values as underlying byte values based vector in the native endianess format
+    /// * Returns String as the underlying byte values based vector
     /// * Returns Buf8 data as is
     /// * AnyVar follows the order of 1st check IntVars, then StrVars and then finally BufVars
     /// * XTimeStamp -> milliseconds from UnixEpoch, as the underlying byte values of the int
@@ -337,8 +337,7 @@ impl DataM {
 #[derive(Debug)]
 enum CondOp {
     IfLtInt,
-    IfEqInt,
-    IfEqStr,
+    IfEqBuf,
 }
 
 impl CondOp {
@@ -354,19 +353,10 @@ impl CondOp {
                 }
                 return false;
             },
-            CondOp::IfEqInt => {
-                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfEqInt:Val1");
-                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfEqInt:Val2");
-                log_d(&format!("DBUG:CondOp:IfEqInt:[{}] vs [{}]", val1, val2));
-                if val1 == val2 {
-                    return true;
-                }
-                return false;
-            },
-            CondOp::IfEqStr => {
-                let val1 = val1.get_string(ctxt, "FuzzerK:Vm:CondOp:IfEqStr:Val1");
-                let val2 = val2.get_string(ctxt, "FuzzerK:Vm:CondOp:IfEqStr:Val2");
-                log_d(&format!("DBUG:CondOp:IfEqStr:[{}] vs [{}]", val1, val2));
+            CondOp::IfEqBuf => {
+                let val1 = val1.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val1");
+                let val2 = val2.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val2");
+                log_d(&format!("DBUG:CondOp:IfEqBuf:[{:?}] vs [{:?}]", val1, val2));
                 if val1 == val2 {
                     return true;
                 }
@@ -505,7 +495,7 @@ impl Op {
                 return Ok(Op::IobClose(sargs.to_string()));
             }
 
-            "iflt.i" | "ifeq.i" | "ifeq.s" => {
+            "iflt" | "iflt.i" | "ifeq" | "ifeq.b" => {
                 let next = datautils::next_token(sargs).unwrap();
                 let arg0 = next.0;
                 let next = datautils::next_token(&next.1).unwrap();
@@ -517,9 +507,8 @@ impl Op {
                 let val1dm = DataM::compile(&arg0, "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, arg0));
                 let val2dm = DataM::compile(&arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
                 let cop = match sop {
-                    "iflt.i" => CondOp::IfLtInt,
-                    "ifeq.i" => CondOp::IfEqInt,
-                    "ifeq.s" => CondOp::IfEqStr,
+                    "iflt" | "iflt.i" => CondOp::IfLtInt,
+                    "ifeq" | "ifeq.b" => CondOp::IfEqBuf,
                     _ => todo!(),
                 };
                 return Ok(Op::If(cop, val1dm, val2dm, args[0].to_string(), args[1].to_string()));
