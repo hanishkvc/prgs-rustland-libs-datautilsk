@@ -341,16 +341,31 @@ impl DataM {
 }
 
 
+///
+/// Support a bunch of condition checks
+/// * Uses Lt-Int and Eq-Buf to construct other condition checks
+///
 #[derive(Debug)]
 enum CondOp {
     IfLtInt,
     IfGtInt,
+    IfLeInt,
+    IfGeInt,
     IfEqBuf,
     IfNeBuf,
 }
 
 impl CondOp {
 
+    ///
+    /// The following conditions will get transformed into iflt check, as follows
+    /// a >  b  ==>  b < a
+    /// a <= b  ==>  a < (b+1)
+    /// a >= b  ==>  b < (a+1)
+    ///
+    /// The Ne check gets replaced as follows
+    /// a != b  ==>  !(a == b)
+    ///
     fn check(&self, ctxt: &mut Context, val1: &DataM, val2: &DataM) -> bool {
         match self {
             CondOp::IfLtInt => {
@@ -364,6 +379,14 @@ impl CondOp {
             },
             CondOp::IfGtInt => {
                 return CondOp::IfLtInt.check(ctxt, val2, val1);
+            },
+            CondOp::IfLeInt => {
+                let adjval2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLeInt:Val2") + 1;
+                return CondOp::IfLtInt.check(ctxt, val1, &DataM::IntLiteral(adjval2));
+            },
+            CondOp::IfGeInt => {
+                let adjval1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfGeInt:Val1") + 1;
+                return CondOp::IfLtInt.check(ctxt, val2, &DataM::IntLiteral(adjval1));
             },
             CondOp::IfEqBuf => {
                 let val1 = val1.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val1");
@@ -510,7 +533,7 @@ impl Op {
                 return Ok(Op::IobClose(sargs.to_string()));
             }
 
-            "iflt" | "iflt.i" | "ifgt" | "ifgt.i" | "ifeq" | "ifeq.b" | "ifeq.i" | "ifeq.s" | "ifne" | "ifne.b" | "ifne.i" | "ifne.s" => {
+            "iflt" | "iflt.i" | "ifgt" | "ifgt.i" | "ifeq" | "ifeq.b" | "ifeq.i" | "ifeq.s" | "ifne" | "ifne.b" | "ifne.i" | "ifne.s" | "ifle" | "ifle.i" | "ifge" | "ifge.i" => {
                 let next = datautils::next_token(sargs).unwrap();
                 let arg0 = next.0;
                 let next = datautils::next_token(&next.1).unwrap();
@@ -524,6 +547,8 @@ impl Op {
                 let cop = match sop {
                     "iflt" | "iflt.i" => CondOp::IfLtInt,
                     "ifgt" | "ifgt.i" => CondOp::IfGtInt,
+                    "ifle" | "ifle.i" => CondOp::IfLeInt,
+                    "ifge" | "ifge.i" => CondOp::IfGeInt,
                     "ifeq" | "ifeq.b" | "ifeq.i" | "ifeq.s" => CondOp::IfEqBuf,
                     "ifne" | "ifne.b" | "ifne.i" | "ifne.s" => CondOp::IfNeBuf,
                     _ => todo!(),
