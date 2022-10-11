@@ -50,6 +50,31 @@ impl Context {
     }
 }
 
+impl Context {
+
+    fn var_remove(&mut self, vname: &str) {
+        self.ints.remove(vname);
+        self.strs.remove(vname);
+        self.bufs.remove(vname);
+    }
+
+    pub fn varadd_int(&mut self, vname: &str, vvalue: isize) {
+        self.var_remove(vname);
+        self.ints.insert(vname.to_string(), vvalue);
+    }
+
+    pub fn varadd_str(&mut self, vname: &str, vvalue: String) {
+        self.var_remove(vname);
+        self.strs.insert(vname.to_string(), vvalue);
+    }
+
+    pub fn varadd_buf(&mut self, vname: &str, vvalue: Vec<u8>) {
+        self.var_remove(vname);
+        self.bufs.insert(vname.to_string(), vvalue);
+    }
+
+}
+
 
 #[derive(Debug)]
 enum DataM {
