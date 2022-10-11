@@ -678,7 +678,7 @@ impl Op {
                 }
                 return Ok(Op::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval))
             }
-            "bufsmerge" => { // TODO switch to next_token and DataM
+            "bufsmerge" => {
                 let mut parts: VecDeque<&str> = sargs.split_whitespace().collect();
                 let numparts = parts.len();
                 if numparts < 2 {
