@@ -6,6 +6,7 @@
 
 use core::convert::From;
 
+
 ///
 /// Routines to help convert between hex string and Vec<u8>
 ///
@@ -30,13 +31,15 @@ pub fn vu8_from_hex(ins: &str) -> Result<Vec<u8>, String> {
 /// Convert Vec<u8> to hex string
 ///
 pub fn hex_from_vu8(inv: &Vec<u8>) -> String {
+    let hex = vec!["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
     let mut outs = String::new();
     for i in 0..inv.len() {
         let cu8 = inv[i];
         let bhigh = (cu8 & 0xF0) >> 4;
         let blow = cu8 & 0x0F;
-        outs.push_str(&bhigh.to_string());
-        outs.push_str(&blow.to_string());
+        //log_d(&format!("DBUG:DU:HexFromVU8:{}+{}+{}", outs, bhigh, blow));
+        outs.push_str(hex[bhigh as usize]);
+        outs.push_str(hex[blow as usize]);
     }
     outs
 }
