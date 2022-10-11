@@ -441,7 +441,7 @@ enum Op {
     LetBufStr(String, DataM),
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
     BufsMerge(String, Vec<String>),
-    MergedBuf(char, String, Vec<DataM>),
+    BufMerged(char, String, Vec<DataM>),
 }
 
 
@@ -670,13 +670,13 @@ impl Op {
                 //log_d(&format!("DBUG:{}:BufsMerge:{} <- {:?}", msgtag, bufid, vbufs));
                 return Ok(Op::BufsMerge(bufid, vbufs));
             }
-            "mergedbuf" | "mergedbuf.s" | "mergedbuf.b" => {
-                let (bufid, srcs) = sargs.split_once(' ').expect(&format!("ERRR:{}:MergedBuf:Extracting dest from {}", msgtag, sargs));
+            "bufmerged" | "bufmerged.s" | "bufmerged.b" => {
+                let (bufid, srcs) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufMerged:Extracting dest from {}", msgtag, sargs));
                 let mut vdm = Vec::new();
                 let mut tnext = srcs.to_string();
                 while tnext.len() > 0 {
-                    let tplus = datautils::next_token(&tnext).expect(&format!("ERRR:{}:MergedBuf:Extracting data sources at {}", msgtag, tnext));
-                    let dm = DataM::compile(&tplus.0, "any", &format!("{}:MergedBuf:ProcessingSrc:{}", msgtag, tplus.0));
+                    let tplus = datautils::next_token(&tnext).expect(&format!("ERRR:{}:BufMerged:Extracting data sources at {}", msgtag, tnext));
+                    let dm = DataM::compile(&tplus.0, "any", &format!("{}:BufMerged:ProcessingSrc:{}", msgtag, tplus.0));
                     vdm.push(dm);
                     tnext = tplus.1;
                 }
@@ -692,7 +692,7 @@ impl Op {
                         mtype = 'b';
                     }
                 }
-                return Ok(Op::MergedBuf(mtype, bufid.to_string(), vdm));
+                return Ok(Op::BufMerged(mtype, bufid.to_string(), vdm));
             }
             _ => panic!("ERRR:{}:UnknownOp:{}", msgtag, sop)
         }
@@ -918,19 +918,19 @@ impl Op {
                 log_d(&format!("DBUG:VM:Op:BufsMerge:{}:{:?}", destbufid, destbuf));
                 ctxt.bufs.insert(destbufid.to_string(), destbuf);
             }
-            Self::MergedBuf(mtype, destbufid, srcdms) => {
+            Self::BufMerged(mtype, destbufid, srcdms) => {
                 let mut destbuf = Vec::new();
                 for srcdm in srcdms {
                     let mut sbuf;
                     if *mtype == 'b' {
-                        sbuf = srcdm.get_bufvu8(ctxt, &format!("ERRR:FuzzerK:VM:Op:MergedBuf.B:Src:{:?}", srcdm));
+                        sbuf = srcdm.get_bufvu8(ctxt, &format!("ERRR:FuzzerK:VM:Op:BufMerged.B:Src:{:?}", srcdm));
                     } else {
-                        let tbuf = srcdm.get_string(ctxt, &format!("ERRR:FuzzerK:VM:Op:MergedBuf.S:Src:{:?}", srcdm));
+                        let tbuf = srcdm.get_string(ctxt, &format!("ERRR:FuzzerK:VM:Op:BufMerged.S:Src:{:?}", srcdm));
                         sbuf = Vec::from(tbuf);
                     }
                     destbuf.append(&mut sbuf);
                 }
-                log_d(&format!("DBUG:VM:Op:MergedBuf:{}:{:?}", destbufid, destbuf));
+                log_d(&format!("DBUG:VM:Op:BufMerged:{}:{:?}", destbufid, destbuf));
                 ctxt.bufs.insert(destbufid.to_string(), destbuf);
             }
         }
