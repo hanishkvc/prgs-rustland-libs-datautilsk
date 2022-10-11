@@ -91,7 +91,14 @@ impl DataM {
         if sdata.len() >= 2 {
 
             if schar == '"' || echar == '"' {
-                let mut rdata = sdata.clone();
+                if schar != echar {
+                    panic!("ERRR:{}:DataM:Compile:StringLiteral:Mising double quote at one of the ends:[{}]", smsg, sdata);
+                }
+                let tdata = datautils::next_token(sdata).expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Processing...", smsg));
+                if tdata.1.len() > 0 {
+                    panic!("ERRR:{}:DataM:Compile:StringLiteral:Extra data [{}] beyond end of the string[{}]???", smsg, tdata.1, tdata.0);
+                }
+                let mut rdata = tdata.0.as_str();
                 rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at start of {}", smsg, sdata));
                 rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at end of {}", smsg, sdata));
                 return DataM::StringLiteral(rdata.to_string());
@@ -620,7 +627,7 @@ impl Op {
                 }
                 return Ok(Op::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval))
             }
-            "bufsmerge" => {
+            "bufsmerge" => { // TODO switch to next_token and DataM
                 let mut parts: VecDeque<&str> = sargs.split_whitespace().collect();
                 let numparts = parts.len();
                 if numparts < 2 {

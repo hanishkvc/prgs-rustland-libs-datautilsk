@@ -98,7 +98,12 @@ pub fn remove_extra_whitespaces(ins: &str) -> String {
 }
 
 ///
-/// Extract the next token, taking into account a standalong word or a double quoted string of words
+/// Extract the next token, taking into account a standalong word or a double quoted string of words.
+/// * It skips/trims any whitespace at the beginning.
+/// * It retains the double quotes
+/// * It removes any and all escape sequences and replaces with equivalent char value, where supported.
+///
+/// It returns the next token and any additional string beyond it.
 ///
 pub fn next_token(ins: &str) -> Result<(String, String), String> {
     let mut tok = String::new();
@@ -126,8 +131,7 @@ pub fn next_token(ins: &str) -> Result<(String, String), String> {
                 break;
             }
             if bescmode {
-                // Handle esc sequence conversion to required char value, if reqd here
-                // This also requires that we dont blindly push ch to token at begin of if bstringmode block
+                // Handle esc sequence conversion to required char value, as reqd here
                 bescmode = false;
                 match ch {
                     'n' => tok.push('\n'),
