@@ -732,21 +732,21 @@ impl Op {
             Self::Nop => (),
             Self::LetStr(vid, vdm) => {
                 let sval = vdm.get_string(ctxt, &format!("FuzzerK:VM:Op:LetStr:{} {:?}", vid, vdm));
-                ctxt.strs.insert(vid.to_string(), sval);
+                ctxt.varadd_str(vid, sval);
             },
             Self::LetInt(vid, vval) => {
                 let ival = vval.get_isize(ctxt, &format!("FuzzerK:VM:Op:LetInt:{} {:?}", vid, vval));
-                ctxt.ints.insert(vid.to_string(), ival);
+                ctxt.varadd_int(vid, ival);
             },
             Self::Inc(vid) => {
                 let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Inc:{}", vid));
                 val += 1;
-                ctxt.ints.insert(vid.to_string(), val);
+                ctxt.varadd_int(vid, val);
             }
             Self::Dec(vid) => {
                 let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Dec:{}", vid));
                 val -= 1;
-                ctxt.ints.insert(vid.to_string(), val);
+                ctxt.varadd_int(vid, val);
             },
             Self::Alu(aluop, destvid, dmsrc1, dmsrc2) => {
                 let src1 = dmsrc1.get_isize(ctxt, "FuzzerK:VM:Op:Alu:Src1");
@@ -758,7 +758,7 @@ impl Op {
                     ALUOP::Div => src1 / src2,
                     ALUOP::Mod => src1 % src2,
                 };
-                ctxt.ints.insert(destvid.to_string(), res);
+                ctxt.varadd_int(destvid, res);
             },
             Self::IobNew(ioid, ioaddr, ioargs) => {
                 let zenio = ctxt.iobs.get_mut(ioid);
@@ -817,7 +817,7 @@ impl Op {
                 let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:FuzzerK:VM:Op:FcGet:UnknownFC???:{}", fcid));
                 let gotfuzz = fci.get(ctxt.stepu);
                 log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
-                ctxt.bufs.insert(bufid.to_string(), gotfuzz);
+                ctxt.varadd_buf(bufid, gotfuzz);
                 ctxt.stepu += 1;
             }
             Self::If(cop, val1dm, val2dm, sop , oparg) => {
@@ -878,17 +878,17 @@ impl Op {
                 let mut buf = Vec::<u8>::new();
                 let bufsize = dmbufsize.get_usize(ctxt, "FuzzerK:VM:Op:BufNew:BufSize");
                 buf.resize(bufsize, 0);
-                ctxt.bufs.insert(bufid.to_string(), buf);
+                ctxt.varadd_buf(bufid, buf);
             }
             Self::LetBuf(bufid, bufdm) => {
                 let vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetSrcData");
                 log_d(&format!("DBUG:VM:Op:LetBuf:{}:{:?}", bufid, vdata));
-                ctxt.bufs.insert(bufid.to_string(), vdata);
+                ctxt.varadd_buf(bufid, vdata);
             }
             Self::LetBufStr(bufid, bufdm) => {
                 let vdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetBufStr:GetSrcData");
                 log_d(&format!("DBUG:VM:Op:LetBufStr:{}:{:?}", bufid, vdata));
-                ctxt.bufs.insert(bufid.to_string(), Vec::from(vdata));
+                ctxt.varadd_buf(bufid, Vec::from(vdata));
             }
             Self::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval) => {
                 let b8rmsg = "FuzzerK:VM:Op:Buf8Randomize";
@@ -930,7 +930,7 @@ impl Op {
                     let curval = startval + (rng.gen::<u16>() % valwidth) as u8;
                     buf[curind] = curval;
                 }
-                ctxt.bufs.insert(bufid.to_string(), buf);
+                ctxt.varadd_buf(bufid, buf);
             }
             Self::BufsMerge(destbufid, srcbufids) => {
                 //let destbuf = ctxt.bufs.get_mut(destbufid).expect(&format!("ERRR:FuzzerK:VM:Op:BufsMerge:Dest:{}", destbufid));
@@ -941,7 +941,7 @@ impl Op {
                     destbuf.append(&mut dupbuf);
                 }
                 log_d(&format!("DBUG:VM:Op:BufsMerge:{}:{:?}", destbufid, destbuf));
-                ctxt.bufs.insert(destbufid.to_string(), destbuf);
+                ctxt.varadd_buf(destbufid, destbuf);
             }
             Self::BufMerged(mtype, destbufid, srcdms) => {
                 let mut destbuf = Vec::new();
@@ -956,7 +956,7 @@ impl Op {
                     destbuf.append(&mut sbuf);
                 }
                 log_d(&format!("DBUG:VM:Op:BufMerged:{}:{:?}", destbufid, destbuf));
-                ctxt.bufs.insert(destbufid.to_string(), destbuf);
+                ctxt.varadd_buf(destbufid, destbuf);
             }
         }
     }
