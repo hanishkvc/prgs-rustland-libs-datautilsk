@@ -532,7 +532,7 @@ impl Op {
                 let arg2dm = DataM::compile(args[1], "isize", &format!("{}:CheckJump:Arg2:{}", msgtag, args[1]));
                 return Ok(Op::CheckJump(arg1dm, arg2dm, args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
-            "jump" => {
+            "jump" | "goto" => {
                 return Ok(Op::Jump(sargs.to_string()));
             }
             "call" => {
@@ -746,7 +746,7 @@ impl Op {
                 }
                 if opdo {
                     match sop.as_str() {
-                        "goto" => {
+                        "goto" | "jump" => {
                             // Translating the label here at runtime, rather than during compile time, allows goto to refer to label
                             // that might not yet have been defined at the point where goto or rather the If condition is encountered.
                             // Especially when only a single pass parsing of the program is done.
