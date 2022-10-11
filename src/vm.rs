@@ -745,13 +745,19 @@ impl Op {
                     opdo = true;
                 }
                 if opdo {
-                    if sop == "goto" {
-                        // Translating the label here at runtime, rather than during compile time, allows goto to refer to label
-                        // that might not yet have been defined at the point where goto or rather the IfLt is encountered.
-                        // Especially when only a single pass parsing of the program is done.
-                        ctxt.iptr = *ctxt.lbls.get(oparg).expect(&format!("ERRR:FuzzerK:VM:Op:IfLt:GoTo:Label:{}", oparg));
-                        ctxt.iptr_commonupdate = false;
-                        //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:Goto:{}:{}", oparg, ctxt.iptr));
+                    match sop.as_str() {
+                        "goto" => {
+                            // Translating the label here at runtime, rather than during compile time, allows goto to refer to label
+                            // that might not yet have been defined at the point where goto or rather the If condition is encountered.
+                            // Especially when only a single pass parsing of the program is done.
+                            ctxt.iptr = *ctxt.lbls.get(oparg).expect(&format!("ERRR:FuzzerK:VM:Op:If:GoTo:Label:{}", oparg));
+                            ctxt.iptr_commonupdate = false;
+                            //log_d(&format!("DBUG:FuzzerK:VM:Op:If:Goto:{}:{}", oparg, ctxt.iptr));
+                        }
+                        "call" => {
+                            Op::Call(oparg.to_string()).run(ctxt);
+                        }
+                        _ => todo!()
                     }
                 }
             }
