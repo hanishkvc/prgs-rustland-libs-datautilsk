@@ -557,10 +557,10 @@ impl Op {
                 let dmbufsize = DataM::compile(bufsize, "any", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
                 return Ok(Op::BufNew(bufid.to_string(), dmbufsize));
             }
-            "letbuf" | "letbuf.s" => {
+            "letbuf" | "letbuf.b" | "letbuf.s" => {
                 let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf+:{}", msgtag, sargs));
                 let dm = DataM::compile(bufdata, "any", &format!("{}:LetBuf+:Value:{}", msgtag, bufdata));
-                if sop == "letbuf" {
+                if (sop == "letbuf") || (sop == "letbuf.b") {
                     return Ok(Op::LetBuf(bufid.to_string(), dm));
                 } else if sop == "letbuf.s" {
                     return Ok(Op::LetBufStr(bufid.to_string(), dm));
