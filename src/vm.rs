@@ -458,7 +458,7 @@ enum Op {
     IobFlush(String),
     IobRead(String, String),
     IobClose(String),
-    If(CondOp, DataM, DataM, String, String),
+    If(CondOp, DataM, DataM, String, String, Vec<String>),
     CheckJump(DataM, DataM, String, String, String),
     Jump(String),
     Call(String, Vec<String>),
@@ -475,6 +475,18 @@ enum Op {
 
 
 impl Op {
+
+    fn name_args(ins: &str) -> Result<(String, Vec<String>), String> {
+        let parts: Vec<&str> = ins.split_whitespace().collect();
+        if parts.len() == 0 {
+            return Err(format!("NameArgs:name missing {}", ins));
+        }
+        let mut vargs: Vec<String> = Vec::new();
+        for i in 1..parts.len() {
+            vargs.push(parts[i].to_string());
+        }
+        return Ok((parts[0].to_string(), vargs));
+    }
 
     fn compile(opplus: &str) -> Result<Op, String> {
         let msgtag = "FuzzerK:VM:Op:Compile";
@@ -569,8 +581,13 @@ impl Op {
                 let next = datautils::next_token(&next.1).unwrap();
                 let arg1 = next.0;
                 let args: Vec<&str> = next.1.splitn(2, ' ').collect();
+                let desttype;
+                let destdata;
                 if args.len() != 2 {
                     panic!("ERRR:{}:{}:InsufficientArgs:{}", msgtag, sop, sargs);
+                } else {
+                    desttype = args[0];
+                    destdata = args[1];
                 }
                 let val1dm = DataM::compile(&arg0, "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, arg0));
                 let val2dm = DataM::compile(&arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
@@ -583,7 +600,21 @@ impl Op {
                     "ifne" | "ifne.b" | "ifne.i" | "ifne.s" => CondOp::IfNeBuf,
                     _ => todo!(),
                 };
-                return Ok(Op::If(cop, val1dm, val2dm, args[0].to_string(), args[1].to_string()));
+                let destname;
+                let destargs;
+                match desttype {
+                    "goto" => {
+                        destname = destdata.to_string();
+                        destargs = Vec::new();
+                    }
+                    "call" => {
+                        let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
+                        destname = na.0;
+                        destargs = na.1;
+                    }
+                    _ => todo!()
+                }
+                return Ok(Op::If(cop, val1dm, val2dm, desttype.to_string(), destname, destargs));
             }
             "checkjump" => {
                 let args: Vec<&str> = sargs.splitn(5, ' ').collect();
@@ -598,15 +629,8 @@ impl Op {
                 return Ok(Op::Jump(sargs.to_string()));
             }
             "call" => {
-                let parts: Vec<&str> = sargs.split_whitespace().collect();
-                if parts.len() == 0 {
-                    panic!("ERRR:{}:Call:function name missing {}", msgtag, sargs);
-                }
-                let mut vargs: Vec<String> = Vec::new();
-                for i in 1..parts.len() {
-                    vargs.push(parts[i].to_string());
-                }
-                return Ok(Op::Call(parts[0].to_string(), vargs));
+                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
+                return Ok(Op::Call(na.0, na.1));
             }
             "ret" => {
                 return Ok(Op::Ret);
@@ -832,7 +856,7 @@ impl Op {
                 ctxt.varadd_buf(bufid, gotfuzz);
                 ctxt.stepu += 1;
             }
-            Self::If(cop, val1dm, val2dm, sop , oparg) => {
+            Self::If(cop, val1dm, val2dm, sop , destname, destargs) => {
                 let mut opdo = false;
                 //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", val1, val2, sop, oparg));
                 if cop.check(ctxt, val1dm, val2dm) {
@@ -844,10 +868,10 @@ impl Op {
                         // that might not yet have been defined at the point where goto or rather the If condition is encountered.
                         // Especially when only a single pass parsing of the program is done.
                         "goto" | "jump" => {
-                            Op::Jump(oparg.to_string()).run(ctxt);
+                            Op::Jump(destname.to_string()).run(ctxt);
                         }
                         "call" => {
-                            Op::Call(oparg.to_string()).run(ctxt);
+                            Op::Call(destname.to_string(), destargs.clone()).run(ctxt);
                         }
                         _ => todo!()
                     }
@@ -876,7 +900,7 @@ impl Op {
                     //log_d(&format!("DBUG:FuzzerK:VM:Op:Jump:{}:{}", label, ctxt.iptr));
                 }
             }
-            Self::Call(label) => {
+            Self::Call(label, args) => {
                 ctxt.callstack.push(ctxt.iptr);
                 let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Func:{}", label));
                 ctxt.iptr = funcs.0;
