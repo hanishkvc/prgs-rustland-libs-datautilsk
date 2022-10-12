@@ -30,7 +30,7 @@ struct Context {
     fcrtm: RunTimeManager,
     iptr: usize,
     iptr_commonupdate: bool,
-    callstack: Vec<usize>,
+    callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
     fargsstack: Vec<HashMap<String, String>>
 }
@@ -47,7 +47,7 @@ impl Context {
             fcrtm: RunTimeManager::new(),
             iptr: 0,
             iptr_commonupdate: true,
-            callstack: Vec::new(),
+            callretstack: Vec::new(),
             funcs: HashMap::new(),
             fargsstack: Vec::new(),
         }
@@ -920,7 +920,6 @@ impl Op {
                 }
             }
             Self::Call(label, passedargs) => {
-                ctxt.callstack.push(ctxt.iptr);
                 let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Func:{}", label));
                 // Map farg names of the func to be called to actual var names.
                 if funcs.1.len() != passedargs.len() {
@@ -944,13 +943,14 @@ impl Op {
                     newfargs.insert(fargname.to_string(), basename.clone());
                 }
                 // Setup the call
+                ctxt.callretstack.push(ctxt.iptr);
                 ctxt.iptr = funcs.0;
                 log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}:{:?}", label, ctxt.iptr, funcs.1, newfargs));
                 ctxt.fargsstack.push(newfargs);
                 ctxt.iptr_commonupdate = false;
             }
             Self::Ret => {
-                ctxt.iptr = ctxt.callstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallStack");
+                ctxt.iptr = ctxt.callretstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallRetStack");
                 ctxt.fargsstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:FArgsStack");
             }
 
