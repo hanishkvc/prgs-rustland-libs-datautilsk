@@ -514,6 +514,7 @@ enum Op {
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
     BufsMerge(String, Vec<String>),
     BufMerged(char, String, Vec<DataM>),
+    LetLocal(char, String, DataM),
 }
 
 
@@ -800,6 +801,19 @@ impl Op {
                     }
                 }
                 return Ok(Op::BufMerged(mtype, bufid.to_string(), vdm));
+            }
+            "letlocal" | "letlocal.b" | "letlocal.s" => {
+                let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetLocal+:{}", msgtag, sargs));
+                let dm = DataM::compile(ctxt, bufdata, "any", &format!("{}:LetLocal+:Value:{}", msgtag, bufdata));
+                match sop {
+                    "letlocal" | "letlocal.b" => {
+                        return Ok(Op::LetLocal('b', bufid.to_string(), dm));
+                    }
+                    "letlocal.s" => {
+                        return Ok(Op::LetLocal('s', bufid.to_string(), dm));
+                    }
+                    _ => todo!("ERRR:{}:LetLocal+:Unknown Variant:{}", msgtag, sop)
+                }
             }
             _ => panic!("ERRR:{}:UnknownOp:{}", msgtag, sop)
         }
