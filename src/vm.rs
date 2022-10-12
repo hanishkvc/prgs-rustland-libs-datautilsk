@@ -900,9 +900,30 @@ impl Op {
                     //log_d(&format!("DBUG:FuzzerK:VM:Op:Jump:{}:{}", label, ctxt.iptr));
                 }
             }
-            Self::Call(label, args) => {
+            Self::Call(label, passedargs) => {
                 ctxt.callstack.push(ctxt.iptr);
                 let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Func:{}", label));
+                if funcs.1.len() != passedargs.len() {
+                    panic!("ERRR:FuzzerK:VM:Op:Call:Num of required and passed args dont match")
+                }
+                let olastnames = ctxt.locals.last();
+                let mut lastnames: &HashMap<String, String> = &HashMap::new();
+                if olastnames.is_some() {
+                    lastnames = olastnames.unwrap();
+                }
+                let mut hm: HashMap<String, String> = HashMap::new();
+                for i in 0..passedargs.len() {
+                    let fargname = &funcs.1[i];
+                    let mut basename= &passedargs[i];
+                    if olastnames.is_some() {
+                        let obasename = lastnames.get(basename);
+                        if obasename.is_some() {
+                            basename = obasename.unwrap();
+                        }
+                    }
+                    hm.insert(fargname.to_string(), basename.clone());
+                }
+                ctxt.locals.push(hm);
                 ctxt.iptr = funcs.0;
                 ctxt.iptr_commonupdate = false;
                 log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}", label, ctxt.iptr, funcs.1));
