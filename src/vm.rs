@@ -80,12 +80,13 @@ impl Context {
     }
 
     pub fn var_farg2real_ifreqd(&self, datatype: &DataType, vname: &str) -> String {
-        if *datatype == DataType::FuncArg {
+        if let DataType::FuncArg = datatype {
             let fargs = self.fargsstack.last().unwrap();
             let rname = fargs.get(vname);
             if rname.is_none() {
                 return vname.to_string();
             }
+            log_d(&format!("DBUG:FArg2Real:{:?}:{}=>{}", datatype, vname, rname.unwrap()));
             return rname.unwrap().to_string();
         }
         return vname.to_string();
