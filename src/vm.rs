@@ -33,6 +33,7 @@ struct Context {
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
     fargsstack: Vec<HashMap<String, String>>,
+    localsstack: Vec<HashMap<String, DataM>>,
     bcompilingfunc: bool,
     compilingfunc: String,
 }
@@ -52,6 +53,7 @@ impl Context {
             callretstack: Vec::new(),
             funcs: HashMap::new(),
             fargsstack: Vec::new(),
+            localsstack: Vec::new(),
             bcompilingfunc: false,
             compilingfunc: String::new(),
         }
@@ -972,11 +974,13 @@ impl Op {
                 ctxt.iptr = funcs.0;
                 log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}:{:?}", label, ctxt.iptr, funcs.1, newfargs));
                 ctxt.fargsstack.push(newfargs);
+                ctxt.localsstack.push(HashMap::new());
                 ctxt.iptr_commonupdate = false;
             }
             Self::Ret => {
                 ctxt.iptr = ctxt.callretstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallRetStack");
                 ctxt.fargsstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:FArgsStack");
+                ctxt.localsstack.pop();
             }
 
             Self::BufNew(bufid, dmbufsize) => {
