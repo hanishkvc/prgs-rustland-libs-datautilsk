@@ -941,10 +941,10 @@ impl Op {
                     }
                     hm.insert(fargname.to_string(), basename.clone());
                 }
-                ctxt.locals.push(hm);
                 ctxt.iptr = funcs.0;
+                log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}:{:?}", label, ctxt.iptr, funcs.1, hm));
+                ctxt.locals.push(hm);
                 ctxt.iptr_commonupdate = false;
-                log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}", label, ctxt.iptr, funcs.1));
             }
             Self::Ret => {
                 ctxt.iptr = ctxt.callstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallStack");
