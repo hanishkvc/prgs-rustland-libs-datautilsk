@@ -948,6 +948,7 @@ impl Op {
             }
             Self::Ret => {
                 ctxt.iptr = ctxt.callstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallStack");
+                ctxt.locals.pop().expect("ERRR:FuzzerK:VM:Op:Ret:LocalsStack");
             }
 
             Self::BufNew(bufid, dmbufsize) => {
