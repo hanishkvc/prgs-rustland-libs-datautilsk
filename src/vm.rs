@@ -31,6 +31,8 @@ struct Context {
     iptr: usize,
     iptr_commonupdate: bool,
     callstack: Vec<usize>,
+    funcs: HashMap<String, (usize, Vec<String>)>,
+    locals: Vec<HashMap<String, String>>
 }
 
 impl Context {
@@ -46,6 +48,8 @@ impl Context {
             iptr: 0,
             iptr_commonupdate: true,
             callstack: Vec::new(),
+            funcs: HashMap::new(),
+            locals: Vec::new(),
         }
     }
 }
@@ -980,10 +984,22 @@ impl VM {
 
     fn compile_directive(&mut self, sdirplus: &str) {
         let (sdir, sargs) = sdirplus.split_once(' ').expect(&format!("ERRR:FuzzerK:VM:CompileDirective:{}", sdirplus));
-        if sdir == "!label" {
-            self.ctxt.lbls.insert(sargs.to_string(), self.ops.len());
-        } else {
-            panic!("ERRR:FuzzerK:VM:CompileDirective:Unknown:{}", sdirplus);
+        match sdir {
+            "!label" => {
+                self.ctxt.lbls.insert(sargs.to_string(), self.ops.len());
+            }
+            "!func" => {
+                let parts: Vec<&str> = sargs.split_whitespace().collect();
+                if parts.len() == 0 {
+                    panic!("ERRR:FuzzerK:VM:CompileDirective:!func:function name missing {}", sdirplus);
+                }
+                let mut vargs: Vec<String> = Vec::new();
+                for i in 1..parts.len() {
+                    vargs.push(parts[i].to_string());
+                }
+                self.ctxt.funcs.insert(parts[0].to_string(), (self.ops.len(),vargs));
+            }
+            _ => panic!("ERRR:FuzzerK:VM:CompileDirective:Unknown:{}", sdirplus),
         }
     }
 
