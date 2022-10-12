@@ -34,6 +34,7 @@ struct Context {
     funcs: HashMap<String, (usize, Vec<String>)>,
     fargsstack: Vec<HashMap<String, String>>,
     bcompilingfunc: bool,
+    compilingfunc: String,
 }
 
 impl Context {
@@ -52,6 +53,7 @@ impl Context {
             funcs: HashMap::new(),
             fargsstack: Vec::new(),
             bcompilingfunc: false,
+            compilingfunc: String::new(),
         }
     }
 }
@@ -182,12 +184,9 @@ impl DataM {
 
         let mut datatype = DataType::Global;
         if ctxt.bcompilingfunc {
-            let fargs = ctxt.fargsstack.last();
-            if fargs.is_some() {
-                let fargs = fargs.unwrap();
-                if fargs.contains_key(sdata) {
-                    datatype = DataType::FuncArg;
-                }
+            let fi = ctxt.funcs.get(&ctxt.compilingfunc).unwrap();
+            if fi.1.contains(&sdata.to_string()){
+                datatype = DataType::FuncArg;
             }
         }
         match stype {
@@ -677,6 +676,7 @@ impl Op {
             }
             "ret" => {
                 ctxt.bcompilingfunc = false;
+                ctxt.compilingfunc = String::new();
                 return Ok(Op::Ret);
             }
 
@@ -1103,6 +1103,7 @@ impl VM {
                     panic!("ERRR:FuzzerK:VM:CompileDirective:!func:{}, prev func may be missing ret", sdirplus);
                 }
                 self.ctxt.bcompilingfunc = true;
+                self.ctxt.compilingfunc = parts[0].to_string();
             }
             _ => panic!("ERRR:FuzzerK:VM:CompileDirective:Unknown:{}", sdirplus),
         }
