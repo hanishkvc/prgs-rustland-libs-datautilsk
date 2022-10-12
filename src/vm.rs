@@ -461,7 +461,7 @@ enum Op {
     If(CondOp, DataM, DataM, String, String),
     CheckJump(DataM, DataM, String, String, String),
     Jump(String),
-    Call(String),
+    Call(String, Vec<String>),
     Ret,
     SleepMSec(DataM),
     FcGet(String, String),
@@ -598,7 +598,15 @@ impl Op {
                 return Ok(Op::Jump(sargs.to_string()));
             }
             "call" => {
-                return Ok(Op::Call(sargs.to_string()));
+                let parts: Vec<&str> = sargs.split_whitespace().collect();
+                if parts.len() == 0 {
+                    panic!("ERRR:{}:Call:function name missing {}", msgtag, sargs);
+                }
+                let mut vargs: Vec<String> = Vec::new();
+                for i in 1..parts.len() {
+                    vargs.push(parts[i].to_string());
+                }
+                return Ok(Op::Call(parts[0].to_string(), vargs));
             }
             "ret" => {
                 return Ok(Op::Ret);
