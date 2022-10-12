@@ -548,12 +548,12 @@ impl Op {
 
             "letstr" => {
                 let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetStr:{}", msgtag, sargs));
-                let dm = DataM::compile(sval, "string", &format!("{}:LetStr:Value:{}", msgtag, sval));
+                let dm = DataM::compile(ctxt, sval, "string", &format!("{}:LetStr:Value:{}", msgtag, sval));
                 return Ok(Op::LetStr(vid.to_string(), dm));
             }
             "letint" => {
                 let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetInt:{}", msgtag, sargs));
-                let dm = DataM::compile(sval, "isize", &format!("{}:LetInt:Value:{}", msgtag, sval));
+                let dm = DataM::compile(ctxt, sval, "isize", &format!("{}:LetInt:Value:{}", msgtag, sval));
                 return Ok(Op::LetInt(vid.to_string(), dm));
             }
 
@@ -574,8 +574,8 @@ impl Op {
                     _ => todo!(),
                 };
                 let args: Vec<&str> = sargs.split_whitespace().collect();
-                let dmsrc1 = DataM::compile(args[1], "isize", &format!("{}:{}:SrcArg1", msgtag, sop));
-                let dmsrc2 = DataM::compile(args[2], "isize", &format!("{}:{}:SrcArg2", msgtag, sop));
+                let dmsrc1 = DataM::compile(ctxt, args[1], "isize", &format!("{}:{}:SrcArg1", msgtag, sop));
+                let dmsrc2 = DataM::compile(ctxt, args[2], "isize", &format!("{}:{}:SrcArg2", msgtag, sop));
                 return Ok(Op::Alu(aluop, args[0].to_string(), dmsrc1, dmsrc2));
             }
 
@@ -603,7 +603,7 @@ impl Op {
             }
             "iobwrite" => {
                 let (ioid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:IobWrite:{}", msgtag, sargs));
-                let dmsrc = DataM::compile(bufid, "any", &format!("{}:{}:Src", msgtag, sop));
+                let dmsrc = DataM::compile(ctxt, bufid, "any", &format!("{}:{}:Src", msgtag, sop));
                 return Ok(Op::IobWrite(ioid.to_string(), dmsrc));
             }
             "iobflush" => {
@@ -631,8 +631,8 @@ impl Op {
                     desttype = args[0];
                     destdata = args[1];
                 }
-                let val1dm = DataM::compile(&arg0, "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, arg0));
-                let val2dm = DataM::compile(&arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
+                let val1dm = DataM::compile(ctxt, &arg0, "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, arg0));
+                let val2dm = DataM::compile(ctxt, &arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
                 let cop = match sop {
                     "iflt" | "iflt.i" => CondOp::IfLtInt,
                     "ifgt" | "ifgt.i" => CondOp::IfGtInt,
@@ -663,8 +663,8 @@ impl Op {
                 if args.len() != 5 {
                     panic!("ERRR:{}:CheckJump:InsufficientArgs:{}", msgtag, sargs);
                 }
-                let arg1dm = DataM::compile(args[0], "isize", &format!("{}:CheckJump:Arg1:{}", msgtag, args[0]));
-                let arg2dm = DataM::compile(args[1], "isize", &format!("{}:CheckJump:Arg2:{}", msgtag, args[1]));
+                let arg1dm = DataM::compile(ctxt, args[0], "isize", &format!("{}:CheckJump:Arg1:{}", msgtag, args[0]));
+                let arg2dm = DataM::compile(ctxt, args[1], "isize", &format!("{}:CheckJump:Arg2:{}", msgtag, args[1]));
                 return Ok(Op::CheckJump(arg1dm, arg2dm, args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
             "jump" | "goto" => {
@@ -680,7 +680,7 @@ impl Op {
             }
 
             "sleepmsec" => {
-                let msecdm = DataM::compile(sargs, "isize", &format!("{}:SleepMSec:Value:{}", msgtag, sargs));
+                let msecdm = DataM::compile(ctxt, sargs, "isize", &format!("{}:SleepMSec:Value:{}", msgtag, sargs));
                 return Ok(Op::SleepMSec(msecdm));
             }
 
@@ -691,12 +691,12 @@ impl Op {
 
             "bufnew" => {
                 let (bufid, bufsize) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufNew:{}", msgtag, sargs));
-                let dmbufsize = DataM::compile(bufsize, "any", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
+                let dmbufsize = DataM::compile(ctxt, bufsize, "any", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
                 return Ok(Op::BufNew(bufid.to_string(), dmbufsize));
             }
             "letbuf" | "letbuf.b" | "letbuf.s" => {
                 let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf+:{}", msgtag, sargs));
-                let dm = DataM::compile(bufdata, "any", &format!("{}:LetBuf+:Value:{}", msgtag, bufdata));
+                let dm = DataM::compile(ctxt, bufdata, "any", &format!("{}:LetBuf+:Value:{}", msgtag, bufdata));
                 if (sop == "letbuf") || (sop == "letbuf.b") {
                     return Ok(Op::LetBuf(bufid.to_string(), dm));
                 } else if sop == "letbuf.s" {
@@ -722,35 +722,35 @@ impl Op {
                 } else {
                     thepart = String::from("-1");
                 }
-                dmrandcount = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:RandCount:{}", msgtag, thepart));
+                dmrandcount = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:RandCount:{}", msgtag, thepart));
 
                 if parts.len() >= 3 {
                     thepart = parts[2].to_string();
                 } else {
                     thepart = String::from("-1");
                 }
-                dmstartoffset = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:StartOffset:{}", msgtag, thepart));
+                dmstartoffset = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:StartOffset:{}", msgtag, thepart));
 
                 if parts.len() >= 4 {
                     thepart = parts[3].to_string();
                 } else {
                     thepart = String::from("-1");
                 }
-                dmendoffset = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:EndOffset:{}", msgtag, thepart));
+                dmendoffset = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:EndOffset:{}", msgtag, thepart));
 
                 if parts.len() >= 5 {
                     thepart = parts[4].to_string();
                 } else {
                     thepart = String::from("0");
                 }
-                dmstartval = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:StartVal:{}", msgtag, thepart));
+                dmstartval = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:StartVal:{}", msgtag, thepart));
 
                 if parts.len() == 6 {
                     thepart = parts[5].to_string();
                 } else {
                     thepart = String::from("255");
                 }
-                dmendval = DataM::compile(&thepart, "isize", &format!("{}:Buf8Randomize:EndVal:{}", msgtag, thepart));
+                dmendval = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:EndVal:{}", msgtag, thepart));
 
                 if parts.len() > 6 {
                     panic!("ERRR:{}:Buf8Randomize:Too many args:{}", msgtag, sargs);
@@ -780,7 +780,7 @@ impl Op {
                 let mut tnext = srcs.to_string();
                 while tnext.len() > 0 {
                     let tplus = datautils::next_token(&tnext).expect(&format!("ERRR:{}:BufMerged:Extracting data sources at {}", msgtag, tnext));
-                    let dm = DataM::compile(&tplus.0, "any", &format!("{}:BufMerged:ProcessingSrc:{}", msgtag, tplus.0));
+                    let dm = DataM::compile(ctxt, &tplus.0, "any", &format!("{}:BufMerged:ProcessingSrc:{}", msgtag, tplus.0));
                     vdm.push(dm);
                     tnext = tplus.1;
                 }
