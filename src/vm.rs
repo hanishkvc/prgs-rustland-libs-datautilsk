@@ -32,7 +32,7 @@ struct Context {
     iptr_commonupdate: bool,
     callstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
-    locals: Vec<HashMap<String, String>>
+    fargs: Vec<HashMap<String, String>>
 }
 
 impl Context {
@@ -49,7 +49,7 @@ impl Context {
             iptr_commonupdate: true,
             callstack: Vec::new(),
             funcs: HashMap::new(),
-            locals: Vec::new(),
+            fargs: Vec::new(),
         }
     }
 }
@@ -78,7 +78,7 @@ impl Context {
     }
 
     pub fn var_local2real(&self, vname: &str) -> String {
-        let localnames = self.locals.last().unwrap();
+        let localnames = self.fargs.last().unwrap();
         let rname = localnames.get(vname);
         if rname.is_none() {
             return vname.to_string();
@@ -925,7 +925,7 @@ impl Op {
                 if funcs.1.len() != passedargs.len() {
                     panic!("ERRR:FuzzerK:VM:Op:Call:Num of required and passed args dont match")
                 }
-                let olastnames = ctxt.locals.last();
+                let olastnames = ctxt.fargs.last();
                 let mut lastnames: &HashMap<String, String> = &HashMap::new();
                 if olastnames.is_some() {
                     lastnames = olastnames.unwrap();
@@ -944,12 +944,12 @@ impl Op {
                 }
                 ctxt.iptr = funcs.0;
                 log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}:{:?}", label, ctxt.iptr, funcs.1, hm));
-                ctxt.locals.push(hm);
+                ctxt.fargs.push(hm);
                 ctxt.iptr_commonupdate = false;
             }
             Self::Ret => {
                 ctxt.iptr = ctxt.callstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallStack");
-                ctxt.locals.pop().expect("ERRR:FuzzerK:VM:Op:Ret:LocalsStack");
+                ctxt.fargs.pop().expect("ERRR:FuzzerK:VM:Op:Ret:LocalsStack");
             }
 
             Self::BufNew(bufid, dmbufsize) => {
