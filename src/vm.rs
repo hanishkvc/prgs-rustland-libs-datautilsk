@@ -244,6 +244,16 @@ impl DataM {
             },
             Self::AnyVar(datatype, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+
+                let locals = ctxt.localsstack.last();
+                if locals.is_some() {
+                    let locals = locals.unwrap();
+                    let bval = locals.get(vid);
+                    if bval.is_some() {
+                        return isize::from_ne_bytes(bval.unwrap().as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:AnyVarLocal: Conversion failed", smsg)));
+                    }
+                }
+
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
                     return *ival.unwrap();
@@ -321,6 +331,16 @@ impl DataM {
             },
             DataM::AnyVar(datatype, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+
+                let locals = ctxt.localsstack.last();
+                if locals.is_some() {
+                    let locals = locals.unwrap();
+                    let bval = locals.get(vid);
+                    if bval.is_some() {
+                        return datautils::hex_from_vu8(bval.unwrap());
+                    }
+                }
+
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
                     return ival.unwrap().to_string();
@@ -381,6 +401,16 @@ impl DataM {
             },
             DataM::AnyVar(datatype, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+
+                let locals = ctxt.localsstack.last();
+                if locals.is_some() {
+                    let locals = locals.unwrap();
+                    let bval = locals.get(vid);
+                    if bval.is_some() {
+                        return bval.unwrap().to_vec();
+                    }
+                }
+
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
                     let ival = ival.unwrap().to_ne_bytes();
