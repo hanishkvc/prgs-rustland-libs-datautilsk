@@ -33,7 +33,7 @@ struct Context {
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
     fargsstack: Vec<HashMap<String, String>>,
-    localsstack: Vec<HashMap<String, DataM>>,
+    localsstack: Vec<HashMap<String, Vec<u8>>>,
     bcompilingfunc: bool,
     compilingfunc: String,
 }
@@ -81,6 +81,11 @@ impl Context {
     pub fn varadd_buf(&mut self, vname: &str, vvalue: Vec<u8>) {
         self.var_remove(vname);
         self.bufs.insert(vname.to_string(), vvalue);
+    }
+
+    pub fn varadd_localbuf(&mut self, vname: &str, vvalue: Vec<u8>) {
+        let locals = self.localsstack.last_mut().unwrap();
+        locals.insert(vname.to_string(), vvalue);
     }
 
     pub fn var_farg2real_ifreqd(&self, datatype: &DataType, vname: &str) -> String {
@@ -1081,6 +1086,18 @@ impl Op {
                 log_d(&format!("DBUG:VM:Op:BufMerged:{}:{:?}", destbufid, destbuf));
                 ctxt.varadd_buf(destbufid, destbuf);
             }
+            Self::LetLocal(ltype, bufid, bufdm) => {
+                let vdata;
+                if *ltype == 'b' {
+                    vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetLocal.b:GetSrcData");
+                } else {
+                    let tdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetLocal.s:GetSrcData");
+                    vdata = Vec::from(tdata);
+                }
+                log_d(&format!("DBUG:VM:Op:LetLocal.{}:{}:{:?}", ltype, bufid, vdata));
+                ctxt.varadd_localbuf(bufid, vdata);
+            }
+
         }
     }
 
