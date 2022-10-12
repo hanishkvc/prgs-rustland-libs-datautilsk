@@ -472,7 +472,7 @@ enum Op {
     Dec(String),
     Alu(ALUOP, String, DataM, DataM),
     IobNew(String, String, HashMap<String, String>),
-    IobWrite(String, String),
+    IobWrite(String, DataM),
     IobFlush(String),
     IobRead(String, String),
     IobClose(String),
@@ -580,7 +580,8 @@ impl Op {
             }
             "iobwrite" => {
                 let (ioid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:IobWrite:{}", msgtag, sargs));
-                return Ok(Op::IobWrite(ioid.to_string(), bufid.to_string()));
+                let dmsrc = DataM::compile(bufid, "any", &format!("{}:{}:Src", msgtag, sop));
+                return Ok(Op::IobWrite(ioid.to_string(), dmsrc));
             }
             "iobflush" => {
                 return Ok(Op::IobFlush(sargs.to_string()));
@@ -829,12 +830,12 @@ impl Op {
                 let zenio = IOBridge::new(&ioaddr, &ioargs);
                 ctxt.iobs.insert(ioid.to_string(), zenio);
             }
-            Self::IobWrite(ioid, bufid) => {
-                let buf = ctxt.bufs.get(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:IobWrite:FromBuf:{}", bufid));
+            Self::IobWrite(ioid, srcdm) => {
+                let buf = srcdm.get_bufvu8(ctxt, &format!("FuzzerK:VM:Op:IobWrite:FromSrc:{:?}", srcdm));
                 let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}", ioid));
-                let gotr = zenio.write(buf);
+                let gotr = zenio.write(&buf);
                 if gotr.is_err() {
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}:FromBuf:{}:{}", ioid, bufid, gotr.unwrap_err()));
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}:FromSrc:{:?}:{}", ioid, srcdm, gotr.unwrap_err()));
                 }
             }
             Self::IobFlush(ioid) => {
