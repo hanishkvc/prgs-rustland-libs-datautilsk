@@ -32,7 +32,8 @@ struct Context {
     iptr_commonupdate: bool,
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
-    fargsstack: Vec<HashMap<String, String>>
+    fargsstack: Vec<HashMap<String, String>>,
+    bcompilingfunc: bool,
 }
 
 impl Context {
@@ -50,6 +51,7 @@ impl Context {
             callretstack: Vec::new(),
             funcs: HashMap::new(),
             fargsstack: Vec::new(),
+            bcompilingfunc: false,
         }
     }
 }
@@ -506,7 +508,7 @@ impl Op {
         return Ok((parts[0].to_string(), vargs));
     }
 
-    fn compile(opplus: &str) -> Result<Op, String> {
+    fn compile(opplus: &str, ctxt: &mut Context) -> Result<Op, String> {
         let msgtag = "FuzzerK:VM:Op:Compile";
         let sop;
         let sargs;
@@ -652,6 +654,7 @@ impl Op {
                 return Ok(Op::Call(na.0, na.1));
             }
             "ret" => {
+                ctxt.bcompilingfunc = false;
                 return Ok(Op::Ret);
             }
 
@@ -1074,6 +1077,10 @@ impl VM {
                     vargs.push(parts[i].to_string());
                 }
                 self.ctxt.funcs.insert(parts[0].to_string(), (self.ops.len(),vargs));
+                if self.ctxt.bcompilingfunc {
+                    panic!("ERRR:FuzzerK:VM:CompileDirective:!func:{}, prev func may be missing ret", sdirplus);
+                }
+                self.ctxt.bcompilingfunc = true;
             }
             _ => panic!("ERRR:FuzzerK:VM:CompileDirective:Unknown:{}", sdirplus),
         }
@@ -1092,7 +1099,7 @@ impl VM {
                 self.compile_directive(sop);
                 continue;
             }
-            let op = Op::compile(sop).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
+            let op = Op::compile(sop, &mut self.ctxt).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
             self.ops.push(op);
         }
     }
