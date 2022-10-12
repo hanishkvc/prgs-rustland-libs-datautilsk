@@ -215,16 +215,22 @@ impl DataM {
             Self::IntLiteral(ival) => {
                 return *ival;
             },
-            Self::IntVar(vid) => {
-                let vid = &ctxt.var_farg2real(vid);
+            Self::IntVar(dataType, vid) => {
+                let mut vid = vid;
+                if let dataType = DataType::FuncArg {
+                    vid = &ctxt.var_farg2real(vid);
+                }
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:IntVar: Failed to get var", smsg));
                 return ival;
             },
             Self::StringLiteral(sval) => {
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringLiteral: Conversion failed", smsg));
             },
-            Self::StringVar(vid) => {
-                let vid = &ctxt.var_farg2real(vid);
+            Self::StringVar(dataType, vid) => {
+                let mut vid = vid;
+                if let dataType = DataType::FuncArg {
+                    vid = &ctxt.var_farg2real(vid);
+                }
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:StringVar: Failed to get var", smsg));
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
             },
