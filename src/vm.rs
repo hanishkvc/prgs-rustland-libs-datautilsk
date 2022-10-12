@@ -77,9 +77,9 @@ impl Context {
         self.bufs.insert(vname.to_string(), vvalue);
     }
 
-    pub fn var_local2real(&self, vname: &str) -> String {
-        let localnames = self.fargs.last().unwrap();
-        let rname = localnames.get(vname);
+    pub fn var_farg2real(&self, vname: &str) -> String {
+        let fargs = self.fargs.last().unwrap();
+        let rname = fargs.get(vname);
         if rname.is_none() {
             return vname.to_string();
         }
@@ -196,7 +196,7 @@ impl DataM {
                 return *ival;
             },
             Self::IntVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:IntVar: Failed to get var", smsg));
                 return ival;
             },
@@ -204,7 +204,7 @@ impl DataM {
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringLiteral: Conversion failed", smsg));
             },
             Self::StringVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:StringVar: Failed to get var", smsg));
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
             },
@@ -213,7 +213,7 @@ impl DataM {
                 return isize::from_ne_bytes(sval.as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg)));
             },
             Self::AnyVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
                     return *ival.unwrap();
@@ -273,13 +273,13 @@ impl DataM {
         match self {
             DataM::IntLiteral(ival) => ival.to_string(),
             DataM::IntVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetString:IntVar: Failed to get var", smsg));
                 ival.to_string()
             },
             DataM::StringLiteral(sval) => sval.clone(),
             DataM::StringVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetString:StringVar: Failed to get var", smsg));
                 sval.clone()
             },
@@ -290,7 +290,7 @@ impl DataM {
                 return datautils::hex_from_vu8(&bval);
             },
             DataM::AnyVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
                     return ival.unwrap().to_string();
@@ -334,14 +334,14 @@ impl DataM {
         match self {
             DataM::IntLiteral(ival) => Vec::from(ival.to_ne_bytes()),
             DataM::IntVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:IntVar: Failed to get var", smsg));
                 log_d(&format!("DBUG:DataM:GetBufVU8:IntVar:{}:{}", vid, ival));
                 Vec::from(ival.to_ne_bytes())
             },
             DataM::StringLiteral(sval) => Vec::from(sval.to_string()),
             DataM::StringVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:StringVar: Failed to get var", smsg));
                 log_d(&format!("DBUG:DataM:GetBufVU8:StrVar:{}:{}", vid, sval));
                 Vec::from(sval.to_string())
@@ -350,7 +350,7 @@ impl DataM {
                 return bval.to_vec();
             },
             DataM::AnyVar(vid) => {
-                let vid = &ctxt.var_local2real(vid);
+                let vid = &ctxt.var_farg2real(vid);
                 let ival  = ctxt.ints.get(vid);
                 if ival.is_some() {
                     let ival = ival.unwrap().to_ne_bytes();
