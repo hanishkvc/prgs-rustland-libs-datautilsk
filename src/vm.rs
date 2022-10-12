@@ -92,13 +92,21 @@ impl Context {
 
 
 #[derive(Debug)]
+enum DataType {
+    Global,
+    FuncArg,
+    Local,
+}
+
+
+#[derive(Debug)]
 enum DataM {
     IntLiteral(isize),
-    IntVar(String),
+    IntVar(DataType, String),
     StringLiteral(String),
-    StringVar(String),
+    StringVar(DataType, String),
     BufData(Vec<u8>),
-    AnyVar(String),
+    AnyVar(DataType, String),
     XTimeStamp,
     XRandomBytes(usize)
 }
@@ -115,7 +123,7 @@ impl DataM {
     ///   * it needs to start with a alpabhetic char
     ///   * it could either be a IntVar or StringVar or Buf8Var
     ///
-    fn compile(mut sdata: &str, stype: &str, smsg: &str) -> DataM {
+    fn compile(ctxt: &Context, mut sdata: &str, stype: &str, smsg: &str) -> DataM {
         sdata = sdata.trim();
         if sdata == "" {
             panic!("ERRR:{}:DataM:Compile:{}:Data token empty", smsg, stype);
@@ -168,15 +176,25 @@ impl DataM {
             panic!("ERRR:{}:DataM:{}:Variable name {} should start with a alphabetic char", smsg, stype, sdata);
         }
 
+        let mut dataType = DataType::Global;
+        if ctxt.bcompilingfunc {
+            let fargs = ctxt.fargsstack.last();
+            if fargs.is_some() {
+                let fargs = fargs.unwrap();
+                if fargs.contains_key(sdata) {
+                    dataType = DataType::FuncArg;
+                }
+            }
+        }
         match stype {
             "isize" => {
-                return DataM::IntVar(sdata.to_string());
+                return DataM::IntVar(dataType, sdata.to_string());
             }
             "string" => {
-                return DataM::StringVar(sdata.to_string())
+                return DataM::StringVar(dataType, sdata.to_string())
             }
             "any" => {
-                return DataM::AnyVar(sdata.to_string())
+                return DataM::AnyVar(dataType, sdata.to_string())
             }
             _ => {
                 panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
