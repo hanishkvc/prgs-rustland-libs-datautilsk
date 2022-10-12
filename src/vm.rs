@@ -80,7 +80,7 @@ impl Context {
     }
 
     pub fn var_farg2real_ifreqd(&self, datatype: &DataType, vname: &str) -> String {
-        if let datatype = DataType::FuncArg {
+        if *datatype == DataType::FuncArg {
             let fargs = self.fargsstack.last().unwrap();
             let rname = fargs.get(vname);
             if rname.is_none() {
@@ -94,11 +94,11 @@ impl Context {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum DataType {
     Global,
     FuncArg,
-    Local,
+    //Local,
 }
 
 
