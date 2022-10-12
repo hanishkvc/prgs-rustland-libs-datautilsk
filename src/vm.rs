@@ -870,9 +870,10 @@ impl Op {
             }
             Self::Call(label) => {
                 ctxt.callstack.push(ctxt.iptr);
-                ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Label:{}", label));
+                let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Func:{}", label));
+                ctxt.iptr = funcs.0;
                 ctxt.iptr_commonupdate = false;
-                //log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}", label, ctxt.iptr));
+                log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}", label, ctxt.iptr, funcs.1));
             }
             Self::Ret => {
                 ctxt.iptr = ctxt.callstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallStack");
