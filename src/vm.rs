@@ -228,7 +228,7 @@ impl DataM {
                 }
 
                 panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
-            },
+            }
         }
     }
 
@@ -257,17 +257,9 @@ impl DataM {
             Self::Value(oval) => {
                 return oval.get_string();
             }
-            DataM::IntVar(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetString:IntVar: Failed to get var", smsg));
-                ival.to_string()
-            },
-            DataM::StringVar(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetString:StringVar: Failed to get var", smsg));
-                sval.clone()
-            },
-            DataM::AnyVar(datakind, vid) => {
+            DataM::IntVar(datakind, vid)
+            | DataM::StringVar(datakind, vid)
+            | DataM::AnyVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
@@ -275,25 +267,17 @@ impl DataM {
                     let locals = locals.unwrap();
                     let bval = locals.get(vid);
                     if bval.is_some() {
-                        return datautils::hex_from_vu8(bval.unwrap());
+                        return bval.unwrap().get_string();
                     }
                 }
 
-                let ival  = ctxt.ints.get(vid);
-                if ival.is_some() {
-                    return ival.unwrap().to_string();
+                let vvalue = ctxt.globals.get(vid);
+                if vvalue.is_some() {
+                    vvalue.unwrap().get_string();
                 }
-                let sval = ctxt.strs.get(vid);
-                if sval.is_some() {
-                    return sval.unwrap().to_string();
-                }
-                let sval = ctxt.bufs.get(vid);
-                if sval.is_some() {
-                    //return String::from_utf8_lossy(sval.unwrap()).to_string();
-                    return datautils::hex_from_vu8(sval.unwrap());
-                }
-                panic!("ERRR:{}:DataM:GetString:AnyVar:Unknown:{}", smsg, vid);
-            },
+
+                panic!("ERRR:{}:DataM:GetString:Var:Unknown:{}", smsg, vid);
+            }
         }
     }
 
@@ -312,19 +296,9 @@ impl DataM {
             Self::Value(oval) => {
                 return oval.get_bufvu8();
             }
-            DataM::IntVar(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:IntVar: Failed to get var", smsg));
-                log_d(&format!("DBUG:DataM:GetBufVU8:IntVar:{}:{}", vid, ival));
-                Vec::from(ival.to_ne_bytes())
-            },
-            DataM::StringVar(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:StringVar: Failed to get var", smsg));
-                log_d(&format!("DBUG:DataM:GetBufVU8:StrVar:{}:{}", vid, sval));
-                Vec::from(sval.to_string())
-            },
-            DataM::AnyVar(datakind, vid) => {
+            DataM::IntVar(datakind, vid)
+            | DataM::StringVar(datakind, vid)
+            | DataM::AnyVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
@@ -332,29 +306,16 @@ impl DataM {
                     let locals = locals.unwrap();
                     let bval = locals.get(vid);
                     if bval.is_some() {
-                        return bval.unwrap().to_vec();
+                        return bval.unwrap().get_bufvu8();
                     }
                 }
 
-                let ival  = ctxt.ints.get(vid);
-                if ival.is_some() {
-                    let ival = ival.unwrap().to_ne_bytes();
-                    log_d(&format!("DBUG:DataM:GetBufVU8:AnyIntVar:{}:{:?}", vid, ival));
-                    return Vec::from(ival)
+                let vvalue = ctxt.globals.get(vid);
+                if vvalue.is_some() {
+                    vvalue.unwrap().get_bufvu8();
                 }
-                let sval = ctxt.strs.get(vid);
-                if sval.is_some() {
-                    let sval = sval.unwrap().to_string();
-                    log_d(&format!("DBUG:DataM:GetBufVU8:AnyStrVar:{}:{}", vid, sval));
-                    return Vec::from(sval)
-                }
-                let sval = ctxt.bufs.get(vid);
-                if sval.is_some() {
-                    let bval = sval.unwrap().to_vec();
-                    log_d(&format!("DBUG:DataM:GetBufVU8:AnyBufVar:{}:{:?}", vid, bval));
-                    return bval;
-                }
-                panic!("ERRR:{}:DataM:GetBuf:AnyVar:Unknown:{}", smsg, vid);
+
+                panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
             },
         }
     }
