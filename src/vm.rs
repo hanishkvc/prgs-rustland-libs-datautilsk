@@ -22,11 +22,9 @@ mod datas;
 use datas::Variant;
 
 struct Context {
-    strs: HashMap<String, String>,
-    ints: HashMap<String, isize>,
+    globals: HashMap<String, Variant>,
     iobs: HashMap<String, IOBridge>,
     lbls: HashMap<String, usize>,
-    bufs: HashMap<String, Vec<u8>>,
     stepu: usize,
     fcrtm: RunTimeManager,
     iptr: usize,
@@ -34,7 +32,7 @@ struct Context {
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
     fargsstack: Vec<HashMap<String, String>>,
-    localsstack: Vec<HashMap<String, Vec<u8>>>,
+    localsstack: Vec<HashMap<String, Variant>>,
     bcompilingfunc: bool,
     compilingfunc: String,
 }
@@ -42,11 +40,9 @@ struct Context {
 impl Context {
     fn new() -> Context {
         Context {
-            strs: HashMap::new(),
-            ints: HashMap::new(),
+            globals: HashMap::new(),
             iobs: HashMap::new(),
             lbls: HashMap::new(),
-            bufs: HashMap::new(),
             stepu: 0,
             fcrtm: RunTimeManager::new(),
             iptr: 0,
@@ -63,25 +59,16 @@ impl Context {
 
 impl Context {
 
-    fn var_remove(&mut self, vname: &str) {
-        self.ints.remove(vname);
-        self.strs.remove(vname);
-        self.bufs.remove(vname);
-    }
-
     pub fn varadd_int(&mut self, vname: &str, vvalue: isize) {
-        self.var_remove(vname);
-        self.ints.insert(vname.to_string(), vvalue);
+        self.globals.insert(vname.to_string(), Variant::IntValue(vvalue));
     }
 
     pub fn varadd_str(&mut self, vname: &str, vvalue: String) {
-        self.var_remove(vname);
-        self.strs.insert(vname.to_string(), vvalue);
+        self.globals.insert(vname.to_string(), Variant::StrValue(vvalue));
     }
 
     pub fn varadd_buf(&mut self, vname: &str, vvalue: Vec<u8>) {
-        self.var_remove(vname);
-        self.bufs.insert(vname.to_string(), vvalue);
+        self.globals.insert(vname.to_string(), Variant::BufValue(vvalue));
     }
 
     pub fn varadd_localbuf(&mut self, vname: &str, vvalue: Vec<u8>) {
@@ -221,17 +208,9 @@ impl DataM {
             Self::Value(oval) => {
                 return oval.get_isize(smsg);
             }
-            Self::IntVar(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-                let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:IntVar: Failed to get var", smsg));
-                return ival;
-            },
-            Self::StringVar(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-                let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:StringVar: Failed to get var", smsg));
-                return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
-            },
-            Self::AnyVar(datakind, vid) => {
+            Self::IntVar(datakind, vid)
+            | Self::StringVar(datakind, vid)
+            | Self::AnyVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
@@ -239,28 +218,16 @@ impl DataM {
                     let locals = locals.unwrap();
                     let bval = locals.get(vid);
                     if bval.is_some() {
-                        let bslice = bval.unwrap().as_slice();
-                        let bbytearray = bslice.try_into().expect(&format!("ERRR:{}:DataM:GetISize:AnyVarLocal: Conversion failed", smsg));
-                        log_d(&format!("DBUG:DataM:GetISize:Anyvar:Locals:Slice:{:?}", bslice));
-                        log_d(&format!("DBUG:DataM:GetISize:Anyvar:Locals:BytAr:{:?}", bbytearray));
-                        return isize::from_ne_bytes(bbytearray);
+                        let bslice = bval.unwrap().get_isize(&format!("{}:DataM:GetISize:LocalVar:", smsg));
                     }
                 }
 
-                let ival  = ctxt.ints.get(vid);
-                if ival.is_some() {
-                    return *ival.unwrap();
+                let vvalue = ctxt.globals.get(vid);
+                if vvalue.is_some() {
+                    vvalue.unwrap().get_isize(&format!("{}:DataM:GetISize:GlobalVar:", smsg));
                 }
-                let sval = ctxt.strs.get(vid);
-                if sval.is_some() {
-                    return datautils::intvalue(sval.unwrap(), &format!("ERRR:{}:DataM:GetISize:AnyVarString: Conversion failed", smsg));
-                }
-                let sval = ctxt.bufs.get(vid);
-                if sval.is_some() {
-                    //return datautils::intvalue(&String::from_utf8_lossy(sval.unwrap()), &format!("ERRR:{}:DataM:GetISize:AnyVarBuf: Conversion failed", smsg));
-                    return isize::from_ne_bytes(sval.unwrap().as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:AnyVarBuf: Conversion failed", smsg)));
-                }
-                panic!("ERRR:{}:DataM:GetISize:AnyVar:Unknown:{}", smsg, vid);
+
+                panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
             },
         }
     }
