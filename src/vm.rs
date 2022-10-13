@@ -452,7 +452,7 @@ enum Op {
     FcGet(String, DataM),
     BufNew(String, DataM),
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
-    BufMerged(char, String, Vec<DataM>),
+    BufMerged(char, DataM, Vec<DataM>),
 }
 
 
@@ -694,6 +694,7 @@ impl Op {
             }
             "bufmerged" | "bufmerged.s" | "bufmerged.b" => {
                 let (bufid, srcs) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufMerged:Extracting dest from {}", msgtag, sargs));
+                let bufid = DataM::compile(ctxt, bufid, "any", &format!("{}:BufMerged:Dest:{}", msgtag, bufid));
                 let mut vdm = Vec::new();
                 let mut tnext = srcs.to_string();
                 while tnext.len() > 0 {
@@ -714,7 +715,7 @@ impl Op {
                         mtype = 'b';
                     }
                 }
-                return Ok(Op::BufMerged(mtype, bufid.to_string(), vdm));
+                return Ok(Op::BufMerged(mtype, bufid, vdm));
             }
             "letlocal" | "letlocal.b" | "letlocal.s" | "letlocal.i" => {
                 let (vid, vdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetLocal+:{}", msgtag, sargs));
@@ -957,7 +958,7 @@ impl Op {
                 }
                 ctxt.varadd_buf(bufid, buf);
             }
-            Self::BufMerged(mtype, destbufid, srcdms) => {
+            Self::BufMerged(mtype, destbufdm, srcdms) => {
                 let mut destbuf = Vec::new();
                 for srcdm in srcdms {
                     let mut sbuf;
@@ -969,8 +970,8 @@ impl Op {
                     }
                     destbuf.append(&mut sbuf);
                 }
-                log_d(&format!("DBUG:VM:Op:BufMerged:{}:{:?}", destbufid, destbuf));
-                ctxt.varadd_buf(destbufid, destbuf);
+                log_d(&format!("DBUG:VM:Op:BufMerged:{:?}:{:?}", destbufdm, destbuf));
+                destbufdm.set_bufvu8(ctxt, destbuf, &format!("FuzzerK:VM:Op:BufMerged.{}:{:?}", mtype, destbufdm));
             }
 
             Self::LetGlobal(ltype, vardm, datadm) => {
