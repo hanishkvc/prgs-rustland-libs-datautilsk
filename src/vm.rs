@@ -336,6 +336,9 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetISize:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
+                if let DataKind::FuncArg = datakind  {
+                    panic!("ERRR:{}:DataM:SetISize:Cant set a funcarg, currently", smsg);
+                }
                 let vvalue = Variant::IntValue(vvalue);
                 ctxt.var_set(vname, vvalue, false);
             }
@@ -346,6 +349,9 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
+                if let DataKind::FuncArg = datakind  {
+                    panic!("ERRR:{}:DataM:SetString:Cant set a funcarg, currently", smsg);
+                }
                 let vvalue = Variant::StrValue(vvalue);
                 ctxt.var_set(vname, vvalue, false);
             }
@@ -356,6 +362,9 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetBuf:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
+                if let DataKind::FuncArg = datakind  {
+                    panic!("ERRR:{}:DataM:SetBuf:Cant set a funcarg, currently", smsg);
+                }
                 let vvalue = Variant::BufValue(vvalue);
                 ctxt.var_set(vname, vvalue, false);
             }
@@ -366,6 +375,9 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
             DataM::Variable(datakind, vname) => {
+                if let DataKind::FuncArg = datakind  {
+                    panic!("ERRR:{}:DataM:SetValue:Cant set a funcarg, currently", smsg);
+                }
                 ctxt.var_set(vname, vvalue, bforcelocal);
             }
         }
