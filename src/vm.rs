@@ -452,7 +452,6 @@ enum Op {
     FcGet(String, DataM),
     BufNew(String, DataM),
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
-    BufsMerge(String, Vec<String>),
     BufMerged(char, String, Vec<DataM>),
 }
 
@@ -692,23 +691,6 @@ impl Op {
                     panic!("ERRR:{}:Buf8Randomize:Too many args:{}", msgtag, sargs);
                 }
                 return Ok(Op::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval))
-            }
-            "bufsmerge" => {
-                let mut parts: VecDeque<&str> = sargs.split_whitespace().collect();
-                let numparts = parts.len();
-                if numparts < 2 {
-                    panic!("ERRR:{}:BufsMerge:Too few bufs:{}", msgtag, sargs);
-                }
-                if numparts == 2 {
-                    log_w(&format!("WARN:{}:BufsMerge:Only a copy will occur, specify more buffers to concat:{}", msgtag, sargs));
-                }
-                let bufid = parts.pop_front().unwrap().to_string();
-                let mut vbufs = Vec::new();
-                for sbuf in parts {
-                    vbufs.push(sbuf.to_string());
-                }
-                //log_d(&format!("DBUG:{}:BufsMerge:{} <- {:?}", msgtag, bufid, vbufs));
-                return Ok(Op::BufsMerge(bufid, vbufs));
             }
             "bufmerged" | "bufmerged.s" | "bufmerged.b" => {
                 let (bufid, srcs) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufMerged:Extracting dest from {}", msgtag, sargs));
@@ -974,17 +956,6 @@ impl Op {
                     buf[curind] = curval;
                 }
                 ctxt.varadd_buf(bufid, buf);
-            }
-            Self::BufsMerge(destbufid, srcbufids) => {
-                //let destbuf = ctxt.bufs.get_mut(destbufid).expect(&format!("ERRR:FuzzerK:VM:Op:BufsMerge:Dest:{}", destbufid));
-                let mut destbuf = Vec::new();
-                for srcbufid in srcbufids {
-                    let srcbuf = ctxt.bufs.get_mut(srcbufid).expect(&format!("ERRR:FuzzerK:VM:Op:BufsMerge:SrcBuf:{}", srcbufid));
-                    let mut dupbuf = srcbuf.clone();
-                    destbuf.append(&mut dupbuf);
-                }
-                log_d(&format!("DBUG:VM:Op:BufsMerge:{}:{:?}", destbufid, destbuf));
-                ctxt.varadd_buf(destbufid, destbuf);
             }
             Self::BufMerged(mtype, destbufid, srcdms) => {
                 let mut destbuf = Vec::new();
