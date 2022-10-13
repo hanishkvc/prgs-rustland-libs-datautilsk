@@ -59,7 +59,7 @@ impl Context {
 impl Context {
 
     pub fn var_islocal(&self, vname: &str) -> bool {
-        let locals = self.localsstack.last_mut().unwrap();
+        let locals = self.localsstack.last().unwrap();
         if locals.contains_key(vname) {
             return true;
         }
@@ -312,7 +312,7 @@ impl DataM {
         }
     }
 
-    fn set_isize(&mut self, ctxt: &mut Context, vvalue: isize, smsg: &str) {
+    fn set_isize(&self, ctxt: &mut Context, vvalue: isize, smsg: &str) {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetISize:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
@@ -322,7 +322,7 @@ impl DataM {
         }
     }
 
-    fn set_string(&mut self, ctxt: &mut Context, vvalue: String, smsg: &str) {
+    fn set_string(&self, ctxt: &mut Context, vvalue: String, smsg: &str) {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
@@ -332,7 +332,7 @@ impl DataM {
         }
     }
 
-    fn set_bufvu8(&mut self, ctxt: &mut Context, vvalue: Vec<u8>, smsg: &str) {
+    fn set_bufvu8(&self, ctxt: &mut Context, vvalue: Vec<u8>, smsg: &str) {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetBuf:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
@@ -342,7 +342,7 @@ impl DataM {
         }
     }
 
-    fn set_value(&mut self, ctxt: &mut Context, vvalue: Variant, bforcelocal: bool, smsg: &str) {
+    fn set_value(&self, ctxt: &mut Context, vvalue: Variant, bforcelocal: bool, smsg: &str) {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
             DataM::Variable(datakind, vname) => {
@@ -494,6 +494,7 @@ impl Op {
                     "letint" | "letglobal.i" => 'i',
                     "letstr" | "letglobal.s" => 's',
                     "letbuf" | "letglobal.b" => 'b',
+                    _ => todo!(),
                 };
                 return Ok(Op::LetGlobal(optype, viddm, valdm));
             }
