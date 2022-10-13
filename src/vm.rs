@@ -70,9 +70,9 @@ impl Context {
     ///
     /// Check if specified name in current local vars set, if so set it there, else set in global var set.
     ///
-    pub fn var_set(&mut self, vname: &str, vvalue: Variant) {
+    pub fn var_set(&mut self, vname: &str, vvalue: Variant, bforcelocal: bool) {
         let locals = self.localsstack.last_mut().unwrap();
-        if locals.contains_key(vname) {
+        if locals.contains_key(vname) || bforcelocal {
             locals.insert(vname.to_string(), vvalue);
         } else {
             self.globals.insert(vname.to_string(), vvalue);
@@ -318,7 +318,7 @@ impl DataM {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetISize:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::IntValue(vvalue);
-                ctxt.var_set(vname, vvalue);
+                ctxt.var_set(vname, vvalue, false);
             }
         }
     }
@@ -328,7 +328,7 @@ impl DataM {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::StrValue(vvalue);
-                ctxt.var_set(vname, vvalue);
+                ctxt.var_set(vname, vvalue, false);
             }
         }
     }
@@ -338,7 +338,7 @@ impl DataM {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetBuf:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::BufValue(vvalue);
-                ctxt.var_set(vname, vvalue);
+                ctxt.var_set(vname, vvalue, false);
             }
         }
     }
