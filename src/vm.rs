@@ -250,7 +250,11 @@ impl DataM {
                     let locals = locals.unwrap();
                     let bval = locals.get(vid);
                     if bval.is_some() {
-                        return isize::from_ne_bytes(bval.unwrap().as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:AnyVarLocal: Conversion failed", smsg)));
+                        let bslice = bval.unwrap().as_slice();
+                        let bbytearray = bslice.try_into().expect(&format!("ERRR:{}:DataM:GetISize:AnyVarLocal: Conversion failed", smsg));
+                        log_d(&format!("DBUG:DataM:GetISize:Anyvar:Locals:Slice:{:?}", bslice));
+                        log_d(&format!("DBUG:DataM:GetISize:Anyvar:Locals:BytAr:{:?}", bbytearray));
+                        return isize::from_ne_bytes(bbytearray);
                     }
                 }
 
@@ -612,8 +616,8 @@ impl Op {
                     _ => todo!(),
                 };
                 let args: Vec<&str> = sargs.split_whitespace().collect();
-                let dmsrc1 = DataM::compile(ctxt, args[1], "isize", &format!("{}:{}:SrcArg1", msgtag, sop));
-                let dmsrc2 = DataM::compile(ctxt, args[2], "isize", &format!("{}:{}:SrcArg2", msgtag, sop));
+                let dmsrc1 = DataM::compile(ctxt, args[1], "any", &format!("{}:{}:SrcArg1", msgtag, sop));
+                let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2", msgtag, sop));
                 return Ok(Op::Alu(aluop, args[0].to_string(), dmsrc1, dmsrc2));
             }
 
