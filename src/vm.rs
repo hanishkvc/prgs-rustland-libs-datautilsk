@@ -216,13 +216,13 @@ impl DataM {
                     let locals = locals.unwrap();
                     let bval = locals.get(vid);
                     if bval.is_some() {
-                        let bslice = bval.unwrap().get_isize(&format!("{}:DataM:GetISize:LocalVar:", smsg));
+                        return bval.unwrap().get_isize(&format!("{}:DataM:GetISize:LocalVar:", smsg));
                     }
                 }
 
                 let vvalue = ctxt.globals.get(vid);
                 if vvalue.is_some() {
-                    vvalue.unwrap().get_isize(&format!("{}:DataM:GetISize:GlobalVar:", smsg));
+                    return vvalue.unwrap().get_isize(&format!("{}:DataM:GetISize:GlobalVar:", smsg));
                 }
 
                 panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
@@ -269,7 +269,7 @@ impl DataM {
 
                 let vvalue = ctxt.globals.get(vid);
                 if vvalue.is_some() {
-                    vvalue.unwrap().get_string();
+                    return vvalue.unwrap().get_string();
                 }
 
                 panic!("ERRR:{}:DataM:GetString:Var:Unknown:{}", smsg, vid);
@@ -304,7 +304,7 @@ impl DataM {
 
                 let vvalue = ctxt.globals.get(vid);
                 if vvalue.is_some() {
-                    vvalue.unwrap().get_bufvu8();
+                    return vvalue.unwrap().get_bufvu8();
                 }
 
                 panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
