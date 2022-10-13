@@ -435,9 +435,9 @@ enum Op {
     Nop,
     LetGlobal(char, DataM, DataM),
     LetLocal(char, DataM, DataM),
-    Inc(String),
-    Dec(String),
-    Alu(ALUOP, String, DataM, DataM),
+    Inc(DataM),
+    Dec(DataM),
+    Alu(ALUOP, DataM, DataM, DataM),
     IobNew(String, String, HashMap<String, String>),
     IobWrite(String, DataM),
     IobFlush(String),
@@ -501,12 +501,13 @@ impl Op {
             }
 
             "inc" => {
-                return Ok(Op::Inc(sargs.to_string()));
+                let viddm = DataM::compile(ctxt, sargs, "any", &format!("{}:Inc:Var:{}", msgtag, sargs));
+                return Ok(Op::Inc(viddm));
             }
             "dec" => {
-                return Ok(Op::Dec(sargs.to_string()));
+                let viddm = DataM::compile(ctxt, sargs, "any", &format!("{}:Dec:Var:{}", msgtag, sargs));
+                return Ok(Op::Dec(viddm));
             }
-
             "add" | "sub" | "mult" | "div" | "mod" => {
                 let aluop = match sop {
                     "add" => ALUOP::Add,
@@ -517,9 +518,10 @@ impl Op {
                     _ => todo!(),
                 };
                 let args: Vec<&str> = sargs.split_whitespace().collect();
-                let dmsrc1 = DataM::compile(ctxt, args[1], "any", &format!("{}:{}:SrcArg1", msgtag, sop));
-                let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2", msgtag, sop));
-                return Ok(Op::Alu(aluop, args[0].to_string(), dmsrc1, dmsrc2));
+                let dmdst = DataM::compile(ctxt, args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
+                let dmsrc1 = DataM::compile(ctxt, args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
+                let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
+                return Ok(Op::Alu(aluop, dmdst, dmsrc1, dmsrc2));
             }
 
             "iobnew" => {
@@ -759,15 +761,16 @@ impl Op {
     fn run(&self, ctxt: &mut Context) {
         match self {
             Self::Nop => (),
+
             Self::Inc(vid) => {
-                let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Inc:{}", vid));
+                let mut val = vid.get_isize(ctxt, &format!("FuzzerK:VM:Op:Inc:{:?}", vid));
                 val += 1;
-                ctxt.varadd_int(vid, val);
+                vid.set_isize(ctxt, val, &format!("FuzzerK:VM:Op:Inc:{:?}", vid));
             }
             Self::Dec(vid) => {
-                let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Dec:{}", vid));
+                let mut val = vid.get_isize(ctxt, &format!("FuzzerK:VM:Op:Dec:{:?}", vid));
                 val -= 1;
-                ctxt.varadd_int(vid, val);
+                vid.set_isize(ctxt, val, &format!("FuzzerK:VM:Op:Dec:{:?}", vid));
             },
             Self::Alu(aluop, destvid, dmsrc1, dmsrc2) => {
                 let src1 = dmsrc1.get_isize(ctxt, "FuzzerK:VM:Op:Alu:Src1");
@@ -779,8 +782,9 @@ impl Op {
                     ALUOP::Div => src1 / src2,
                     ALUOP::Mod => src1 % src2,
                 };
-                ctxt.varadd_int(destvid, res);
+                destvid.set_isize(ctxt, res, &format!("FuzzerK:VM:Op:Alu:{:?}:{:?}", aluop, destvid));
             },
+
             Self::IobNew(ioid, ioaddr, ioargs) => {
                 let zenio = ctxt.iobs.get_mut(ioid);
                 if zenio.is_some() {
@@ -995,16 +999,6 @@ impl Op {
                 }
                 log_d(&format!("DBUG:VM:Op:BufMerged:{}:{:?}", destbufid, destbuf));
                 ctxt.varadd_buf(destbufid, destbuf);
-            }
-            Self::LetBuf(bufid, bufdm) => {
-                let vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetSrcData");
-                log_d(&format!("DBUG:VM:Op:LetBuf:{}:{:?}", bufid, vdata));
-                ctxt.varadd_buf(bufid, vdata);
-            }
-            Self::LetBufStr(bufid, bufdm) => {
-                let vdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetBufStr:GetSrcData");
-                log_d(&format!("DBUG:VM:Op:LetBufStr:{}:{:?}", bufid, vdata));
-                ctxt.varadd_buf(bufid, Vec::from(vdata));
             }
 
             Self::LetGlobal(ltype, vardm, datadm) => {
