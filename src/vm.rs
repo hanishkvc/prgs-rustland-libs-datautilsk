@@ -88,14 +88,14 @@ impl Context {
         locals.insert(vname.to_string(), vvalue);
     }
 
-    pub fn var_farg2real_ifreqd(&self, datatype: &DataKind, vname: &str) -> String {
-        if let DataKind::FuncArg = datatype {
+    pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> String {
+        if let DataKind::FuncArg = datakind {
             let fargs = self.fargsstack.last().unwrap();
             let rname = fargs.get(vname);
             if rname.is_none() {
                 return vname.to_string();
             }
-            log_d(&format!("DBUG:FArg2Real:{:?}:{}=>{}", datatype, vname, rname.unwrap()));
+            log_d(&format!("DBUG:FArg2Real:{:?}:{}=>{}", datakind, vname, rname.unwrap()));
             return rname.unwrap().to_string();
         }
         return vname.to_string();
@@ -188,22 +188,22 @@ impl DataM {
             panic!("ERRR:{}:DataM:{}:Variable name {} should start with a alphabetic char", smsg, stype, sdata);
         }
 
-        let mut datatype = DataKind::Variable;
+        let mut datakind = DataKind::Variable;
         if ctxt.bcompilingfunc {
             let fi = ctxt.funcs.get(&ctxt.compilingfunc).unwrap();
             if fi.1.contains(&sdata.to_string()){
-                datatype = DataKind::FuncArg;
+                datakind = DataKind::FuncArg;
             }
         }
         match stype {
             "isize" => {
-                return DataM::IntVar(datatype, sdata.to_string());
+                return DataM::IntVar(datakind, sdata.to_string());
             }
             "string" => {
-                return DataM::StringVar(datatype, sdata.to_string())
+                return DataM::StringVar(datakind, sdata.to_string())
             }
             "any" => {
-                return DataM::AnyVar(datatype, sdata.to_string())
+                return DataM::AnyVar(datakind, sdata.to_string())
             }
             _ => {
                 panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
@@ -224,16 +224,16 @@ impl DataM {
             Self::IntLiteral(ival) => {
                 return *ival;
             },
-            Self::IntVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            Self::IntVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:IntVar: Failed to get var", smsg));
                 return ival;
             },
             Self::StringLiteral(sval) => {
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringLiteral: Conversion failed", smsg));
             },
-            Self::StringVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            Self::StringVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:StringVar: Failed to get var", smsg));
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
             },
@@ -241,8 +241,8 @@ impl DataM {
                 //return datautils::intvalue(&String::from_utf8_lossy(sval), &format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg));
                 return isize::from_ne_bytes(sval.as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg)));
             },
-            Self::AnyVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            Self::AnyVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
                 if locals.is_some() {
@@ -315,14 +315,14 @@ impl DataM {
     fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
         match self {
             DataM::IntLiteral(ival) => ival.to_string(),
-            DataM::IntVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            DataM::IntVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetString:IntVar: Failed to get var", smsg));
                 ival.to_string()
             },
             DataM::StringLiteral(sval) => sval.clone(),
-            DataM::StringVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            DataM::StringVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetString:StringVar: Failed to get var", smsg));
                 sval.clone()
             },
@@ -332,8 +332,8 @@ impl DataM {
                 //bval.reverse();
                 return datautils::hex_from_vu8(&bval);
             },
-            DataM::AnyVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            DataM::AnyVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
                 if locals.is_some() {
@@ -386,15 +386,15 @@ impl DataM {
     fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
         match self {
             DataM::IntLiteral(ival) => Vec::from(ival.to_ne_bytes()),
-            DataM::IntVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            DataM::IntVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:IntVar: Failed to get var", smsg));
                 log_d(&format!("DBUG:DataM:GetBufVU8:IntVar:{}:{}", vid, ival));
                 Vec::from(ival.to_ne_bytes())
             },
             DataM::StringLiteral(sval) => Vec::from(sval.to_string()),
-            DataM::StringVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            DataM::StringVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:StringVar: Failed to get var", smsg));
                 log_d(&format!("DBUG:DataM:GetBufVU8:StrVar:{}:{}", vid, sval));
                 Vec::from(sval.to_string())
@@ -402,8 +402,8 @@ impl DataM {
             DataM::BufData(bval) => {
                 return bval.to_vec();
             },
-            DataM::AnyVar(datatype, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datatype, vid);
+            DataM::AnyVar(datakind, vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
                 if locals.is_some() {
