@@ -343,6 +343,15 @@ impl DataM {
         }
     }
 
+    fn set_local_value(&mut self, ctxt: &mut Context, vvalue: Variant, smsg: &str) {
+        match  self {
+            DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
+            DataM::Variable(datakind, vname) => {
+                ctxt.var_set(vname, vvalue, true);
+            }
+        }
+    }
+
 }
 
 
@@ -447,7 +456,7 @@ enum Op {
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
     BufsMerge(String, Vec<String>),
     BufMerged(char, String, Vec<DataM>),
-    LetLocal(char, String, DataM),
+    LetLocal(char, DataM, DataM),
 }
 
 
@@ -735,15 +744,19 @@ impl Op {
                 }
                 return Ok(Op::BufMerged(mtype, bufid.to_string(), vdm));
             }
-            "letlocal" | "letlocal.b" | "letlocal.s" => {
-                let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetLocal+:{}", msgtag, sargs));
-                let dm = DataM::compile(ctxt, bufdata, "any", &format!("{}:LetLocal+:Value:{}", msgtag, bufdata));
+            "letlocal" | "letlocal.b" | "letlocal.s" | "letlocal.i" => {
+                let (vid, vdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetLocal+:{}", msgtag, sargs));
+                let viddm = DataM::compile(ctxt, vid, "any", &format!("{}:LetLocal+:Var:{}", msgtag, vid));
+                let datadm = DataM::compile(ctxt, vdata, "any", &format!("{}:LetLocal+:Value:{}", msgtag, vdata));
                 match sop {
                     "letlocal" | "letlocal.b" => {
-                        return Ok(Op::LetLocal('b', bufid.to_string(), dm));
+                        return Ok(Op::LetLocal('b', viddm, datadm));
                     }
                     "letlocal.s" => {
-                        return Ok(Op::LetLocal('s', bufid.to_string(), dm));
+                        return Ok(Op::LetLocal('s', viddm, datadm));
+                    }
+                    "letlocal.i" => {
+                        return Ok(Op::LetLocal('i', viddm, datadm));
                     }
                     _ => todo!("ERRR:{}:LetLocal+:Unknown Variant:{}", msgtag, sop)
                 }
@@ -1014,16 +1027,25 @@ impl Op {
                 log_d(&format!("DBUG:VM:Op:BufMerged:{}:{:?}", destbufid, destbuf));
                 ctxt.varadd_buf(destbufid, destbuf);
             }
-            Self::LetLocal(ltype, bufid, bufdm) => {
+            Self::LetLocal(ltype, vardm, datadm) => {
                 let vdata;
-                if *ltype == 'b' {
-                    vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetLocal.b:GetSrcData");
-                } else {
-                    let tdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetLocal.s:GetSrcData");
-                    vdata = Vec::from(tdata);
+                match *ltype {
+                    'b' => {
+                        let tdata = datadm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetLocal.b:GetSrcData");
+                        vdata = Variant::BufValue(tdata);
+                    }
+                    's' => {
+                        let tdata = datadm.get_string(ctxt, "FuzzerK:VM:Op:LetLocal.s:GetSrcData");
+                        vdata = Variant::StrValue(tdata);
+                    }
+                    'i' => {
+                        let tdata = datadm.get_isize(ctxt, "FuzzerK:VM:Op:LetLocal.i:GetSrcData");
+                        vdata = Variant::IntValue(tdata);
+                    }
+                    _ => panic!("FuzzerK:VM:Op:LetLocal:GetSrcData:Unknown type:{}", ltype),
                 }
-                log_d(&format!("DBUG:VM:Op:LetLocal.{}:{}:{:?}", ltype, bufid, vdata));
-                ctxt.varadd_localbuf(bufid, vdata);
+                log_d(&format!("DBUG:VM:Op:LetLocal.{}:{:?}:{:?}", ltype, vardm, vdata));
+                vardm.set_local_value(ctxt, vdata, "FuzzerK:VM:Op:LetLocal:Set the value");
             }
 
         }
