@@ -88,8 +88,8 @@ impl Context {
         locals.insert(vname.to_string(), vvalue);
     }
 
-    pub fn var_farg2real_ifreqd(&self, datatype: &DataType, vname: &str) -> String {
-        if let DataType::FuncArg = datatype {
+    pub fn var_farg2real_ifreqd(&self, datatype: &DataKind, vname: &str) -> String {
+        if let DataKind::FuncArg = datatype {
             let fargs = self.fargsstack.last().unwrap();
             let rname = fargs.get(vname);
             if rname.is_none() {
@@ -105,21 +105,20 @@ impl Context {
 
 
 #[derive(Debug, PartialEq)]
-enum DataType {
-    Global,
+enum DataKind {
+    Variable,
     FuncArg,
-    //Local,
 }
 
 
 #[derive(Debug)]
 enum DataM {
     IntLiteral(isize),
-    IntVar(DataType, String),
+    IntVar(DataKind, String),
     StringLiteral(String),
-    StringVar(DataType, String),
+    StringVar(DataKind, String),
     BufData(Vec<u8>),
-    AnyVar(DataType, String),
+    AnyVar(DataKind, String),
     XTimeStamp,
     XRandomBytes(usize)
 }
@@ -189,11 +188,11 @@ impl DataM {
             panic!("ERRR:{}:DataM:{}:Variable name {} should start with a alphabetic char", smsg, stype, sdata);
         }
 
-        let mut datatype = DataType::Global;
+        let mut datatype = DataKind::Variable;
         if ctxt.bcompilingfunc {
             let fi = ctxt.funcs.get(&ctxt.compilingfunc).unwrap();
             if fi.1.contains(&sdata.to_string()){
-                datatype = DataType::FuncArg;
+                datatype = DataKind::FuncArg;
             }
         }
         match stype {
