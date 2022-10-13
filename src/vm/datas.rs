@@ -141,4 +141,11 @@ impl Variant {
          }
     }
 
+    pub fn get_bufvu8_mut(&mut self) -> Option<&mut Vec<u8>> {
+        if let Self::BufValue(thebuf) = self {
+            return Some(thebuf.as_mut());
+        }
+        return None;
+    }
+
 }
