@@ -804,11 +804,14 @@ impl Op {
                 let buf = ctxt.bufs.get_mut(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:ToBuf:{}", bufid));
                 let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}", ioid));
                 let gotr = zenio.read(buf);
+                let readsize;
                 if gotr.is_err() {
                     let errmsg = gotr.as_ref().unwrap_err();
                     log_e(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}:ToBuf:{}:{}", ioid, bufid, errmsg));
+                    readsize = 0;
+                } else {
+                    readsize = gotr.unwrap();
                 }
-                let readsize = gotr.unwrap();
                 buf.resize(readsize, 0);
             }
             Self::IobClose(ioid) => {
