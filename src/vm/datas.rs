@@ -10,7 +10,8 @@ use rand::Rng;
 use crate::datautils;
 
 
-enum Variant {
+#[derive(Debug)]
+pub enum Variant {
     IntValue(isize),
     StrValue(String),
     BufValue(Vec<u8>),

@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fs;
 use std::thread;
-use std::time;
 use std::time::Duration;
 
 use loggerk::log_w;
@@ -20,6 +19,7 @@ use crate::rtm::RunTimeManager;
 use crate::cfgfiles;
 
 mod datas;
+use datas::Variant;
 
 struct Context {
     strs: HashMap<String, String>,
@@ -114,14 +114,10 @@ enum DataKind {
 
 #[derive(Debug)]
 enum DataM {
-    IntLiteral(isize),
+    Value(Variant),
     IntVar(DataKind, String),
-    StringLiteral(String),
     StringVar(DataKind, String),
-    BufData(Vec<u8>),
     AnyVar(DataKind, String),
-    XTimeStamp,
-    XRandomBytes(usize)
 }
 
 
@@ -146,7 +142,7 @@ impl DataM {
 
         if schar.is_numeric() || schar == '+' || schar == '-' {
             let idata = datautils::intvalue(sdata, &format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
-            return DataM::IntLiteral(idata);
+            return DataM::Value(Variant::IntValue(idata));
         }
 
         if sdata.len() >= 2 {
@@ -162,22 +158,22 @@ impl DataM {
                 let mut rdata = tdata.0.as_str();
                 rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at start of {}", smsg, sdata));
                 rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at end of {}", smsg, sdata));
-                return DataM::StringLiteral(rdata.to_string());
+                return DataM::Value(Variant::StrValue(rdata.to_string()));
             }
 
             if sdata.len() > 2 {
                 if sdata.starts_with("$0x") {
                     let bdata = datautils::vu8_from_hex(&sdata[3..]).expect(&format!("ERRR:{}:DataM:Compile:BufHexString:Conversion:{}", smsg, sdata));
-                    return DataM::BufData(bdata);
+                    return DataM::Value(Variant::BufValue(bdata));
                 }
                 if sdata.starts_with("__") {
                     if sdata == "__TIME__STAMP__" {
-                        return DataM::XTimeStamp;
+                        return DataM::Value(Variant::XTimeStamp);
                     }
                     if sdata.starts_with("__RANDOM__BYTES__") {
                         let (_random, bytelen) = sdata.split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:Compile:RandomBytes:{}", smsg, sdata));
                         let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:{}:DataM:Compile:RandomBytes:{}", smsg, sdata));
-                        return DataM::XRandomBytes(bytelen);
+                        return DataM::Value(Variant::XRandomBytes(bytelen));
                     }
                     panic!("ERRR:{}:DataM:Compile:{}:Unknown Special Tag {}???", smsg, stype, sdata);
                 }
@@ -222,25 +218,18 @@ impl DataM {
     ///
     fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
         match self {
-            Self::IntLiteral(ival) => {
-                return *ival;
-            },
+            Self::Value(oval) => {
+                return oval.get_isize(smsg);
+            }
             Self::IntVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:IntVar: Failed to get var", smsg));
                 return ival;
             },
-            Self::StringLiteral(sval) => {
-                return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringLiteral: Conversion failed", smsg));
-            },
             Self::StringVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetISize:StringVar: Failed to get var", smsg));
                 return datautils::intvalue(sval, &format!("ERRR:{}:DataM:GetISize:StringVar: Conversion failed", smsg));
-            },
-            Self::BufData(sval) => {
-                //return datautils::intvalue(&String::from_utf8_lossy(sval), &format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg));
-                return isize::from_ne_bytes(sval.as_slice().try_into().expect(&format!("ERRR:{}:DataM:GetISize:BufData: Conversion failed", smsg)));
             },
             Self::AnyVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
@@ -273,23 +262,6 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetISize:AnyVar:Unknown:{}", smsg, vid);
             },
-            Self::XTimeStamp => {
-                let ts = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap();
-                let uts = ts.as_millis();
-                return uts as isize;
-            },
-            Self::XRandomBytes(bytelen) => {
-                let mut rng = rand::thread_rng();
-                let mut vdata: Vec<u8> = Vec::new();
-                let mut ibytes = isize::BITS/8;
-                if (ibytes as usize) > *bytelen {
-                    ibytes = *bytelen as u32;
-                }
-                for _i in 0..ibytes {
-                    vdata.push(rng.gen_range(0..=255)); // rusty 0..256
-                }
-                return isize::from_le_bytes(vdata.as_slice().try_into().unwrap());
-            }
         }
     }
 
@@ -315,23 +287,18 @@ impl DataM {
     ///
     fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
         match self {
-            DataM::IntLiteral(ival) => ival.to_string(),
+            Self::Value(oval) => {
+                return oval.get_string();
+            }
             DataM::IntVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetString:IntVar: Failed to get var", smsg));
                 ival.to_string()
             },
-            DataM::StringLiteral(sval) => sval.clone(),
             DataM::StringVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetString:StringVar: Failed to get var", smsg));
                 sval.clone()
-            },
-            DataM::BufData(bval) => {
-                //return String::from_utf8_lossy(bval).to_string();
-                //let mut bval = bval.clone();
-                //bval.reverse();
-                return datautils::hex_from_vu8(&bval);
             },
             DataM::AnyVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
@@ -360,17 +327,6 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetString:AnyVar:Unknown:{}", smsg, vid);
             },
-            DataM::XTimeStamp => {
-                return format!("{:?}",time::SystemTime::now());
-            },
-            DataM::XRandomBytes(bytelen) => {
-                let mut rng = rand::thread_rng();
-                let mut vdata: Vec<u8> = Vec::new();
-                for _i in 0..*bytelen {
-                    vdata.push(rng.gen_range(0..=255)); // rusty 0..256
-                }
-                return String::from_utf8_lossy(&vdata).to_string();
-            }
         }
     }
 
@@ -386,22 +342,20 @@ impl DataM {
     /// rather than native byte order (If testing between systems having different endianess, it could help)
     fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
         match self {
-            DataM::IntLiteral(ival) => Vec::from(ival.to_ne_bytes()),
+            Self::Value(oval) => {
+                return oval.get_bufvu8();
+            }
             DataM::IntVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let ival  = *ctxt.ints.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:IntVar: Failed to get var", smsg));
                 log_d(&format!("DBUG:DataM:GetBufVU8:IntVar:{}:{}", vid, ival));
                 Vec::from(ival.to_ne_bytes())
             },
-            DataM::StringLiteral(sval) => Vec::from(sval.to_string()),
             DataM::StringVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
                 let sval  = ctxt.strs.get(vid).expect(&format!("ERRR:{}:DataM:GetBuf:StringVar: Failed to get var", smsg));
                 log_d(&format!("DBUG:DataM:GetBufVU8:StrVar:{}:{}", vid, sval));
                 Vec::from(sval.to_string())
-            },
-            DataM::BufData(bval) => {
-                return bval.to_vec();
             },
             DataM::AnyVar(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
@@ -435,17 +389,6 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetBuf:AnyVar:Unknown:{}", smsg, vid);
             },
-            DataM::XTimeStamp => {
-                return time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().as_millis().to_ne_bytes().to_vec();
-            },
-            DataM::XRandomBytes(bytelen) => {
-                let mut rng = rand::thread_rng();
-                let mut vdata: Vec<u8> = Vec::new();
-                for _i in 0..*bytelen {
-                    vdata.push(rng.gen_range(0..=255)); // rusty 0..256
-                }
-                return vdata;
-            }
         }
     }
 
@@ -493,11 +436,11 @@ impl CondOp {
             },
             CondOp::IfLeInt => {
                 let adjval2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLeInt:Val2") + 1;
-                return CondOp::IfLtInt.check(ctxt, val1, &DataM::IntLiteral(adjval2));
+                return CondOp::IfLtInt.check(ctxt, val1, &DataM::Value(Variant::IntValue(adjval2)));
             },
             CondOp::IfGeInt => {
                 let adjval1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfGeInt:Val1") + 1;
-                return CondOp::IfLtInt.check(ctxt, val2, &DataM::IntLiteral(adjval1));
+                return CondOp::IfLtInt.check(ctxt, val2, &DataM::Value(Variant::IntValue(adjval1)));
             },
             CondOp::IfEqBuf => {
                 let val1 = val1.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val1");
