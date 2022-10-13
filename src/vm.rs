@@ -59,18 +59,6 @@ impl Context {
 
 impl Context {
 
-    pub fn varadd_int(&mut self, vname: &str, vvalue: isize) {
-        self.globals.insert(vname.to_string(), Variant::IntValue(vvalue));
-    }
-
-    pub fn varadd_str(&mut self, vname: &str, vvalue: String) {
-        self.globals.insert(vname.to_string(), Variant::StrValue(vvalue));
-    }
-
-    pub fn varadd_buf(&mut self, vname: &str, vvalue: Vec<u8>) {
-        self.globals.insert(vname.to_string(), Variant::BufValue(vvalue));
-    }
-
     pub fn varadd_localbuf(&mut self, vname: &str, vvalue: Vec<u8>) {
         let locals = self.localsstack.last_mut().unwrap();
         locals.insert(vname.to_string(), vvalue);
@@ -102,9 +90,7 @@ enum DataKind {
 #[derive(Debug)]
 enum DataM {
     Value(Variant),
-    IntVar(DataKind, String),
-    StringVar(DataKind, String),
-    AnyVar(DataKind, String),
+    Variable(DataKind, String),
 }
 
 
@@ -179,20 +165,7 @@ impl DataM {
                 datakind = DataKind::FuncArg;
             }
         }
-        match stype {
-            "isize" => {
-                return DataM::IntVar(datakind, sdata.to_string());
-            }
-            "string" => {
-                return DataM::StringVar(datakind, sdata.to_string())
-            }
-            "any" => {
-                return DataM::AnyVar(datakind, sdata.to_string())
-            }
-            _ => {
-                panic!("ERRR:{}:DataM:{}:Unknown type???", smsg, stype);
-            }
-        }
+        return DataM::Variable(datakind, sdata.to_string());
 
     }
 
@@ -208,9 +181,7 @@ impl DataM {
             Self::Value(oval) => {
                 return oval.get_isize(smsg);
             }
-            Self::IntVar(datakind, vid)
-            | Self::StringVar(datakind, vid)
-            | Self::AnyVar(datakind, vid) => {
+            Self::Variable(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
@@ -257,9 +228,7 @@ impl DataM {
             Self::Value(oval) => {
                 return oval.get_string();
             }
-            DataM::IntVar(datakind, vid)
-            | DataM::StringVar(datakind, vid)
-            | DataM::AnyVar(datakind, vid) => {
+            DataM::Variable(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
@@ -296,9 +265,7 @@ impl DataM {
             Self::Value(oval) => {
                 return oval.get_bufvu8();
             }
-            DataM::IntVar(datakind, vid)
-            | DataM::StringVar(datakind, vid)
-            | DataM::AnyVar(datakind, vid) => {
+            DataM::Variable(datakind, vid) => {
                 let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
 
                 let locals = ctxt.localsstack.last();
@@ -317,6 +284,33 @@ impl DataM {
 
                 panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
             },
+        }
+    }
+
+    fn set_isize(&mut self, ctxt: &mut Context, vvalue: isize, smsg: &str) {
+        match  self {
+            DataM::Value(_) => panic!("ERRR:{}:DataM:SetISize:Cant set a value!", smsg),
+            DataM::Variable(datakind, vname) => {
+                ctxt.globals.insert(vname.to_string(), Variant::IntValue(vvalue));
+            }
+        }
+    }
+
+    fn set_string(&mut self, ctxt: &mut Context, vvalue: String, smsg: &str) {
+        match  self {
+            DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
+            DataM::Variable(datakind, vname) => {
+                ctxt.globals.insert(vname.to_string(), Variant::StrValue(vvalue));
+            }
+        }
+    }
+
+    fn set_bufvu8(&mut self, ctxt: &mut Context, vvalue: Vec<u8>, smsg: &str) {
+        match  self {
+            DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
+            DataM::Variable(datakind, vname) => {
+                ctxt.globals.insert(vname.to_string(), Variant::BufValue(vvalue));
+            }
         }
     }
 
