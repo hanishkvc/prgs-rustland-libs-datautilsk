@@ -312,6 +312,26 @@ impl DataM {
         }
     }
 
+    fn get_bufvu8_mut<'a>(&'a self, ctxt: &'a mut Context, smsg: &str) -> &'a mut Vec<u8> {
+        match self {
+            Self::Value(_) => panic!("ERRR:{}:GetBufVu8Mut:Cant return mutable ref to values", smsg),
+            Self::Variable(datakind, vid) => {
+                if let DataKind::FuncArg = datakind {
+                    panic!("ERRR:{}:GetBufVu8Mut:FuncArg cant be used mutably/to-write-to its existing buf, currently", smsg);
+                }
+                if ctxt.var_islocal(vid) {
+                    panic!("ERRR:{}:GetBufVu8Mut:Localvar cant be used mutably/to-write-to its existing buf, currently", smsg);
+                }
+                let vvalue = ctxt.globals.get_mut(vid).unwrap();
+                let gotr = vvalue.get_bufvu8_mut();
+                if gotr.is_none() {
+                    panic!("ERRR:{}:GetBufVu8Mut:Some issue with getting mut buf wrt:{}", smsg, vid);
+                }
+                return gotr.unwrap();
+            }
+        }
+    }
+
     fn set_isize(&self, ctxt: &mut Context, vvalue: isize, smsg: &str) {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetISize:Cant set a value!", smsg),
@@ -440,7 +460,7 @@ enum Op {
     IobNew(String, String, HashMap<String, String>),
     IobWrite(String, DataM),
     IobFlush(String),
-    IobRead(String, String),
+    IobRead(String, DataM),
     IobClose(String),
     If(CondOp, DataM, DataM, String, String, Vec<String>),
     CheckJump(DataM, DataM, String, String, String),
@@ -555,7 +575,8 @@ impl Op {
             }
             "iobread" => {
                 let (ioid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:IobRead:{}", msgtag, sargs));
-                return Ok(Op::IobRead(ioid.to_string(), bufid.to_string()));
+                let dmdst = DataM::compile(ctxt, bufid, "any", &format!("{}:IobRead:Dst:{}", msgtag, bufid));
+                return Ok(Op::IobRead(ioid.to_string(), dmdst));
             }
             "iobclose" => {
                 return Ok(Op::IobClose(sargs.to_string()));
@@ -802,18 +823,19 @@ impl Op {
                 }
             }
             Self::IobRead(ioid, bufid) => {
-                let buf = ctxt.bufs.get_mut(bufid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:ToBuf:{}", bufid));
+                let buf = &mut bufid.get_bufvu8(ctxt, &format!("FuzzerK:VM:Op:IobRead:ToBuf:{:?}", bufid));
                 let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}", ioid));
                 let gotr = zenio.read(buf);
                 let readsize;
                 if gotr.is_err() {
                     let errmsg = gotr.as_ref().unwrap_err();
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}:ToBuf:{}:{}", ioid, bufid, errmsg));
+                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}:ToBuf:{:?}:{}", ioid, bufid, errmsg));
                     readsize = 0;
                 } else {
                     readsize = gotr.unwrap();
                 }
                 buf.resize(readsize, 0);
+                bufid.set_bufvu8(ctxt, buf.to_vec(), &format!("FuzzerK:VM:Op:IobRead:Updating ToBuf:{:?}", bufid));
             }
             Self::IobClose(ioid) => {
                 let zenio = ctxt.iobs.get_mut(ioid).unwrap();
