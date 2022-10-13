@@ -449,7 +449,7 @@ enum Op {
     Call(String, Vec<String>),
     Ret,
     SleepMSec(DataM),
-    FcGet(String, String),
+    FcGet(String, DataM),
     BufNew(String, DataM),
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
     BufsMerge(String, Vec<String>),
@@ -631,8 +631,9 @@ impl Op {
             }
 
             "fcget" => {
-                let (fcid, bufid) = sargs.split_once(' ').expect(&format!("ERRR:{}:FcGet:{}", msgtag, sargs));
-                return Ok(Op::FcGet(fcid.to_string(), bufid.to_string()));
+                let (fcid, destvid) = sargs.split_once(' ').expect(&format!("ERRR:{}:FcGet:{}", msgtag, sargs));
+                let dm = DataM::compile(ctxt, destvid, "any", &format!("{}:FCGet:Dest:{}", msgtag, destvid));
+                return Ok(Op::FcGet(fcid.to_string(), dm));
             }
 
             "bufnew" => {
@@ -838,11 +839,11 @@ impl Op {
                 let msec = msecdm.get_usize(ctxt, &format!("FuzzerK:VM:Op:SleepMSec:Value:{:?}", msecdm));
                 thread::sleep(Duration::from_millis(msec as u64));
             }
-            Self::FcGet(fcid, bufid) => {
+            Self::FcGet(fcid, vid) => {
                 let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:FuzzerK:VM:Op:FcGet:UnknownFC???:{}", fcid));
                 let gotfuzz = fci.get(ctxt.stepu);
                 log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
-                ctxt.varadd_buf(bufid, gotfuzz);
+                vid.set_bufvu8(ctxt, gotfuzz, &format!("FuzzerK:VM:Op:FcGet:SetDest:{:?}", vid));
                 ctxt.stepu += 1;
             }
             Self::If(cop, val1dm, val2dm, sop , destname, destargs) => {
