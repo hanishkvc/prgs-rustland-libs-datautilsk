@@ -343,11 +343,11 @@ impl DataM {
         }
     }
 
-    fn set_local_value(&mut self, ctxt: &mut Context, vvalue: Variant, smsg: &str) {
+    fn set_value(&mut self, ctxt: &mut Context, vvalue: Variant, bforcelocal: bool, smsg: &str) {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
             DataM::Variable(datakind, vname) => {
-                ctxt.var_set(vname, vvalue, true);
+                ctxt.var_set(vname, vvalue, bforcelocal);
             }
         }
     }
@@ -433,8 +433,8 @@ enum ALUOP {
 #[derive(Debug)]
 enum Op {
     Nop,
-    LetStr(String, DataM),
-    LetInt(String, DataM),
+    LetGlobal(char, DataM, DataM),
+    LetLocal(char, DataM, DataM),
     Inc(String),
     Dec(String),
     Alu(ALUOP, String, DataM, DataM),
@@ -451,12 +451,9 @@ enum Op {
     SleepMSec(DataM),
     FcGet(String, String),
     BufNew(String, DataM),
-    LetBuf(String, DataM),
-    LetBufStr(String, DataM),
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
     BufsMerge(String, Vec<String>),
     BufMerged(char, String, Vec<DataM>),
-    LetLocal(char, DataM, DataM),
 }
 
 
@@ -491,15 +488,16 @@ impl Op {
                 return Ok(Op::Nop);
             }
 
-            "letstr" => {
-                let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetStr:{}", msgtag, sargs));
-                let dm = DataM::compile(ctxt, sval, "string", &format!("{}:LetStr:Value:{}", msgtag, sval));
-                return Ok(Op::LetStr(vid.to_string(), dm));
-            }
-            "letint" => {
-                let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetInt:{}", msgtag, sargs));
-                let dm = DataM::compile(ctxt, sval, "isize", &format!("{}:LetInt:Value:{}", msgtag, sval));
-                return Ok(Op::LetInt(vid.to_string(), dm));
+            "letint" | "letstr" | "letbuf" | "letglobal.i" | "letglobal.s" | "letglobal.b" => {
+                let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetGlobal:{}:{}", msgtag, sop, sargs));
+                let viddm = DataM::compile(ctxt, vid, "any", &format!("{}:LetGlobal:{}:Var:{}", msgtag, sop, vid));
+                let valdm = DataM::compile(ctxt, sval, "any", &format!("{}:LetGlobal:{}:Value:{}", msgtag, sop, sval));
+                let optype = match sop {
+                    "letint" | "letglobal.i" => 'i',
+                    "letstr" | "letglobal.s" => 's',
+                    "letbuf" | "letglobal.b" => 'b',
+                };
+                return Ok(Op::LetGlobal(optype, viddm, valdm));
             }
 
             "inc" => {
@@ -640,17 +638,6 @@ impl Op {
                 let dmbufsize = DataM::compile(ctxt, bufsize, "any", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
                 return Ok(Op::BufNew(bufid.to_string(), dmbufsize));
             }
-            "letbuf" | "letbuf.b" | "letbuf.s" => {
-                let (bufid, bufdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetBuf+:{}", msgtag, sargs));
-                let dm = DataM::compile(ctxt, bufdata, "any", &format!("{}:LetBuf+:Value:{}", msgtag, bufdata));
-                if (sop == "letbuf") || (sop == "letbuf.b") {
-                    return Ok(Op::LetBuf(bufid.to_string(), dm));
-                } else if sop == "letbuf.s" {
-                    return Ok(Op::LetBufStr(bufid.to_string(), dm));
-                } else {
-                    return Err(format!("ERRR:{}:LetBuf+:Unknown Variant:{}", msgtag, sop))
-                }
-            }
             "buf8randomize" => {
                 let parts: Vec<&str> = sargs.split(" ").collect();
                 let bufid = parts[0].to_string();
@@ -772,14 +759,6 @@ impl Op {
     fn run(&self, ctxt: &mut Context) {
         match self {
             Self::Nop => (),
-            Self::LetStr(vid, vdm) => {
-                let sval = vdm.get_string(ctxt, &format!("FuzzerK:VM:Op:LetStr:{} {:?}", vid, vdm));
-                ctxt.varadd_str(vid, sval);
-            },
-            Self::LetInt(vid, vval) => {
-                let ival = vval.get_isize(ctxt, &format!("FuzzerK:VM:Op:LetInt:{} {:?}", vid, vval));
-                ctxt.varadd_int(vid, ival);
-            },
             Self::Inc(vid) => {
                 let mut val = *ctxt.ints.get(vid).expect(&format!("ERRR:FuzzerK:VM:Op:Inc:{}", vid));
                 val += 1;
@@ -949,16 +928,6 @@ impl Op {
                 buf.resize(bufsize, 0);
                 ctxt.varadd_buf(bufid, buf);
             }
-            Self::LetBuf(bufid, bufdm) => {
-                let vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetSrcData");
-                log_d(&format!("DBUG:VM:Op:LetBuf:{}:{:?}", bufid, vdata));
-                ctxt.varadd_buf(bufid, vdata);
-            }
-            Self::LetBufStr(bufid, bufdm) => {
-                let vdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetBufStr:GetSrcData");
-                log_d(&format!("DBUG:VM:Op:LetBufStr:{}:{:?}", bufid, vdata));
-                ctxt.varadd_buf(bufid, Vec::from(vdata));
-            }
             Self::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval) => {
                 let b8rmsg = "FuzzerK:VM:Op:Buf8Randomize";
                 let mut buf = ctxt.bufs.get(bufid).expect(&format!("ERRR:{}:Buf:{}", b8rmsg, bufid)).clone();
@@ -1027,6 +996,38 @@ impl Op {
                 log_d(&format!("DBUG:VM:Op:BufMerged:{}:{:?}", destbufid, destbuf));
                 ctxt.varadd_buf(destbufid, destbuf);
             }
+            Self::LetBuf(bufid, bufdm) => {
+                let vdata = bufdm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetBuf:GetSrcData");
+                log_d(&format!("DBUG:VM:Op:LetBuf:{}:{:?}", bufid, vdata));
+                ctxt.varadd_buf(bufid, vdata);
+            }
+            Self::LetBufStr(bufid, bufdm) => {
+                let vdata = bufdm.get_string(ctxt, "FuzzerK:VM:Op:LetBufStr:GetSrcData");
+                log_d(&format!("DBUG:VM:Op:LetBufStr:{}:{:?}", bufid, vdata));
+                ctxt.varadd_buf(bufid, Vec::from(vdata));
+            }
+
+            Self::LetGlobal(ltype, vardm, datadm) => {
+                let vdata;
+                match *ltype {
+                    'b' => {
+                        let tdata = datadm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetGlobal.b:GetSrcData");
+                        vdata = Variant::BufValue(tdata);
+                    }
+                    's' => {
+                        let tdata = datadm.get_string(ctxt, "FuzzerK:VM:Op:LetGlobal.s:GetSrcData");
+                        vdata = Variant::StrValue(tdata);
+                    }
+                    'i' => {
+                        let tdata = datadm.get_isize(ctxt, "FuzzerK:VM:Op:LetGlobal.i:GetSrcData");
+                        vdata = Variant::IntValue(tdata);
+                    }
+                    _ => panic!("FuzzerK:VM:Op:LetGlobal:GetSrcData:Unknown type:{}", ltype),
+                }
+                log_d(&format!("DBUG:VM:Op:LetGlobal.{}:{:?}:{:?}", ltype, vardm, vdata));
+                vardm.set_value(ctxt, vdata, false, "FuzzerK:VM:Op:LetGlobal:Set the value");
+            }
+
             Self::LetLocal(ltype, vardm, datadm) => {
                 let vdata;
                 match *ltype {
@@ -1045,7 +1046,7 @@ impl Op {
                     _ => panic!("FuzzerK:VM:Op:LetLocal:GetSrcData:Unknown type:{}", ltype),
                 }
                 log_d(&format!("DBUG:VM:Op:LetLocal.{}:{:?}:{:?}", ltype, vardm, vdata));
-                vardm.set_local_value(ctxt, vdata, "FuzzerK:VM:Op:LetLocal:Set the value");
+                vardm.set_value(ctxt, vdata, true, "FuzzerK:VM:Op:LetLocal:Set the value");
             }
 
         }
