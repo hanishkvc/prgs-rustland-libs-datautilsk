@@ -450,7 +450,7 @@ enum Op {
     Ret,
     SleepMSec(DataM),
     FcGet(String, DataM),
-    BufNew(String, DataM),
+    BufNew(DataM, DataM),
     Buf8Randomize(String, DataM, DataM, DataM, DataM, DataM),
     BufMerged(char, DataM, Vec<DataM>),
 }
@@ -637,8 +637,9 @@ impl Op {
 
             "bufnew" => {
                 let (bufid, bufsize) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufNew:{}", msgtag, sargs));
+                let bufid = DataM::compile(ctxt, bufid, "any", &format!("{}:BufNew:Dest:{}", msgtag, bufid));
                 let dmbufsize = DataM::compile(ctxt, bufsize, "any", &format!("{}:BufNew:Size:{}", msgtag, bufsize));
-                return Ok(Op::BufNew(bufid.to_string(), dmbufsize));
+                return Ok(Op::BufNew(bufid, dmbufsize));
             }
             "buf8randomize" => {
                 let parts: Vec<&str> = sargs.split(" ").collect();
@@ -914,7 +915,7 @@ impl Op {
                 let mut buf = Vec::<u8>::new();
                 let bufsize = dmbufsize.get_usize(ctxt, "FuzzerK:VM:Op:BufNew:BufSize");
                 buf.resize(bufsize, 0);
-                ctxt.varadd_buf(bufid, buf);
+                bufid.set_bufvu8(ctxt, buf, &format!("FuzzerK:VM:Op:BufNew:{:?}", bufid));
             }
             Self::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval) => {
                 let b8rmsg = "FuzzerK:VM:Op:Buf8Randomize";
