@@ -841,6 +841,22 @@ impl Op {
 
 impl Op {
 
+    fn oprun_opdatatype_infer(curtypeinfo: char, ctxt: &Context, srcdm: &DataM) -> char {
+        let dtype;
+        if curtypeinfo == '?' {
+            dtype = match srcdm.get_type(ctxt) {
+                VDataType::Unknown => '?',
+                VDataType::Integer => 'i',
+                VDataType::String => 's',
+                VDataType::Buffer => 'b',
+                VDataType::Special => 'b',
+            }
+        } else {
+            dtype = curtypeinfo;
+        }
+        return dtype;
+    }
+
     fn run(&self, ctxt: &mut Context) {
         match self {
             Self::Nop => (),
@@ -1078,8 +1094,10 @@ impl Op {
             }
 
             Self::LetGlobal(ltype, vardm, datadm) => {
+                // Resolve src data type at runtime, if src was a variable rather than a value
+                let dtype = Op::oprun_opdatatype_infer(*ltype, ctxt, datadm);
                 let vdata;
-                match *ltype {
+                match dtype {
                     'b' => {
                         let tdata = datadm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetGlobal.b:GetSrcData");
                         vdata = Variant::BufValue(tdata);
@@ -1100,19 +1118,8 @@ impl Op {
 
             Self::LetLocal(ltype, vardm, datadm) => {
                 let vdata;
-                let dtype;
                 // Resolve src data type at runtime, if src was a variable rather than a value
-                if *ltype == '?' {
-                    dtype = match datadm.get_type(ctxt) {
-                        VDataType::Unknown => '?',
-                        VDataType::Integer => 'i',
-                        VDataType::String => 's',
-                        VDataType::Buffer => 'b',
-                        VDataType::Special => 'b',
-                    };
-                } else {
-                    dtype = *ltype;
-                }
+                let dtype = Op::oprun_opdatatype_infer(*ltype, ctxt, datadm);
                 match dtype {
                     'b' => {
                         let tdata = datadm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetLocal.b:GetSrcData");
