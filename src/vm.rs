@@ -1162,6 +1162,7 @@ impl VM {
                 continue;
             }
             let op = Op::compile(sop, &mut self.ctxt).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
+            log_d(&format!("\tDBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", linenum, op));
             self.ops.push(op);
         }
     }
