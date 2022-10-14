@@ -993,7 +993,7 @@ impl Op {
                 }
             }
             Self::Call(label, passedargs) => {
-                let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Func:{}", label));
+                let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Func:{}:Missing???", label));
                 // Map farg names of the func to be called to actual var names.
                 if funcs.1.len() != passedargs.len() {
                     panic!("ERRR:FuzzerK:VM:Op:Call:Num of required and passed args dont match")
