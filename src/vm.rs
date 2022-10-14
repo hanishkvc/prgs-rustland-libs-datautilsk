@@ -786,18 +786,22 @@ impl Op {
                 let (vid, vdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetLocal+:{}", msgtag, sargs));
                 let viddm = DataM::compile(ctxt, vid, "any", &format!("{}:LetLocal+:Var:{}", msgtag, vid));
                 let datadm = DataM::compile(ctxt, vdata, "any", &format!("{}:LetLocal+:Value:{}", msgtag, vdata));
-                match sop {
-                    "letlocal" | "letlocal.b" => {
-                        return Ok(Op::LetLocal('b', viddm, datadm));
+                let srctype = match sop {
+                    "letlocal" => {
+                        match datadm.get_type(ctxt) {
+                            VDataType::Unknown => '?', // could be a var, which wont resolve to type at compile time.
+                            VDataType::Integer => 'i',
+                            VDataType::String => 's',
+                            VDataType::Buffer => 'b',
+                            VDataType::Special => 'b',
+                        }
                     }
-                    "letlocal.s" => {
-                        return Ok(Op::LetLocal('s', viddm, datadm));
-                    }
-                    "letlocal.i" => {
-                        return Ok(Op::LetLocal('i', viddm, datadm));
-                    }
+                    "letlocal.b" => 'b',
+                    "letlocal.s" => 's',
+                    "letlocal.i" => 'i',
                     _ => todo!("ERRR:{}:LetLocal+:Unknown Variant:{}", msgtag, sop)
-                }
+                };
+                return Ok(Op::LetLocal(srctype, viddm, datadm));
             }
             _ => panic!("ERRR:{}:UnknownOp:{}", msgtag, sop)
         }
@@ -1066,7 +1070,20 @@ impl Op {
 
             Self::LetLocal(ltype, vardm, datadm) => {
                 let vdata;
-                match *ltype {
+                let dtype;
+                // Resolve src data type at runtime, if src was a variable rather than a value
+                if *ltype == '?' {
+                    dtype = match datadm.get_type(ctxt) {
+                        VDataType::Unknown => '?',
+                        VDataType::Integer => 'i',
+                        VDataType::String => 's',
+                        VDataType::Buffer => 'b',
+                        VDataType::Special => 'b',
+                    };
+                } else {
+                    dtype = *ltype;
+                }
+                match dtype {
                     'b' => {
                         let tdata = datadm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetLocal.b:GetSrcData");
                         vdata = Variant::BufValue(tdata);
