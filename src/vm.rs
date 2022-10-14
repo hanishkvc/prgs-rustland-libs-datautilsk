@@ -67,7 +67,46 @@ impl Context {
     }
 
     ///
+    /// This function gets the data variant corresponding to the passed name.
+    ///
+    /// In order to achieve its goal, it does the below steps.
+    ///
+    /// If the passed name is a func arg, get name of the original variable
+    /// * currently func arg can only refer to global variables
+    ///   * either one can pass a global variable to a function
+    ///   * or pass the func arg recieved by the current function, which inturn refers to global var
+    /// * TODO: if we have to support passing local variables as arguments to a func arg, then
+    ///   * if allowing only 1 level up, then one will need to use the last but one localsstack entry
+    ///   * if allowing local variable from any function in the caller heirarchy, then one will need
+    ///     to pass a index into localsstack along with the var name in the fargsstack
+    ///
+    /// Check if the name corresponds to a local variable
+    ///
+    /// Else check if the name corresponds to a global variable
+    ///
+    pub fn var_get(&self, datakind: &DataKind, vname: &str) -> Option<&Variant> {
+        let vname = self.var_farg2real_ifreqd(datakind, vname);
+
+        let locals = self.localsstack.last();
+        if locals.is_some() {
+            let locals = locals.unwrap();
+            let bval = locals.get(&vname);
+            if bval.is_some() {
+                return bval;
+            }
+        }
+
+        let vvalue = self.globals.get(&vname);
+        if vvalue.is_some() {
+            return vvalue;
+        }
+
+        None
+    }
+
+    ///
     /// Check if specified name in current local vars set, if so set it there, else set in global var set.
+    /// Set bforcelocal to true, if you want to set a new local variable
     ///
     pub fn var_set(&mut self, vname: &str, vvalue: Variant, bforcelocal: bool) {
         let locals = self.localsstack.last_mut().unwrap();
@@ -221,22 +260,9 @@ impl DataM {
                 return valv.get_type();
             }
             Self::Variable(datakind,vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-
-                let locals = ctxt.localsstack.last();
-                if locals.is_some() {
-                    let locals = locals.unwrap();
-                    let bval = locals.get(vid);
-                    if bval.is_some() {
-                        let bval = bval.unwrap();
-                        return bval.get_type();
-                    }
-                } else {
-                    let vvalue = ctxt.globals.get(vid);
-                    if vvalue.is_some() {
-                        let vvalue = vvalue.unwrap();
-                        return vvalue.get_type();
-                    }
+                let ovalue = ctxt.var_get(datakind, vid);
+                if ovalue.is_some() {
+                    return ovalue.unwrap().get_type();
                 }
             }
         }
@@ -256,22 +282,10 @@ impl DataM {
                 return oval.get_isize(smsg);
             }
             Self::Variable(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-
-                let locals = ctxt.localsstack.last();
-                if locals.is_some() {
-                    let locals = locals.unwrap();
-                    let bval = locals.get(vid);
-                    if bval.is_some() {
-                        return bval.unwrap().get_isize(&format!("{}:DataM:GetISize:LocalVar:", smsg));
-                    }
+                let ovalue = ctxt.var_get(datakind, vid);
+                if ovalue.is_some() {
+                    return ovalue.unwrap().get_isize(&format!("{}:DataM:GetISize:", smsg));
                 }
-
-                let vvalue = ctxt.globals.get(vid);
-                if vvalue.is_some() {
-                    return vvalue.unwrap().get_isize(&format!("{}:DataM:GetISize:GlobalVar:", smsg));
-                }
-
                 panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
             }
         }
@@ -303,22 +317,10 @@ impl DataM {
                 return oval.get_string();
             }
             DataM::Variable(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-
-                let locals = ctxt.localsstack.last();
-                if locals.is_some() {
-                    let locals = locals.unwrap();
-                    let bval = locals.get(vid);
-                    if bval.is_some() {
-                        return bval.unwrap().get_string();
-                    }
+                let ovalue = ctxt.var_get(datakind, vid);
+                if ovalue.is_some() {
+                    return ovalue.unwrap().get_string();
                 }
-
-                let vvalue = ctxt.globals.get(vid);
-                if vvalue.is_some() {
-                    return vvalue.unwrap().get_string();
-                }
-
                 panic!("ERRR:{}:DataM:GetString:Var:Unknown:{}", smsg, vid);
             }
         }
@@ -338,24 +340,12 @@ impl DataM {
                 return oval.get_bufvu8();
             }
             DataM::Variable(datakind, vid) => {
-                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
-
-                let locals = ctxt.localsstack.last();
-                if locals.is_some() {
-                    let locals = locals.unwrap();
-                    let bval = locals.get(vid);
-                    if bval.is_some() {
-                        return bval.unwrap().get_bufvu8();
-                    }
+                let ovalue = ctxt.var_get(datakind, vid);
+                if ovalue.is_some() {
+                    return ovalue.unwrap().get_bufvu8();
                 }
-
-                let vvalue = ctxt.globals.get(vid);
-                if vvalue.is_some() {
-                    return vvalue.unwrap().get_bufvu8();
-                }
-
                 panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
-            },
+            }
         }
     }
 
