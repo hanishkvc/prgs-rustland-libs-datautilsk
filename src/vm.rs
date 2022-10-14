@@ -312,6 +312,7 @@ impl DataM {
         }
     }
 
+    #[allow(dead_code)]
     fn get_bufvu8_mut<'a>(&'a self, ctxt: &'a mut Context, smsg: &str) -> &'a mut Vec<u8> {
         match self {
             Self::Value(_) => panic!("ERRR:{}:GetBufVu8Mut:Cant return mutable ref to values", smsg),
@@ -345,6 +346,7 @@ impl DataM {
         }
     }
 
+    #[allow(dead_code)]
     fn set_string(&self, ctxt: &mut Context, vvalue: String, smsg: &str) {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),

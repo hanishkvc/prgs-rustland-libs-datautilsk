@@ -63,6 +63,7 @@ impl Variant {
     /// Return a positive interger value, this is built upon get_isize
     /// If the underlying value is negative, then it will panic
     ///
+    #[allow(dead_code)]
     fn get_usize(&self, smsg: &str) -> usize {
         let ival = self.get_isize(&format!("{}:Variant:GetUSize",smsg));
         if ival < 0 {
