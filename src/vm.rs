@@ -117,12 +117,18 @@ impl Context {
         if let DataKind::FuncArg = datakind  {
             panic!("ERRR:{}:Ctxt:VarSet:Cant set a funcarg, they are readonly currently", smsg);
         }
-        let locals = self.localsstack.last_mut().unwrap();
-        if locals.contains_key(vname) || bforcelocal {
-            locals.insert(vname.to_string(), vvalue);
-        } else {
-            self.globals.insert(vname.to_string(), vvalue);
+        let olocals = self.localsstack.last_mut();
+        if olocals.is_some() {
+            let locals = olocals.unwrap();
+            if locals.contains_key(vname) || bforcelocal {
+                locals.insert(vname.to_string(), vvalue);
+                return;
+            }
         }
+        if bforcelocal {
+            panic!("ERRR:{}:Ctxt:VarSet:Cant set a local variable, outside a function", smsg);
+        }
+        self.globals.insert(vname.to_string(), vvalue);
     }
 
     pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> String {
