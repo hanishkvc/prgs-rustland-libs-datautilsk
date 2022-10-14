@@ -18,7 +18,7 @@ use crate::rtm::RunTimeManager;
 use crate::cfgfiles;
 
 mod datas;
-use datas::Variant;
+use datas::{Variant, VDataType};
 
 struct Context {
     globals: HashMap<String, Variant>,
@@ -194,6 +194,34 @@ impl DataM {
         }
         return DataM::Variable(datakind, sdata.to_string());
 
+    }
+
+    fn get_type(&self, ctxt: &Context) -> VDataType {
+        match self {
+            Self::Value(valv) => {
+                return valv.get_type();
+            }
+            Self::Variable(datakind,vid) => {
+                let vid = &ctxt.var_farg2real_ifreqd(datakind, vid);
+
+                let locals = ctxt.localsstack.last();
+                if locals.is_some() {
+                    let locals = locals.unwrap();
+                    let bval = locals.get(vid);
+                    if bval.is_some() {
+                        let bval = bval.unwrap();
+                        return bval.get_type();
+                    }
+                } else {
+                    let vvalue = ctxt.globals.get(vid);
+                    if vvalue.is_some() {
+                        let vvalue = vvalue.unwrap();
+                        return vvalue.get_type();
+                    }
+                }
+            }
+        }
+        return VDataType::Unknown;
     }
 
     ///

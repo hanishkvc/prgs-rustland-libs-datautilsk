@@ -10,6 +10,15 @@ use rand::Rng;
 use crate::datautils;
 
 
+pub enum VDataType {
+    Unknown,
+    Integer,
+    String,
+    Buffer,
+    Special,
+}
+
+
 #[derive(Debug)]
 pub enum Variant {
     IntValue(isize),
@@ -20,6 +29,16 @@ pub enum Variant {
 }
 
 impl Variant {
+
+    pub fn get_type(&self) -> VDataType {
+        match self {
+            Variant::IntValue(_) => VDataType::Integer,
+            Variant::StrValue(_) => VDataType::String,
+            Variant::BufValue(_) => VDataType::Buffer,
+            Variant::XRandomBytes(_) => VDataType::Special,
+            Variant::XTimeStamp => VDataType::Special,
+        }
+    }
 
     ///
     /// * Int -> Int
