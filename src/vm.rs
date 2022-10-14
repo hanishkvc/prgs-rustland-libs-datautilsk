@@ -196,6 +196,25 @@ impl DataM {
 
     }
 
+    fn is_value(&self) -> bool {
+        match self {
+            DataM::Value(_) => true,
+            DataM::Variable(_, _) => false,
+        }
+    }
+
+    fn is_variable(&self) -> bool {
+        match self {
+            DataM::Value(_) => false,
+            DataM::Variable(_, _) => true,
+        }
+    }
+
+    ///
+    /// This supports infering
+    /// * Value's type in both AheadOfTimeCompilation as well as Run phase
+    /// * Variable's type only during Run phase (So be careful)
+    ///
     fn get_type(&self, ctxt: &Context) -> VDataType {
         match self {
             Self::Value(valv) => {
@@ -788,12 +807,16 @@ impl Op {
                 let datadm = DataM::compile(ctxt, vdata, "any", &format!("{}:LetLocal+:Value:{}", msgtag, vdata));
                 let srctype = match sop {
                     "letlocal" => {
-                        match datadm.get_type(ctxt) {
-                            VDataType::Unknown => '?', // could be a var, which wont resolve to type at compile time.
-                            VDataType::Integer => 'i',
-                            VDataType::String => 's',
-                            VDataType::Buffer => 'b',
-                            VDataType::Special => 'b',
+                        if datadm.is_value() {
+                            match datadm.get_type(ctxt) {
+                                VDataType::Unknown => '?',
+                                VDataType::Integer => 'i',
+                                VDataType::String => 's',
+                                VDataType::Buffer => 'b',
+                                VDataType::Special => 'b',
+                            }
+                        } else { // a variable's associated data value type cant be resolved at compile time.
+                            '?'
                         }
                     }
                     "letlocal.b" => 'b',
