@@ -16,6 +16,9 @@ use core::convert::From;
 /// Convert hex string to Vec<u8>
 ///
 pub fn vu8_from_hex(ins: &str) -> Result<Vec<u8>, String> {
+    if ins.len() % 2 != 0 {
+        return Err("ERRR:DU:Vu8FromHex:Hex string length not even, something wrong???".to_string());
+    }
     let mut vu8 = Vec::new();
     for i in (0..ins.len()-1).step_by(2) {
         let cu8 = u8::from_str_radix(&ins[i..i+2], 16);
