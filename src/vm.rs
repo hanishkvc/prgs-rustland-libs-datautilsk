@@ -550,6 +550,30 @@ impl Op {
         return Ok((parts[0].to_string(), vargs));
     }
 
+    fn opcompile_opdatatype_autoinfer_ifreqd(sop: &str, ctxt: &Context, srcdm: &DataM, smsg: &str) -> char {
+        let (_op, tm) = sop.split_once('.').unwrap_or(("DUMMY", "?")); // extract explicit typemarker if any
+        let srctype = match tm {
+            "?" => {
+                if srcdm.is_value() {
+                    match srcdm.get_type(ctxt) {
+                        VDataType::Unknown => '?',
+                        VDataType::Integer => 'i',
+                        VDataType::String => 's',
+                        VDataType::Buffer => 'b',
+                        VDataType::Special => 'b',
+                    }
+                } else { // a variable's associated data value type cant be resolved at compile time.
+                    '?'
+                }
+            }
+            "b" => 'b',
+            "s" => 's',
+            "i" => 'i',
+            _ => panic!("ERRR:{}:OpDestDataType:Unknown Variant:{}", smsg, sop)
+        };
+        return srctype;
+    }
+
     fn compile(opplus: &str, ctxt: &mut Context) -> Result<Op, String> {
         let msgtag = "FuzzerK:VM:Op:Compile";
         let sop;
@@ -567,17 +591,18 @@ impl Op {
                 return Ok(Op::Nop);
             }
 
-            "letint" | "letstr" | "letbuf" | "letglobal.i" | "letglobal.s" | "letglobal.b" => {
+            "letint" | "letstr" | "letbuf" | "letglobal.i" | "letglobal.s" | "letglobal.b" | "letglobal" => {
                 let (vid, sval) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetGlobal:{}:{}", msgtag, sop, sargs));
                 let viddm = DataM::compile(ctxt, vid, "any", &format!("{}:LetGlobal:{}:Var:{}", msgtag, sop, vid));
                 let valdm = DataM::compile(ctxt, sval, "any", &format!("{}:LetGlobal:{}:Value:{}", msgtag, sop, sval));
-                let optype = match sop {
+                let opdatatype = match sop {
                     "letint" | "letglobal.i" => 'i',
                     "letstr" | "letglobal.s" => 's',
                     "letbuf" | "letglobal.b" => 'b',
+                    "letglobal" => Op::opcompile_opdatatype_autoinfer_ifreqd(sop, ctxt, &valdm, &format!("{}:LetGlobal", msgtag)),
                     _ => todo!(),
                 };
-                return Ok(Op::LetGlobal(optype, viddm, valdm));
+                return Ok(Op::LetGlobal(opdatatype, viddm, valdm));
             }
 
             "inc" => {
@@ -805,26 +830,8 @@ impl Op {
                 let (vid, vdata) = sargs.split_once(' ').expect(&format!("ERRR:{}:LetLocal+:{}", msgtag, sargs));
                 let viddm = DataM::compile(ctxt, vid, "any", &format!("{}:LetLocal+:Var:{}", msgtag, vid));
                 let datadm = DataM::compile(ctxt, vdata, "any", &format!("{}:LetLocal+:Value:{}", msgtag, vdata));
-                let srctype = match sop {
-                    "letlocal" => {
-                        if datadm.is_value() {
-                            match datadm.get_type(ctxt) {
-                                VDataType::Unknown => '?',
-                                VDataType::Integer => 'i',
-                                VDataType::String => 's',
-                                VDataType::Buffer => 'b',
-                                VDataType::Special => 'b',
-                            }
-                        } else { // a variable's associated data value type cant be resolved at compile time.
-                            '?'
-                        }
-                    }
-                    "letlocal.b" => 'b',
-                    "letlocal.s" => 's',
-                    "letlocal.i" => 'i',
-                    _ => todo!("ERRR:{}:LetLocal+:Unknown Variant:{}", msgtag, sop)
-                };
-                return Ok(Op::LetLocal(srctype, viddm, datadm));
+                let opdatatype = Op::opcompile_opdatatype_autoinfer_ifreqd(sop, ctxt, &datadm, &format!("{}:LetLocal", msgtag));
+                return Ok(Op::LetLocal(opdatatype, viddm, datadm));
             }
             _ => panic!("ERRR:{}:UnknownOp:{}", msgtag, sop)
         }
