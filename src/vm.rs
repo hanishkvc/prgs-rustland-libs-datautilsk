@@ -108,7 +108,15 @@ impl Context {
     /// Check if specified name in current local vars set, if so set it there, else set in global var set.
     /// Set bforcelocal to true, if you want to set a new local variable
     ///
-    pub fn var_set(&mut self, vname: &str, vvalue: Variant, bforcelocal: bool) {
+    /// FuncArgs are readonly currently and thus cant be set.
+    ///
+    /// Setting a new variable creates it. bforcelocal helps control whether it is created has a local variable
+    /// or a global variable.
+    ///
+    pub fn var_set(&mut self, datakind: &DataKind, vname: &str, vvalue: Variant, bforcelocal: bool, smsg: &str) {
+        if let DataKind::FuncArg = datakind  {
+            panic!("ERRR:{}:Ctxt:VarSet:Cant set a funcarg, they are readonly currently", smsg);
+        }
         let locals = self.localsstack.last_mut().unwrap();
         if locals.contains_key(vname) || bforcelocal {
             locals.insert(vname.to_string(), vvalue);
@@ -374,11 +382,8 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetISize:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
-                if let DataKind::FuncArg = datakind  {
-                    panic!("ERRR:{}:DataM:SetISize:Cant set a funcarg, currently", smsg);
-                }
                 let vvalue = Variant::IntValue(vvalue);
-                ctxt.var_set(vname, vvalue, false);
+                ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetISize", smsg));
             }
         }
     }
@@ -388,11 +393,8 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
-                if let DataKind::FuncArg = datakind  {
-                    panic!("ERRR:{}:DataM:SetString:Cant set a funcarg, currently", smsg);
-                }
                 let vvalue = Variant::StrValue(vvalue);
-                ctxt.var_set(vname, vvalue, false);
+                ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetString", smsg));
             }
         }
     }
@@ -401,11 +403,8 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetBuf:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
-                if let DataKind::FuncArg = datakind  {
-                    panic!("ERRR:{}:DataM:SetBuf:Cant set a funcarg, currently", smsg);
-                }
                 let vvalue = Variant::BufValue(vvalue);
-                ctxt.var_set(vname, vvalue, false);
+                ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetBuf", smsg));
             }
         }
     }
@@ -414,10 +413,7 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
             DataM::Variable(datakind, vname) => {
-                if let DataKind::FuncArg = datakind  {
-                    panic!("ERRR:{}:DataM:SetValue:Cant set a funcarg, currently", smsg);
-                }
-                ctxt.var_set(vname, vvalue, bforcelocal);
+                ctxt.var_set(datakind, vname, vvalue, bforcelocal, &format!("{}:DataM:SetValue", smsg));
             }
         }
     }
