@@ -80,7 +80,7 @@ impl Context {
 
     pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> String {
         if let DataKind::FuncArg = datakind {
-            let fargs = self.fargsstack.last().unwrap();
+            let fargs = self.fargsstack.last().expect("ERRR:FuzzerK:VM:Ctxt:FArg2Real:Can be called only from run phase");
             let rname = fargs.get(vname);
             if rname.is_none() {
                 return vname.to_string();
