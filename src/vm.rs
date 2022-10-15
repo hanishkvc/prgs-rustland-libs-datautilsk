@@ -1196,6 +1196,15 @@ impl VM {
         }
     }
 
+    fn test_bruteforce_nexttoken(nl: &str) {
+        let mut tl = nl.to_string();
+        while tl.len() > 0 {
+            let (tok, tlnext) = datautils::next_token(&tl).unwrap();
+            log_d(&format!("[{}]=>\n\t[{}],\n\t[{}]", tl, tok, tlnext));
+            tl = tlnext;
+        }
+    }
+
     pub fn load_prg(&mut self, prgfile: &str) {
         if prgfile.len() == 0 {
             log_w("WARN:FuzzerK:VM:LoadPRG:Empty filename passed, skipping...");
@@ -1208,12 +1217,7 @@ impl VM {
             log_d(&format!("IN :{}\n", l));
             let nl = datautils::remove_extra_whitespaces(l);
             log_d(&format!("OUT:{}\n", nl));
-            let mut tl = nl.clone();
-            while tl.len() > 0 {
-                let (tok, tlnext) = datautils::next_token(&tl).unwrap();
-                log_d(&format!("[{}]=>\n\t[{}],\n\t[{}]", tl, tok, tlnext));
-                tl = tlnext;
-            }
+            Self::test_bruteforce_nexttoken(&nl);
             ops.push(nl.to_string());
         }
         self.compile(ops);
