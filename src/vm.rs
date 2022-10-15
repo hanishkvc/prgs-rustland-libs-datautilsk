@@ -1187,13 +1187,13 @@ impl VM {
             if sop.starts_with("#") || (sop.len() == 0) {
                 continue;
             }
-            log_d(&format!("DBUG:FuzzerK:VM:Compile:Op:{}:{}", self.ctxt.compilingline, sop));
+            //log_d(&format!("DBUG:FuzzerK:VM:Compile:Op:{}:{}", self.ctxt.compilingline, sop));
             if sop.starts_with("!") {
                 self.compile_directive(sop);
                 continue;
             }
             let op = Op::compile(sop, &mut self.ctxt).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
-            log_d(&format!("\tDBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
+            log_d(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
             self.ops.push(op);
         }
     }
@@ -1217,9 +1217,9 @@ impl VM {
         let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
         for l in prgdata {
-            log_d(&format!("IN :{}\n", l));
+            //log_d(&format!("IN :{}\n", l));
             let nl = datautils::remove_extra_whitespaces(l);
-            log_d(&format!("OUT:{}\n", nl));
+            //log_d(&format!("OUT:{}\n", nl));
             //Self::test_bruteforce_nexttoken(&nl);
             ops.push(nl.to_string());
         }
