@@ -852,7 +852,7 @@ impl Op {
     }
 
     fn run(&self, ctxt: &mut Context, linenum: u32) {
-        let msgtag = &format!("FuzzerK:VM:Op:Run:{}:", linenum);
+        let msgtag = &format!("FuzzerK:VM:Op:Run:{}", linenum);
         match self {
             Self::Nop => (),
 
@@ -1031,8 +1031,8 @@ impl Op {
                 bufid.set_bufvu8(ctxt, buf, &format!("{}:BufNew:{:?}", msgtag, bufid));
             }
             Self::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval) => {
-                let b8rmsg = "FuzzerK:VM:Op:Buf8Randomize";
-                let mut buf = bufid.get_bufvu8(ctxt, &format!("{}:Buf:{:?}", b8rmsg, bufid));
+                let b8rmsg = &format!("{}:Buf8Randomize", msgtag);
+                let mut buf = bufid.get_bufvu8(ctxt, &format!("{}:Getting TheBuf:{:?}", b8rmsg, bufid));
 
                 let randcount = dmrandcount.get_isize(ctxt, &format!("{}:RandCount", b8rmsg));
                 let trandcount;
@@ -1077,15 +1077,15 @@ impl Op {
                 for srcdm in srcdms {
                     let mut sbuf;
                     if *mtype == 'b' {
-                        sbuf = srcdm.get_bufvu8(ctxt, &format!("ERRR:FuzzerK:VM:Op:BufMerged.B:Src:{:?}", srcdm));
+                        sbuf = srcdm.get_bufvu8(ctxt, &format!("{}:BufMerged.B:Src:{:?}", msgtag, srcdm));
                     } else {
-                        let tbuf = srcdm.get_string(ctxt, &format!("ERRR:FuzzerK:VM:Op:BufMerged.S:Src:{:?}", srcdm));
+                        let tbuf = srcdm.get_string(ctxt, &format!("{}:BufMerged.S:Src:{:?}", msgtag, srcdm));
                         sbuf = Vec::from(tbuf);
                     }
                     destbuf.append(&mut sbuf);
                 }
-                log_d(&format!("DBUG:VM:Op:BufMerged:{:?}:{:?}", destbufdm, destbuf));
-                destbufdm.set_bufvu8(ctxt, destbuf, &format!("FuzzerK:VM:Op:BufMerged.{}:{:?}", mtype, destbufdm));
+                log_d(&format!("DBUG:{}:BufMerged:{:?}:{:?}", msgtag, destbufdm, destbuf));
+                destbufdm.set_bufvu8(ctxt, destbuf, &format!("{}:BufMerged.{}:{:?}", msgtag, mtype, destbufdm));
             }
 
             Self::LetGlobal(ltype, vardm, datadm) => {
@@ -1094,21 +1094,21 @@ impl Op {
                 let vdata;
                 match dtype {
                     'b' => {
-                        let tdata = datadm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetGlobal.b:GetSrcData");
+                        let tdata = datadm.get_bufvu8(ctxt, &format!("{}:LetGlobal.b:GetSrcData", msgtag));
                         vdata = Variant::BufValue(tdata);
                     }
                     's' => {
-                        let tdata = datadm.get_string(ctxt, "FuzzerK:VM:Op:LetGlobal.s:GetSrcData");
+                        let tdata = datadm.get_string(ctxt, &format!("{}:LetGlobal.s:GetSrcData", msgtag));
                         vdata = Variant::StrValue(tdata);
                     }
                     'i' => {
-                        let tdata = datadm.get_isize(ctxt, "FuzzerK:VM:Op:LetGlobal.i:GetSrcData");
+                        let tdata = datadm.get_isize(ctxt, &format!("{}:LetGlobal.i:GetSrcData", msgtag));
                         vdata = Variant::IntValue(tdata);
                     }
-                    _ => panic!("FuzzerK:VM:Op:LetGlobal:GetSrcData:Unknown type:{}", ltype),
+                    _ => panic!("{}:LetGlobal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
-                log_d(&format!("DBUG:VM:Op:LetGlobal.{}:{:?}:{:?}", ltype, vardm, vdata));
-                vardm.set_value(ctxt, vdata, false, "FuzzerK:VM:Op:LetGlobal:Set the value");
+                log_d(&format!("DBUG:{}:LetGlobal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
+                vardm.set_value(ctxt, vdata, false, &format!("{}:LetGlobal:Set the value", msgtag));
             }
 
             Self::LetLocal(ltype, vardm, datadm) => {
@@ -1117,21 +1117,21 @@ impl Op {
                 let dtype = Op::oprun_opdatatype_infer(*ltype, ctxt, datadm);
                 match dtype {
                     'b' => {
-                        let tdata = datadm.get_bufvu8(ctxt, "FuzzerK:VM:Op:LetLocal.b:GetSrcData");
+                        let tdata = datadm.get_bufvu8(ctxt, &format!("{}:LetLocal.b:GetSrcData", msgtag));
                         vdata = Variant::BufValue(tdata);
                     }
                     's' => {
-                        let tdata = datadm.get_string(ctxt, "FuzzerK:VM:Op:LetLocal.s:GetSrcData");
+                        let tdata = datadm.get_string(ctxt, &format!("{}:LetLocal.s:GetSrcData", msgtag));
                         vdata = Variant::StrValue(tdata);
                     }
                     'i' => {
-                        let tdata = datadm.get_isize(ctxt, "FuzzerK:VM:Op:LetLocal.i:GetSrcData");
+                        let tdata = datadm.get_isize(ctxt, &format!("{}:LetLocal.i:GetSrcData", msgtag));
                         vdata = Variant::IntValue(tdata);
                     }
-                    _ => panic!("FuzzerK:VM:Op:LetLocal:GetSrcData:Unknown type:{}", ltype),
+                    _ => panic!("{}:LetLocal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
-                log_d(&format!("DBUG:VM:Op:LetLocal.{}:{:?}:{:?}", ltype, vardm, vdata));
-                vardm.set_value(ctxt, vdata, true, "FuzzerK:VM:Op:LetLocal:Set the value");
+                log_d(&format!("DBUG:{}:LetLocal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
+                vardm.set_value(ctxt, vdata, true, &format!("{}:LetLocal:Set the value", msgtag));
             }
 
         }
@@ -1259,7 +1259,7 @@ impl VM {
                 break;
             }
             let theop = &self.ops[self.ctxt.iptr];
-            log_d(&format!("INFO:FuzzerK:VM:Op:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
+            log_d(&format!("INFO:FuzzerK:VM:Op:ToRun:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
             self.ctxt.iptr_commonupdate = true;
             theop.0.run(&mut self.ctxt, theop.1);
             if self.ctxt.iptr_commonupdate {
