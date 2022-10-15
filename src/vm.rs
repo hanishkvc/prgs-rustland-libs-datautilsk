@@ -632,6 +632,14 @@ impl Op {
         return Ok((n_args.0.to_string(), vargs));
     }
 
+    ///
+    /// Literal values, if any found, will be assigned to automatically created temp variables.
+    ///
+    /// Uses local variables space of the current function, if inside a func. Else use global space.
+    ///
+    /// Uses current source line number and index of the argument in the argument list
+    /// to generate a name for the auto created temp variable
+    ///
     fn compile_literals2autotempvars(ctxt: &mut Context, vargsin: Vec<String>, msgtag: &str) -> Vec<String> {
         let mut vargs: Vec<String> = Vec::new();
         let mut itok = 0;
@@ -649,7 +657,7 @@ impl Op {
                 VDataType::Buffer => 'b',
                 VDataType::Special => 'b',
             };
-            let autovar = format!("AV_{}_{}", ctxt.compilingline, itok);
+            let autovar = format!("ATV_{}_{}_AtVaTv", ctxt.compilingline, itok);
             let avdm = DataM::compile(ctxt, &autovar, "any", &format!("{}:Lit2AutoTempVars:Auto var:{}", msgtag, autovar));
             if ctxt.bcompilingfunc {
                 ctxt.preops.push(Op::LetLocal(odtype, avdm, dm));
