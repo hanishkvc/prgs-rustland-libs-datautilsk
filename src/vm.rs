@@ -74,33 +74,36 @@ impl Context {
     /// In order to achieve its goal, it does the below steps.
     ///
     /// If the passed name is a func arg, get name of the original variable
-    /// * currently func arg can only refer to global variables
-    ///   * either one can pass a global variable to a function
-    ///   * or pass the func arg recieved by the current function, which inturn refers to global var
-    /// * TODO: if we have to support passing local variables as arguments to a func arg, then
-    ///   * if allowing only 1 level up, then one will need to use the last but one localsstack entry
-    ///   * if allowing local variable from any function in the caller heirarchy, then one will need
-    ///     to pass a index into localsstack along with the var name in the fargsstack
+    /// * Func arg can refer to
+    ///   * a global variable or
+    ///   * a local variable from any of the parent functions
+    ///   * or the func arg recieved by the current function, which inturn refers to
+    ///     either global or local variables as mentioned before
     ///
-    /// Check if the name corresponds to a local variable
-    ///
-    /// Else check if the name corresponds to a global variable
+    /// Else Check
+    /// * if the name corresponds to a local variable
+    /// * if the name corresponds to a global variable
     ///
     pub fn var_get(&self, datakind: &DataKind, vname: &str) -> Option<&Variant> {
-        let vname = self.var_farg2real_ifreqd(datakind, vname);
+        let (vnameindex, vname) = self.var_farg2real_ifreqd(datakind, vname);
 
-        let locals = self.localsstack.last();
-        if locals.is_some() {
-            let locals = locals.unwrap();
-            let bval = locals.get(&vname);
-            if bval.is_some() {
-                return bval;
+        let ovhm = match vnameindex {
+            -2 => self.localsstack.last(),
+            -1 => Some(&self.globals),
+            0.. => Some(&self.localsstack[vnameindex as usize]),
+        };
+        if ovhm.is_some() {
+            let vhm = ovhm.unwrap();
+            let vval = vhm.get(&vname);
+            if vval.is_some() {
+                return vval;
             }
         }
-
-        let vvalue = self.globals.get(&vname);
-        if vvalue.is_some() {
-            return vvalue;
+        if vnameindex == -2 {
+            let vval = self.globals.get(&vname);
+            if vval.is_some() {
+                return vval;
+            }
         }
 
         None
@@ -133,14 +136,20 @@ impl Context {
         self.globals.insert(vname.to_string(), vvalue);
     }
 
+    ///
+    /// The returned isize could be
+    /// -2   => if the passed name is not a func arg
+    /// -1   => if the func arg maps to a global var
+    /// >= 0 => if the func arg maps to a local var (then the stack function index)
+    ///
     pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> (isize, String) {
         if let DataKind::FuncArg = datakind {
             let fargs = self.fargsmapstack.last().expect("ERRR:FuzzerK:VM:Ctxt:FArg2Real:Can be called only from run phase");
             let rname = fargs.get(vname);
             if rname.is_none() {
-                return (-2, vname.to_string());
+                panic!("DBUG:FuzzerK:VM:Ctxt:Farg2Real:FArg:{:?}:{}:not in fargsmapstack", datakind, vname);
             }
-            log_d(&format!("DBUG:FArg2Real:{:?}:{}=>{:?}", datakind, vname, rname.unwrap()));
+            log_d(&format!("DBUG:FuzzerK:VM:Ctxt:FArg2Real:{:?}:{}=>{:?}", datakind, vname, rname.unwrap()));
             return *rname.unwrap();
         }
         return (-2, vname.to_string());
