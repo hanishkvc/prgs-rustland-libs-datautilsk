@@ -852,22 +852,23 @@ impl Op {
     }
 
     fn run(&self, ctxt: &mut Context, linenum: u32) {
+        let msgtag = &format!("FuzzerK:VM:Op:Run:{}:", linenum);
         match self {
             Self::Nop => (),
 
             Self::Inc(vid) => {
-                let mut val = vid.get_isize(ctxt, &format!("FuzzerK:VM:Op:Inc:{:?}", vid));
+                let mut val = vid.get_isize(ctxt, &format!("{}:Inc:{:?}", msgtag, vid));
                 val += 1;
-                vid.set_isize(ctxt, val, &format!("FuzzerK:VM:Op:Inc:{:?}", vid));
+                vid.set_isize(ctxt, val, &format!("{}:Inc:{:?}", msgtag, vid));
             }
             Self::Dec(vid) => {
-                let mut val = vid.get_isize(ctxt, &format!("FuzzerK:VM:Op:Dec:{:?}", vid));
+                let mut val = vid.get_isize(ctxt, &format!("{}:Dec:{:?}", msgtag, vid));
                 val -= 1;
-                vid.set_isize(ctxt, val, &format!("FuzzerK:VM:Op:Dec:{:?}", vid));
+                vid.set_isize(ctxt, val, &format!("{}:Dec:{:?}", msgtag, vid));
             },
             Self::Alu(aluop, destvid, dmsrc1, dmsrc2) => {
-                let src1 = dmsrc1.get_isize(ctxt, "FuzzerK:VM:Op:Alu:Src1");
-                let src2 = dmsrc2.get_isize(ctxt, "FuzzerK:VM:Op:Alu:Src2");
+                let src1 = dmsrc1.get_isize(ctxt, &format!("{}:Alu:Src1", msgtag));
+                let src2 = dmsrc2.get_isize(ctxt, &format!("{}:Alu:Src2", msgtag));
                 let res = match aluop {
                     ALUOP::Add => src1 + src2,
                     ALUOP::Sub => src1 - src2,
@@ -875,7 +876,7 @@ impl Op {
                     ALUOP::Div => src1 / src2,
                     ALUOP::Mod => src1 % src2,
                 };
-                destvid.set_isize(ctxt, res, &format!("FuzzerK:VM:Op:Alu:{:?}:{:?}", aluop, destvid));
+                destvid.set_isize(ctxt, res, &format!("{}:Alu:{:?}:{:?}", msgtag, aluop, destvid));
             },
 
             Self::IobNew(ioid, ioaddr, ioargs) => {
@@ -886,7 +887,7 @@ impl Op {
                     } else {
                         let gotr = zenio.close();
                         if gotr.is_err() {
-                            log_e(&format!("ERRR:FuzzerK:VM:Op:IobNew:Close4New:{}:{}", ioid, gotr.unwrap_err()));
+                            log_e(&format!("ERRR:{}:IobNew:Close4New:{}:{}", msgtag, ioid, gotr.unwrap_err()));
                         }
                     }
                 }
@@ -894,40 +895,40 @@ impl Op {
                 ctxt.iobs.insert(ioid.to_string(), zenio);
             }
             Self::IobWrite(ioid, srcdm) => {
-                let buf = srcdm.get_bufvu8(ctxt, &format!("FuzzerK:VM:Op:IobWrite:FromSrc:{:?}", srcdm));
-                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}", ioid));
+                let buf = srcdm.get_bufvu8(ctxt, &format!("{}:IobWrite:Getting SrcBuf:{:?}", msgtag, srcdm));
+                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:{}:IobWrite:Getting IOB:{}", msgtag, ioid));
                 let gotr = zenio.write(&buf);
                 if gotr.is_err() {
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobWrite:{}:FromSrc:{:?}:{}", ioid, srcdm, gotr.unwrap_err()));
+                    log_e(&format!("ERRR:{}:IobWrite:{}:Writing src:{:?}:{}", msgtag, ioid, srcdm, gotr.unwrap_err()));
                 }
             }
             Self::IobFlush(ioid) => {
                 let zenio = ctxt.iobs.get_mut(ioid).unwrap();
                 let gotr = zenio.flush();
                 if gotr.is_err() {
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobFlush:{}:{}", ioid, gotr.unwrap_err()));
+                    log_e(&format!("ERRR:{}:IobFlush:{}:{}", msgtag, ioid, gotr.unwrap_err()));
                 }
             }
             Self::IobRead(ioid, bufid) => {
-                let buf = &mut bufid.get_bufvu8(ctxt, &format!("FuzzerK:VM:Op:IobRead:ToBuf:{:?}", bufid));
-                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}", ioid));
+                let buf = &mut bufid.get_bufvu8(ctxt, &format!("{}:IobRead:Getting ToBuf:{:?}", msgtag, bufid));
+                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:{}:IobRead:Getting IOB:{}", msgtag, ioid));
                 let gotr = zenio.read(buf);
                 let readsize;
                 if gotr.is_err() {
                     let errmsg = gotr.as_ref().unwrap_err();
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobRead:{}:ToBuf:{:?}:{}", ioid, bufid, errmsg));
+                    log_e(&format!("ERRR:{}:IobRead:{}:Reading ToBuf:{:?}:{}", msgtag, ioid, bufid, errmsg));
                     readsize = 0;
                 } else {
                     readsize = gotr.unwrap();
                 }
                 buf.resize(readsize, 0);
-                bufid.set_bufvu8(ctxt, buf.to_vec(), &format!("FuzzerK:VM:Op:IobRead:Updating ToBuf:{:?}", bufid));
+                bufid.set_bufvu8(ctxt, buf.to_vec(), &format!("{}:IobRead:Updating ToBuf:{:?}", msgtag, bufid));
             }
             Self::IobClose(ioid) => {
                 let zenio = ctxt.iobs.get_mut(ioid).unwrap();
                 let gotr = zenio.close();
                 if gotr.is_err() {
-                    log_e(&format!("ERRR:FuzzerK:VM:Op:IobClose:{}:{}", ioid, gotr.unwrap_err()));
+                    log_e(&format!("ERRR:{}:IobClose:{}:{}", msgtag, ioid, gotr.unwrap_err()));
                 }
                 ctxt.iobs.remove(ioid);
             }
