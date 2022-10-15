@@ -91,6 +91,7 @@ impl Context {
             -2 => self.localsstack.last(),
             -1 => Some(&self.globals),
             0.. => Some(&self.localsstack[vnameindex as usize]),
+            _ => todo!(),
         };
         if ovhm.is_some() {
             let vhm = ovhm.unwrap();
@@ -150,7 +151,8 @@ impl Context {
                 panic!("DBUG:FuzzerK:VM:Ctxt:Farg2Real:FArg:{:?}:{}:not in fargsmapstack", datakind, vname);
             }
             log_d(&format!("DBUG:FuzzerK:VM:Ctxt:FArg2Real:{:?}:{}=>{:?}", datakind, vname, rname.unwrap()));
-            return *rname.unwrap();
+            let rname = rname.unwrap();
+            return (rname.0, rname.1.to_string());
         }
         return (-2, vname.to_string());
     }
