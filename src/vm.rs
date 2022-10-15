@@ -608,15 +608,26 @@ enum Op {
 impl Op {
 
     fn name_args(ins: &str) -> Result<(String, Vec<String>), String> {
-        let parts: Vec<&str> = ins.split_whitespace().collect();
-        if parts.len() == 0 {
-            return Err(format!("NameArgs:name missing {}", ins));
-        }
+        let ins = ins.trim();
+        let n_args = ins.split_once(' ');
         let mut vargs: Vec<String> = Vec::new();
-        for i in 1..parts.len() {
-            vargs.push(parts[i].to_string());
+        if n_args.is_none() {
+            if ins.trim() == "" {
+                return Err(format!("NameArgs:name missing {}", ins));
+            }
+            return Ok((ins.to_string(), vargs));
         }
-        return Ok((parts[0].to_string(), vargs));
+        let n_args = n_args.unwrap();
+        let mut srem = n_args.1.to_string();
+        while srem.len() > 0 {
+            let tokplus = datautils::next_token(&srem).unwrap();
+            if tokplus.0.len() == 0 {
+                break;
+            }
+            vargs.push(tokplus.0);
+            srem = tokplus.1;
+        }
+        return Ok((n_args.0.to_string(), vargs));
     }
 
     fn opcompile_opdatatype_autoinfer_ifreqd(sop: &str, ctxt: &Context, srcdm: &DataM, smsg: &str) -> char {
