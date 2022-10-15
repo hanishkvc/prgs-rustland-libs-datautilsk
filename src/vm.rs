@@ -851,7 +851,7 @@ impl Op {
         return dtype;
     }
 
-    fn run(&self, ctxt: &mut Context) {
+    fn run(&self, ctxt: &mut Context, linenum: u32) {
         match self {
             Self::Nop => (),
 
@@ -954,10 +954,10 @@ impl Op {
                         // that might not yet have been defined at the point where goto or rather the If condition is encountered.
                         // Especially when only a single pass parsing of the program is done.
                         "goto" | "jump" => {
-                            Op::Jump(destname.to_string()).run(ctxt);
+                            Op::Jump(destname.to_string()).run(ctxt, linenum);
                         }
                         "call" => {
-                            Op::Call(destname.to_string(), destargs.clone()).run(ctxt);
+                            Op::Call(destname.to_string(), destargs.clone()).run(ctxt, linenum);
                         }
                         _ => todo!()
                     }
@@ -1260,7 +1260,7 @@ impl VM {
             let theop = &self.ops[self.ctxt.iptr];
             log_d(&format!("INFO:FuzzerK:VM:Op:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
             self.ctxt.iptr_commonupdate = true;
-            theop.0.run(&mut self.ctxt);
+            theop.0.run(&mut self.ctxt, theop.1);
             if self.ctxt.iptr_commonupdate {
                 self.ctxt.iptr += 1;
             }
