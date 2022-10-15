@@ -827,7 +827,11 @@ impl Op {
                     };
                     let autovar = format!("AV_{}_{}", ctxt.compilingline, itok);
                     let avdm = DataM::compile(ctxt, &autovar, "any", &format!("{}:Call:AutoVar:{}", msgtag, autovar));
-                    ctxt.preops.push(Op::LetLocal(odtype, avdm, dm));
+                    if ctxt.bcompilingfunc {
+                        ctxt.preops.push(Op::LetLocal(odtype, avdm, dm));
+                    } else {
+                        ctxt.preops.push(Op::LetGlobal(odtype, avdm, dm));
+                    }
                     vargs.push(autovar);
                 }
                 return Ok(Op::Call(na.0, vargs));
