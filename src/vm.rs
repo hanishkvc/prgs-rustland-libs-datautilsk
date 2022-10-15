@@ -1178,7 +1178,7 @@ impl VM {
     }
 
     pub fn compile(&mut self, ops: Vec<String>) {
-        let mut linenum = -1;
+        let mut linenum = 0;
         for sop in ops {
             linenum += 1;
             let sop = sop.trim();
@@ -1196,6 +1196,7 @@ impl VM {
         }
     }
 
+    #[allow(dead_code)]
     fn test_bruteforce_nexttoken(nl: &str) {
         let mut tl = nl.to_string();
         while tl.len() > 0 {
@@ -1217,7 +1218,7 @@ impl VM {
             log_d(&format!("IN :{}\n", l));
             let nl = datautils::remove_extra_whitespaces(l);
             log_d(&format!("OUT:{}\n", nl));
-            Self::test_bruteforce_nexttoken(&nl);
+            //Self::test_bruteforce_nexttoken(&nl);
             ops.push(nl.to_string());
         }
         self.compile(ops);
