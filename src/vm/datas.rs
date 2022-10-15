@@ -19,7 +19,7 @@ pub enum VDataType {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Variant {
     IntValue(isize),
     StrValue(String),

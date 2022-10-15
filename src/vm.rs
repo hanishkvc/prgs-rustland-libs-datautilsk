@@ -35,6 +35,7 @@ struct Context {
     bcompilingfunc: bool,
     compilingfunc: String,
     compilingline: u32,
+    preops: Vec<Op>,
 }
 
 impl Context {
@@ -54,6 +55,7 @@ impl Context {
             bcompilingfunc: false,
             compilingfunc: String::new(),
             compilingline: 0,
+            preops: Vec::new(),
         }
     }
 }
@@ -217,7 +219,7 @@ impl Context {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum DataKind {
     Variable,
     FuncArg,
@@ -237,7 +239,7 @@ enum DataKind {
 ///     * a local variable OR
 ///     * a global variable.
 ///
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum DataM {
     Value(Variant),
     Variable(DataKind, String),
@@ -508,7 +510,7 @@ impl DataM {
 /// Support a bunch of condition checks
 /// * Uses Lt-Int and Eq-Buf to construct other condition checks
 ///
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum CondOp {
     IfLtInt,
     IfGtInt,
@@ -569,7 +571,7 @@ impl CondOp {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum ALUOP {
     Add,
     Sub,
@@ -579,7 +581,7 @@ enum ALUOP {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Op {
     Nop,
     LetGlobal(char, DataM, DataM),
@@ -804,6 +806,31 @@ impl Op {
             "call" => {
                 let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
                 return Ok(Op::Call(na.0, na.1));
+            }
+            "callx" => {
+                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
+                let mut vargs: Vec<String> = Vec::new();
+                let mut itok = 0;
+                for stok in na.1 {
+                    itok += 1;
+                    let dm = DataM::compile(ctxt, &stok, "any", &format!("{}:Call:Args", msgtag));
+                    if dm.is_variable() {
+                        vargs.push(stok);
+                        continue;
+                    }
+                    let odtype = match dm.get_type(ctxt) {
+                        VDataType::Unknown => todo!(),
+                        VDataType::Integer => 'i',
+                        VDataType::String => 's',
+                        VDataType::Buffer => 'b',
+                        VDataType::Special => 'b',
+                    };
+                    let autovar = format!("AV_{}_{}", ctxt.compilingline, itok);
+                    let avdm = DataM::compile(ctxt, &autovar, "any", &format!("{}:Call:AutoVar:{}", msgtag, autovar));
+                    ctxt.preops.push(Op::LetLocal(odtype, avdm, dm));
+                    vargs.push(autovar);
+                }
+                return Ok(Op::Call(na.0, vargs));
             }
             "ret" => {
                 ctxt.bcompilingfunc = false;
@@ -1257,7 +1284,13 @@ impl VM {
                 self.compile_directive(sop);
                 continue;
             }
+            self.ctxt.preops.clear();
             let op = Op::compile(sop, &mut self.ctxt).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
+            for i in 0..self.ctxt.preops.len() {
+                let opx = self.ctxt.preops[i].clone();
+                log_d(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, opx));
+                self.ops.push((opx, self.ctxt.compilingline));
+            }
             log_d(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
             self.ops.push((op,self.ctxt.compilingline));
         }
