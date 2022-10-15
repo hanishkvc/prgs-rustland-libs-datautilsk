@@ -30,7 +30,7 @@ struct Context {
     iptr_commonupdate: bool,
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
-    fargsmapstack: Vec<HashMap<String, String>>,
+    fargsmapstack: Vec<HashMap<String, (isize, String)>>,
     localsstack: Vec<HashMap<String, Variant>>,
     bcompilingfunc: bool,
     compilingfunc: String,
@@ -133,24 +133,24 @@ impl Context {
         self.globals.insert(vname.to_string(), vvalue);
     }
 
-    pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> String {
+    pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> (isize, String) {
         if let DataKind::FuncArg = datakind {
             let fargs = self.fargsmapstack.last().expect("ERRR:FuzzerK:VM:Ctxt:FArg2Real:Can be called only from run phase");
             let rname = fargs.get(vname);
             if rname.is_none() {
-                return vname.to_string();
+                return (-2, vname.to_string());
             }
-            log_d(&format!("DBUG:FArg2Real:{:?}:{}=>{}", datakind, vname, rname.unwrap()));
-            return rname.unwrap().to_string();
+            log_d(&format!("DBUG:FArg2Real:{:?}:{}=>{:?}", datakind, vname, rname.unwrap()));
+            return *rname.unwrap();
         }
-        return vname.to_string();
+        return (-2, vname.to_string());
     }
 
 }
 
 impl Context {
 
-    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, HashMap<String, String>) {
+    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, HashMap<String, (isize, String)>) {
         let (fptr, fargs) = self.funcs.get(fname).expect(&format!("ERRR:{}:Ctxt:FuncHelper:{}:Missing???", msgtag, fname));
         // Map farg names of the func to be called to actual var names.
         if fargs.len() != passedargs.len() {
