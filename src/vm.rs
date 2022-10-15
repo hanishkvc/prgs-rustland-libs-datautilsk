@@ -34,7 +34,7 @@ struct Context {
     localsstack: Vec<HashMap<String, Variant>>,
     bcompilingfunc: bool,
     compilingfunc: String,
-    compilingline: i32,
+    compilingline: u32,
 }
 
 impl Context {
@@ -53,7 +53,7 @@ impl Context {
             localsstack: Vec::new(),
             bcompilingfunc: false,
             compilingfunc: String::new(),
-            compilingline: -1,
+            compilingline: 0,
         }
     }
 }
@@ -1141,7 +1141,7 @@ impl Op {
 
 pub struct VM {
     ctxt: Context,
-    ops: Vec<Op>,
+    ops: Vec<(Op,u32)>,
 }
 
 impl VM {
@@ -1194,7 +1194,7 @@ impl VM {
             }
             let op = Op::compile(sop, &mut self.ctxt).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
             log_d(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
-            self.ops.push(op);
+            self.ops.push((op,self.ctxt.compilingline));
         }
     }
 
@@ -1258,9 +1258,9 @@ impl VM {
                 break;
             }
             let theop = &self.ops[self.ctxt.iptr];
-            log_d(&format!("INFO:FuzzerK:VM:Op:{}:{:?}", self.ctxt.iptr, theop));
+            log_d(&format!("INFO:FuzzerK:VM:Op:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
             self.ctxt.iptr_commonupdate = true;
-            theop.run(&mut self.ctxt);
+            theop.0.run(&mut self.ctxt);
             if self.ctxt.iptr_commonupdate {
                 self.ctxt.iptr += 1;
             }
