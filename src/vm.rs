@@ -159,6 +159,14 @@ impl Context {
 
 impl Context {
 
+    ///
+    /// Map function arguments to the passed arguments in the call.
+    ///
+    /// Check if the passed arg, is any of the below in this order
+    /// * is it a func arg of the current function
+    /// * is it a local variable of the current function
+    /// * is it a global variable
+    ///
     fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, HashMap<String, (isize, String)>) {
         let (fptr, fargs) = self.funcs.get(fname).expect(&format!("ERRR:{}:Ctxt:FuncHelper:{}:Missing???", msgtag, fname));
         // Map farg names of the func to be called to actual var names.
@@ -166,21 +174,39 @@ impl Context {
             panic!("ERRR:{}:Ctxt:FuncHelper:Num of required and passed args dont match", msgtag);
         }
         let ocurfargsmap = self.fargsmapstack.last();
-        let mut curfargsmap: &HashMap<String, String> = &HashMap::new();
+        let mut curfargsmap: &HashMap<String, (isize, String)> = &HashMap::new();
         if ocurfargsmap.is_some() {
             curfargsmap = ocurfargsmap.unwrap();
         }
-        let mut newfargsmap: HashMap<String, String> = HashMap::new();
+        let mut newfargsmap: HashMap<String, (isize, String)> = HashMap::new();
         for i in 0..passedargs.len() {
             let fargname = &fargs[i];
+            let mut baseloc = -2isize;
             let mut basename= &passedargs[i];
             if ocurfargsmap.is_some() {
-                let obasename = curfargsmap.get(basename);
-                if obasename.is_some() {
-                    basename = obasename.unwrap();
+                let obaseinfo = curfargsmap.get(basename);
+                if obaseinfo.is_some() {
+                    let baseinfo = obaseinfo.unwrap();
+                    baseloc = baseinfo.0;
+                    basename = &baseinfo.1;
                 }
             }
-            newfargsmap.insert(fargname.to_string(), basename.clone());
+            // Not a passed func arg, so setup as local variable, if it is the case
+            if baseloc == -2 {
+                let olvars = self.localsstack.last();
+                if olvars.is_some() {
+                    let lvars = olvars.unwrap();
+                    let olvar = lvars.get(basename);
+                    if olvar.is_some() {
+                        baseloc = (self.localsstack.len() - 1) as isize;
+                    }
+                }
+            }
+            // Not a local var also, so setup as global variable
+            if baseloc == -2 {
+                baseloc = -1;
+            }
+            newfargsmap.insert(fargname.to_string(), (baseloc, basename.to_string()));
         }
         log_d(&format!("DBUG:{}:Ctxt:FuncHelper:{}:{:?}:{:?}", msgtag, fptr, fargs, newfargsmap));
         return (*fptr, newfargsmap);
