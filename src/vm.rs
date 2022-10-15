@@ -251,6 +251,9 @@ impl DataM {
 
     }
 
+    ///
+    /// Check if I am a value variant or not
+    ///
     fn is_value(&self) -> bool {
         match self {
             DataM::Value(_) => true,
@@ -258,6 +261,10 @@ impl DataM {
         }
     }
 
+    ///
+    /// Check if I am a variable variant or not
+    ///
+    #[allow(dead_code)]
     fn is_variable(&self) -> bool {
         match self {
             DataM::Value(_) => false,
