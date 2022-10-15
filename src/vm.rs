@@ -30,7 +30,7 @@ struct Context {
     iptr_commonupdate: bool,
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
-    fargsstack: Vec<HashMap<String, String>>,
+    fargsmapstack: Vec<HashMap<String, String>>,
     localsstack: Vec<HashMap<String, Variant>>,
     bcompilingfunc: bool,
     compilingfunc: String,
@@ -49,7 +49,7 @@ impl Context {
             iptr_commonupdate: true,
             callretstack: Vec::new(),
             funcs: HashMap::new(),
-            fargsstack: Vec::new(),
+            fargsmapstack: Vec::new(),
             localsstack: Vec::new(),
             bcompilingfunc: false,
             compilingfunc: String::new(),
@@ -135,7 +135,7 @@ impl Context {
 
     pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> String {
         if let DataKind::FuncArg = datakind {
-            let fargs = self.fargsstack.last().expect("ERRR:FuzzerK:VM:Ctxt:FArg2Real:Can be called only from run phase");
+            let fargs = self.fargsmapstack.last().expect("ERRR:FuzzerK:VM:Ctxt:FArg2Real:Can be called only from run phase");
             let rname = fargs.get(vname);
             if rname.is_none() {
                 return vname.to_string();
@@ -156,7 +156,7 @@ impl Context {
         if fargs.len() != passedargs.len() {
             panic!("ERRR:{}:Ctxt:FuncHelper:Num of required and passed args dont match", msgtag);
         }
-        let ocurfargsmap = self.fargsstack.last();
+        let ocurfargsmap = self.fargsmapstack.last();
         let mut curfargsmap: &HashMap<String, String> = &HashMap::new();
         if ocurfargsmap.is_some() {
             curfargsmap = ocurfargsmap.unwrap();
@@ -1030,13 +1030,13 @@ impl Op {
                 // Setup the call
                 ctxt.callretstack.push(ctxt.iptr);
                 ctxt.iptr = fptr;
-                ctxt.fargsstack.push(fargsmap);
+                ctxt.fargsmapstack.push(fargsmap);
                 ctxt.localsstack.push(HashMap::new());
                 ctxt.iptr_commonupdate = false;
             }
             Self::Ret => {
                 ctxt.iptr = ctxt.callretstack.pop().expect(&format!("ERRR:{}:Ret:CallRetStack", msgtag));
-                ctxt.fargsstack.pop().expect(&format!("ERRR:{}:Ret:FArgsStack", msgtag));
+                ctxt.fargsmapstack.pop().expect(&format!("ERRR:{}:Ret:FArgsMapStack", msgtag));
                 ctxt.localsstack.pop();
             }
 
