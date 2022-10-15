@@ -811,12 +811,12 @@ impl Op {
                         destname = destdata.to_string();
                         destargs = Vec::new();
                     }
-                    "call" => {
+                    "callvo" => {
                         let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
                         destname = na.0;
                         destargs = na.1;
                     }
-                    "callx" => {
+                    "call" => {
                         let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
                         destname = na.0;
                         destargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:IfCall", msgtag));
@@ -837,11 +837,11 @@ impl Op {
             "jump" | "goto" => {
                 return Ok(Op::Jump(sargs.to_string()));
             }
-            "call" => {
+            "callvo" => {
                 let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
                 return Ok(Op::Call(na.0, na.1));
             }
-            "callx" => {
+            "call" => {
                 let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
                 let vargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:Call", msgtag));
                 return Ok(Op::Call(na.0, vargs));
@@ -1084,7 +1084,7 @@ impl Op {
                         "goto" | "jump" => {
                             Op::Jump(destname.to_string()).run(ctxt, linenum);
                         }
-                        "call" => {
+                        "callvo" | "call" => {
                             Op::Call(destname.to_string(), destargs.clone()).run(ctxt, linenum);
                         }
                         _ => todo!()
