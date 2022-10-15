@@ -34,6 +34,7 @@ struct Context {
     localsstack: Vec<HashMap<String, Variant>>,
     bcompilingfunc: bool,
     compilingfunc: String,
+    compilingline: i32,
 }
 
 impl Context {
@@ -52,6 +53,7 @@ impl Context {
             localsstack: Vec::new(),
             bcompilingfunc: false,
             compilingfunc: String::new(),
+            compilingline: -1,
         }
     }
 }
@@ -567,7 +569,7 @@ impl Op {
     }
 
     fn compile(opplus: &str, ctxt: &mut Context) -> Result<Op, String> {
-        let msgtag = "FuzzerK:VM:Op:Compile";
+        let msgtag = &format!("FuzzerK:VM:Op:Compile:{}:", ctxt.compilingline);
         let sop;
         let sargs;
         let op_and_args= opplus.split_once(' ');
@@ -1178,20 +1180,20 @@ impl VM {
     }
 
     pub fn compile(&mut self, ops: Vec<String>) {
-        let mut linenum = 0;
+        self.ctxt.compilingline = 0;
         for sop in ops {
-            linenum += 1;
+            self.ctxt.compilingline += 1;
             let sop = sop.trim();
             if sop.starts_with("#") || (sop.len() == 0) {
                 continue;
             }
-            log_d(&format!("DBUG:FuzzerK:VM:Compile:Op:{}:{}", linenum, sop));
+            log_d(&format!("DBUG:FuzzerK:VM:Compile:Op:{}:{}", self.ctxt.compilingline, sop));
             if sop.starts_with("!") {
                 self.compile_directive(sop);
                 continue;
             }
             let op = Op::compile(sop, &mut self.ctxt).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
-            log_d(&format!("\tDBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", linenum, op));
+            log_d(&format!("\tDBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
             self.ops.push(op);
         }
     }
