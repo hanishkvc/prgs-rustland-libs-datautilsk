@@ -632,6 +632,35 @@ impl Op {
         return Ok((n_args.0.to_string(), vargs));
     }
 
+    fn compile_literals2autotempvars(ctxt: &mut Context, vargsin: Vec<String>, msgtag: &str) -> Vec<String> {
+        let mut vargs: Vec<String> = Vec::new();
+        let mut itok = 0;
+        for stok in vargsin {
+            itok += 1;
+            let dm = DataM::compile(ctxt, &stok, "any", &format!("{}:Lit2AutoTempVars:Args check +", msgtag));
+            if dm.is_variable() {
+                vargs.push(stok);
+                continue;
+            }
+            let odtype = match dm.get_type(ctxt) {
+                VDataType::Unknown => todo!(),
+                VDataType::Integer => 'i',
+                VDataType::String => 's',
+                VDataType::Buffer => 'b',
+                VDataType::Special => 'b',
+            };
+            let autovar = format!("AV_{}_{}", ctxt.compilingline, itok);
+            let avdm = DataM::compile(ctxt, &autovar, "any", &format!("{}:Lit2AutoTempVars:Auto var:{}", msgtag, autovar));
+            if ctxt.bcompilingfunc {
+                ctxt.preops.push(Op::LetLocal(odtype, avdm, dm));
+            } else {
+                ctxt.preops.push(Op::LetGlobal(odtype, avdm, dm));
+            }
+            vargs.push(autovar);
+        }
+        vargs
+    }
+
     fn opcompile_opdatatype_autoinfer_ifreqd(sop: &str, ctxt: &Context, srcdm: &DataM, smsg: &str) -> char {
         let (_op, tm) = sop.split_once('.').unwrap_or(("DUMMY", "?")); // extract explicit typemarker if any
         let srctype = match tm {
@@ -787,6 +816,11 @@ impl Op {
                         destname = na.0;
                         destargs = na.1;
                     }
+                    "callx" => {
+                        let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
+                        destname = na.0;
+                        destargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:IfCall", msgtag));
+                    }
                     _ => todo!()
                 }
                 return Ok(Op::If(cop, val1dm, val2dm, desttype.to_string(), destname, destargs));
@@ -809,31 +843,7 @@ impl Op {
             }
             "callx" => {
                 let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
-                let mut vargs: Vec<String> = Vec::new();
-                let mut itok = 0;
-                for stok in na.1 {
-                    itok += 1;
-                    let dm = DataM::compile(ctxt, &stok, "any", &format!("{}:Call:Args", msgtag));
-                    if dm.is_variable() {
-                        vargs.push(stok);
-                        continue;
-                    }
-                    let odtype = match dm.get_type(ctxt) {
-                        VDataType::Unknown => todo!(),
-                        VDataType::Integer => 'i',
-                        VDataType::String => 's',
-                        VDataType::Buffer => 'b',
-                        VDataType::Special => 'b',
-                    };
-                    let autovar = format!("AV_{}_{}", ctxt.compilingline, itok);
-                    let avdm = DataM::compile(ctxt, &autovar, "any", &format!("{}:Call:AutoVar:{}", msgtag, autovar));
-                    if ctxt.bcompilingfunc {
-                        ctxt.preops.push(Op::LetLocal(odtype, avdm, dm));
-                    } else {
-                        ctxt.preops.push(Op::LetGlobal(odtype, avdm, dm));
-                    }
-                    vargs.push(autovar);
-                }
+                let vargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:Call", msgtag));
                 return Ok(Op::Call(na.0, vargs));
             }
             "ret" => {
