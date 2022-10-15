@@ -150,30 +150,31 @@ impl Context {
 
 impl Context {
 
-    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, Vec<String>, HashMap<String, String>) {
-        let func = self.funcs.get(fname).expect(&format!("ERRR:{}:Ctxt:FuncHelper:{}:Missing???", msgtag, fname));
+    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, HashMap<String, String>) {
+        let (fptr, fargs) = self.funcs.get(fname).expect(&format!("ERRR:{}:Ctxt:FuncHelper:{}:Missing???", msgtag, fname));
         // Map farg names of the func to be called to actual var names.
-        if func.1.len() != passedargs.len() {
-            panic!("ERRR:{}:Num of required and passed args dont match", msgtag);
+        if fargs.len() != passedargs.len() {
+            panic!("ERRR:{}:Ctxt:FuncHelper:Num of required and passed args dont match", msgtag);
         }
-        let ocurfargs = self.fargsstack.last();
-        let mut curfargs: &HashMap<String, String> = &HashMap::new();
-        if ocurfargs.is_some() {
-            curfargs = ocurfargs.unwrap();
+        let ocurfargsmap = self.fargsstack.last();
+        let mut curfargsmap: &HashMap<String, String> = &HashMap::new();
+        if ocurfargsmap.is_some() {
+            curfargsmap = ocurfargsmap.unwrap();
         }
-        let mut newfargs: HashMap<String, String> = HashMap::new();
+        let mut newfargsmap: HashMap<String, String> = HashMap::new();
         for i in 0..passedargs.len() {
-            let fargname = &func.1[i];
+            let fargname = &fargs[i];
             let mut basename= &passedargs[i];
-            if ocurfargs.is_some() {
-                let obasename = curfargs.get(basename);
+            if ocurfargsmap.is_some() {
+                let obasename = curfargsmap.get(basename);
                 if obasename.is_some() {
                     basename = obasename.unwrap();
                 }
             }
-            newfargs.insert(fargname.to_string(), basename.clone());
+            newfargsmap.insert(fargname.to_string(), basename.clone());
         }
-        return (func.0, func.1.clone(), newfargs);
+        log_d(&format!("DBUG:{}:Ctxt:FuncHelper:{}:{:?}:{:?}", msgtag, fptr, fargs, newfargsmap));
+        return (*fptr, newfargsmap);
     }
 
 }
@@ -1024,12 +1025,11 @@ impl Op {
                     //log_d(&format!("DBUG:{}:Jump:{}:{}", msgtag, label, ctxt.iptr));
                 }
             }
-            Self::Call(label, passedargs) => {
-                let (fptr, fargs, fargsmap) = ctxt.func_helper(label, passedargs, msgtag);
+            Self::Call(fname, passedargs) => {
+                let (fptr, fargsmap) = ctxt.func_helper(fname, passedargs, &format!("{}:Call:{}", msgtag, fname));
                 // Setup the call
                 ctxt.callretstack.push(ctxt.iptr);
                 ctxt.iptr = fptr;
-                log_d(&format!("DBUG:{}:Call:{}:{}:{:?}:{:?}", msgtag, label, ctxt.iptr, fargs, fargsmap));
                 ctxt.fargsstack.push(fargsmap);
                 ctxt.localsstack.push(HashMap::new());
                 ctxt.iptr_commonupdate = false;
