@@ -933,19 +933,19 @@ impl Op {
                 ctxt.iobs.remove(ioid);
             }
             Self::SleepMSec(msecdm) => {
-                let msec = msecdm.get_usize(ctxt, &format!("FuzzerK:VM:Op:SleepMSec:Value:{:?}", msecdm));
+                let msec = msecdm.get_usize(ctxt, &format!("{}:SleepMSec:Value:{:?}", msgtag, msecdm));
                 thread::sleep(Duration::from_millis(msec as u64));
             }
             Self::FcGet(fcid, vid) => {
-                let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:FuzzerK:VM:Op:FcGet:UnknownFC???:{}", fcid));
+                let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:{}:FcGet:UnknownFC???:{}", msgtag, fcid));
                 let gotfuzz = fci.get(ctxt.stepu);
                 log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
-                vid.set_bufvu8(ctxt, gotfuzz, &format!("FuzzerK:VM:Op:FcGet:SetDest:{:?}", vid));
+                vid.set_bufvu8(ctxt, gotfuzz, &format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
                 ctxt.stepu += 1;
             }
             Self::If(cop, val1dm, val2dm, sop , destname, destargs) => {
                 let mut opdo = false;
-                //log_d(&format!("DBUG:FuzzerK:VM:Op:IfLt:{},{},{},{}", val1, val2, sop, oparg));
+                //log_d(&format!("DBUG:{}:IfLt:{},{},{},{}", msgtag, val1, val2, sop, oparg));
                 if cop.check(ctxt, val1dm, val2dm) {
                     opdo = true;
                 }
@@ -965,8 +965,8 @@ impl Op {
                 }
             }
             Self::CheckJump(arg1, arg2, ltlabel, eqlabel, gtlabel) => {
-                let varg1 = arg1.get_isize(ctxt, &format!("FuzzerK:VM:Op:CheckJump:GetArg1:{:?}", arg1));
-                let varg2 = arg2.get_isize(ctxt, &format!("FuzzerK:VM:Op:CheckJump:GetArg2:{:?}", arg2));
+                let varg1 = arg1.get_isize(ctxt, &format!("{}:CheckJump:GetArg1:{:?}", msgtag, arg1));
+                let varg2 = arg2.get_isize(ctxt, &format!("{}:CheckJump:GetArg2:{:?}", msgtag, arg2));
                 let label;
                 if varg1 < varg2 {
                     label = ltlabel;
@@ -976,22 +976,22 @@ impl Op {
                     label = gtlabel;
                 }
                 if label != "__NEXT__" {
-                    ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:CheckJump:Label:{}", label));
+                    ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:{}:CheckJump:Label:{}", msgtag, label));
                     ctxt.iptr_commonupdate = false;
                 }
             }
             Self::Jump(label) => {
                 if label != "__NEXT__" {
-                    ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Jump:Label:{}", label));
+                    ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:{}:Jump:Label:{}", msgtag, label));
                     ctxt.iptr_commonupdate = false;
-                    //log_d(&format!("DBUG:FuzzerK:VM:Op:Jump:{}:{}", label, ctxt.iptr));
+                    //log_d(&format!("DBUG:{}:Jump:{}:{}", msgtag, label, ctxt.iptr));
                 }
             }
             Self::Call(label, passedargs) => {
-                let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:FuzzerK:VM:Op:Call:Func:{}:Missing???", label));
+                let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:{}:Call:Func:{}:Missing???", msgtag, label));
                 // Map farg names of the func to be called to actual var names.
                 if funcs.1.len() != passedargs.len() {
-                    panic!("ERRR:FuzzerK:VM:Op:Call:Num of required and passed args dont match")
+                    panic!("ERRR:{}:Call:Num of required and passed args dont match", msgtag);
                 }
                 let ocurfargs = ctxt.fargsstack.last();
                 let mut curfargs: &HashMap<String, String> = &HashMap::new();
@@ -1013,22 +1013,22 @@ impl Op {
                 // Setup the call
                 ctxt.callretstack.push(ctxt.iptr);
                 ctxt.iptr = funcs.0;
-                log_d(&format!("DBUG:FuzzerK:VM:Op:Call:{}:{}:{:?}:{:?}", label, ctxt.iptr, funcs.1, newfargs));
+                log_d(&format!("DBUG:{}:Call:{}:{}:{:?}:{:?}", msgtag, label, ctxt.iptr, funcs.1, newfargs));
                 ctxt.fargsstack.push(newfargs);
                 ctxt.localsstack.push(HashMap::new());
                 ctxt.iptr_commonupdate = false;
             }
             Self::Ret => {
-                ctxt.iptr = ctxt.callretstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:CallRetStack");
-                ctxt.fargsstack.pop().expect("ERRR:FuzzerK:VM:Op:Ret:FArgsStack");
+                ctxt.iptr = ctxt.callretstack.pop().expect(&format!("ERRR:{}:Ret:CallRetStack", msgtag));
+                ctxt.fargsstack.pop().expect(&format!("ERRR:{}:Ret:FArgsStack", msgtag));
                 ctxt.localsstack.pop();
             }
 
             Self::BufNew(bufid, dmbufsize) => {
                 let mut buf = Vec::<u8>::new();
-                let bufsize = dmbufsize.get_usize(ctxt, "FuzzerK:VM:Op:BufNew:BufSize");
+                let bufsize = dmbufsize.get_usize(ctxt, &format!("{}:BufNew:BufSize", msgtag));
                 buf.resize(bufsize, 0);
-                bufid.set_bufvu8(ctxt, buf, &format!("FuzzerK:VM:Op:BufNew:{:?}", bufid));
+                bufid.set_bufvu8(ctxt, buf, &format!("{}:BufNew:{:?}", msgtag, bufid));
             }
             Self::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval) => {
                 let b8rmsg = "FuzzerK:VM:Op:Buf8Randomize";
