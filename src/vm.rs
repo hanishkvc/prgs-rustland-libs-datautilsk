@@ -148,6 +148,36 @@ impl Context {
 
 }
 
+impl Context {
+
+    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, Vec<String>, HashMap<String, String>) {
+        let func = self.funcs.get(fname).expect(&format!("ERRR:{}:Ctxt:FuncHelper:{}:Missing???", msgtag, fname));
+        // Map farg names of the func to be called to actual var names.
+        if func.1.len() != passedargs.len() {
+            panic!("ERRR:{}:Num of required and passed args dont match", msgtag);
+        }
+        let ocurfargs = self.fargsstack.last();
+        let mut curfargs: &HashMap<String, String> = &HashMap::new();
+        if ocurfargs.is_some() {
+            curfargs = ocurfargs.unwrap();
+        }
+        let mut newfargs: HashMap<String, String> = HashMap::new();
+        for i in 0..passedargs.len() {
+            let fargname = &func.1[i];
+            let mut basename= &passedargs[i];
+            if ocurfargs.is_some() {
+                let obasename = curfargs.get(basename);
+                if obasename.is_some() {
+                    basename = obasename.unwrap();
+                }
+            }
+            newfargs.insert(fargname.to_string(), basename.clone());
+        }
+        return (func.0, func.1.clone(), newfargs);
+    }
+
+}
+
 
 #[derive(Debug, PartialEq)]
 enum DataKind {
@@ -995,33 +1025,12 @@ impl Op {
                 }
             }
             Self::Call(label, passedargs) => {
-                let funcs = ctxt.funcs.get(label).expect(&format!("ERRR:{}:Call:Func:{}:Missing???", msgtag, label));
-                // Map farg names of the func to be called to actual var names.
-                if funcs.1.len() != passedargs.len() {
-                    panic!("ERRR:{}:Call:Num of required and passed args dont match", msgtag);
-                }
-                let ocurfargs = ctxt.fargsstack.last();
-                let mut curfargs: &HashMap<String, String> = &HashMap::new();
-                if ocurfargs.is_some() {
-                    curfargs = ocurfargs.unwrap();
-                }
-                let mut newfargs: HashMap<String, String> = HashMap::new();
-                for i in 0..passedargs.len() {
-                    let fargname = &funcs.1[i];
-                    let mut basename= &passedargs[i];
-                    if ocurfargs.is_some() {
-                        let obasename = curfargs.get(basename);
-                        if obasename.is_some() {
-                            basename = obasename.unwrap();
-                        }
-                    }
-                    newfargs.insert(fargname.to_string(), basename.clone());
-                }
+                let (fptr, fargs, fargsmap) = ctxt.func_helper(label, passedargs, msgtag);
                 // Setup the call
                 ctxt.callretstack.push(ctxt.iptr);
-                ctxt.iptr = funcs.0;
-                log_d(&format!("DBUG:{}:Call:{}:{}:{:?}:{:?}", msgtag, label, ctxt.iptr, funcs.1, newfargs));
-                ctxt.fargsstack.push(newfargs);
+                ctxt.iptr = fptr;
+                log_d(&format!("DBUG:{}:Call:{}:{}:{:?}:{:?}", msgtag, label, ctxt.iptr, fargs, fargsmap));
+                ctxt.fargsstack.push(fargsmap);
                 ctxt.localsstack.push(HashMap::new());
                 ctxt.iptr_commonupdate = false;
             }
