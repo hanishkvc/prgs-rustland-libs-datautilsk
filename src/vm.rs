@@ -6,8 +6,10 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::process;
 use std::thread;
 use std::time::Duration;
+use std::panic;
 
 use loggerk::{log_w, log_e, log_d};
 use rand::Rng;
@@ -1453,7 +1455,14 @@ impl VM {
             let theop = &self.ops[self.ctxt.iptr];
             log_d(&format!("INFO:FuzzerK:VM:Op:ToRun:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
             self.ctxt.iptr_commonupdate = true;
-            theop.0.run(&mut self.ctxt, theop.1);
+            let rt = panic::catch_unwind(panic::AssertUnwindSafe(||{
+                theop.0.run(&mut self.ctxt, theop.1);
+            }));
+            if rt.is_err() {
+                let err = rt.unwrap_err();
+                print!("Paniced:{:?}", err);
+                process::exit(-12);
+            }
             if self.ctxt.iptr_commonupdate {
                 self.ctxt.iptr += 1;
             }
