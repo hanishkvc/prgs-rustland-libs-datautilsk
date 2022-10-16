@@ -1463,7 +1463,8 @@ impl VM {
             if rt.is_err() {
                 for i in (0..self.ctxt.callretstack.len()).rev() {
                     let iptr = self.ctxt.callretstack[i];
-                    println!("{}:{}:{:?}", i, iptr, self.ops[iptr]);
+                    let fargsmap = &self.ctxt.fargsmapstack[i];
+                    println!("{}:{}:{:?}:{:?}", i, iptr, self.ops[iptr], fargsmap);
                 }
                 process::exit(-12);
             }
