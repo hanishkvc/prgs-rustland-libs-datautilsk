@@ -609,13 +609,23 @@ enum AluAOP {
 
 
 #[derive(Debug, Clone)]
+enum AluLOP {
+    And,
+    Or,
+    Not,
+    Xor,
+}
+
+
+#[derive(Debug, Clone)]
 enum Op {
     Nop,
     LetGlobal(char, DataM, DataM),
     LetLocal(char, DataM, DataM),
     Inc(DataM),
     Dec(DataM),
-    Alu(AluAOP, DataM, DataM, DataM),
+    AluArith(AluAOP, DataM, DataM, DataM),
+    AluLogical(AluLOP, DataM, DataM, DataM),
     IobNew(String, String, HashMap<String, String>),
     IobWrite(String, DataM),
     IobFlush(String),
@@ -774,7 +784,21 @@ impl Op {
                 let dmdst = DataM::compile(ctxt, args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
                 let dmsrc1 = DataM::compile(ctxt, args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
                 let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
-                return Ok(Op::Alu(aluop, dmdst, dmsrc1, dmsrc2));
+                return Ok(Op::AluArith(aluop, dmdst, dmsrc1, dmsrc2));
+            }
+            "and" | "or" | "not" | "xor" => {
+                let aluop = match sop {
+                    "and" => AluLOP::And,
+                    "or" => AluLOP::Or,
+                    "not" => AluLOP::Not,
+                    "xor" => AluLOP::Xor,
+                    _ => todo!(),
+                };
+                let args: Vec<&str> = sargs.split_whitespace().collect();
+                let dmdst = DataM::compile(ctxt, args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
+                let dmsrc1 = DataM::compile(ctxt, args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
+                let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
+                return Ok(Op::AluLogical(aluop, dmdst, dmsrc1, dmsrc2));
             }
 
             "iobnew" => {
@@ -1030,9 +1054,9 @@ impl Op {
                 val -= 1;
                 vid.set_isize(ctxt, val, &format!("{}:Dec:{:?}", msgtag, vid));
             },
-            Self::Alu(aluop, destvid, dmsrc1, dmsrc2) => {
-                let src1 = dmsrc1.get_isize(ctxt, &format!("{}:Alu:Src1", msgtag));
-                let src2 = dmsrc2.get_isize(ctxt, &format!("{}:Alu:Src2", msgtag));
+            Self::AluArith(aluop, destvid, dmsrc1, dmsrc2) => {
+                let src1 = dmsrc1.get_isize(ctxt, &format!("{}:AluA:Src1", msgtag));
+                let src2 = dmsrc2.get_isize(ctxt, &format!("{}:AluA:Src2", msgtag));
                 let res = match aluop {
                     AluAOP::Add => src1 + src2,
                     AluAOP::Sub => src1 - src2,
@@ -1040,7 +1064,22 @@ impl Op {
                     AluAOP::Div => src1 / src2,
                     AluAOP::Mod => src1 % src2,
                 };
-                destvid.set_isize(ctxt, res, &format!("{}:Alu:{:?}:{:?}", msgtag, aluop, destvid));
+                destvid.set_isize(ctxt, res, &format!("{}:AluA:{:?}:{:?}", msgtag, aluop, destvid));
+            },
+            Self::AluLogical(aluop, destvid, dmsrc1, dmsrc2) => {
+                let src1 = dmsrc1.get_bufvu8(ctxt, &format!("{}:AluL:Src1", msgtag));
+                let src2 = dmsrc2.get_bufvu8(ctxt, &format!("{}:AluL:Src2", msgtag));
+                let mut vres = Vec::new();
+                for i in 0..src1.len() {
+                    let res = match aluop {
+                        AluLOP::And => src1[i] & src2[i],
+                        AluLOP::Or => src1[i] | src2[i],
+                        AluLOP::Not => !src1[i],
+                        AluLOP::Xor => src1[i] ^ src2[i],
+                    };
+                    vres.push(res);
+                }
+                destvid.set_bufvu8(ctxt, vres, &format!("{}:AluL:{:?}:{:?}", msgtag, aluop, destvid));
             },
 
             Self::IobNew(ioid, ioaddr, ioargs) => {
