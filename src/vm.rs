@@ -79,8 +79,15 @@ impl Context {
 
 impl Context {
 
+    ///
+    /// Check if the passed variable name belongs to the current local stack (ie current func's local variable)
+    ///
     pub fn var_islocal(&self, vname: &str) -> bool {
-        let locals = self.localsstack.last().unwrap();
+        let locals = self.localsstack.last();
+        if locals.is_none() {
+            return false;
+        }
+        let locals = locals.unwrap();
         if locals.contains_key(vname) {
             return true;
         }
@@ -248,7 +255,7 @@ enum DataKind {
 
 ///
 /// NOTE: The program logic currently implements a simple one pass compilation, which inturn
-/// only does a partial/quasi ahead of time compilation.
+/// only does a partial/quasi ahead of time (AOT) compilation.
 ///
 /// As a part and result of this mechanism, the DataM::compile
 /// * identifies the type of literal value and inturn creates a appropriate variant entity
@@ -653,7 +660,9 @@ impl Op {
     }
 
     ///
-    /// Literal values, if any found, will be assigned to automatically created temp variables.
+    /// Literal values, if any found, will be assigned to automatically created temp variables,
+    /// Generates letglobal or letlocal instructions and pushes them to space provided in Context
+    /// to allow these to be integrated/inserted into compiled code that will be run by the VM.
     ///
     /// Uses local variables space of the current function, if inside a func. Else use global space.
     ///
