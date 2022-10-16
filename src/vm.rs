@@ -25,6 +25,7 @@ use datas::{Variant, VDataType};
 ///
 #[derive(Debug, PartialEq, Clone)]
 enum VarSpace {
+    /// A entity that could be either in Global or Local++ variable spaces
     Either,
     Global,
     Local(usize),
@@ -35,17 +36,22 @@ struct Context {
     globals: HashMap<String, Variant>,
     iobs: HashMap<String, IOBridge>,
     lbls: HashMap<String, usize>,
+    /// Used for FuzzChain logic
     stepu: usize,
     fcrtm: RunTimeManager,
     iptr: usize,
     iptr_commonupdate: bool,
+    // Funcs related
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
     fargsmapstack: Vec<HashMap<String, (VarSpace, String)>>,
     localsstack: Vec<HashMap<String, Variant>>,
+    // Compilation time related
     bcompilingfunc: bool,
     compilingfunc: String,
     compilingline: u32,
+    /// During compilation of Ops, if any op wants to add
+    /// auto generated instructions/ops, before itself.
     preops: Vec<Op>,
 }
 
