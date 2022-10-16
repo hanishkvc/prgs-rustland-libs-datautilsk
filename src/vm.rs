@@ -9,8 +9,7 @@ use std::fs;
 use std::thread;
 use std::time::Duration;
 
-use loggerk::log_w;
-use loggerk::{log_e, log_d};
+use loggerk::{log_w, log_e, log_d};
 use rand::Rng;
 use crate::datautils;
 use crate::iob::IOBridge;
@@ -24,11 +23,11 @@ use datas::{Variant, VDataType};
 ///
 /// Specify / Identify as to where a given variable is alloted internally.
 ///
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 enum VarSpace {
     Either,
     Global,
-    Local(isize),
+    Local(usize),
 }
 
 
@@ -102,9 +101,9 @@ impl Context {
         let (vnameindex, vname) = self.var_farg2real_ifreqd(datakind, vname);
 
         let ovhm = match vnameindex {
-            -2 => self.localsstack.last(),
-            -1 => Some(&self.globals),
-            0.. => Some(&self.localsstack[vnameindex as usize]),
+            VarSpace::Either => self.localsstack.last(),
+            VarSpace::Global => Some(&self.globals),
+            VarSpace::Local(localindex) => Some(&self.localsstack[localindex]),
             _ => todo!(),
         };
         if ovhm.is_some() {
@@ -114,7 +113,8 @@ impl Context {
                 return vval;
             }
         }
-        if vnameindex == -2 {
+        // Either checked for in local space and not found, so check in global space
+        if vnameindex == VarSpace::Either {
             let vval = self.globals.get(&vname);
             if vval.is_some() {
                 return vval;
@@ -167,7 +167,7 @@ impl Context {
             }
             log_d(&format!("DBUG:FuzzerK:VM:Ctxt:FArg2Real:{:?}:{}=>{:?}", datakind, vname, rname.unwrap()));
             let rname = rname.unwrap();
-            return (rname.0, rname.1.to_string());
+            return (rname.0.clone(), rname.1.to_string());
         }
         return (VarSpace::Either, vname.to_string());
     }
@@ -184,44 +184,46 @@ impl Context {
     /// * is it a local variable of the current function
     /// * is it a global variable
     ///
-    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, HashMap<String, (isize, String)>) {
+    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, HashMap<String, (VarSpace, String)>) {
         let (fptr, fargs) = self.funcs.get(fname).expect(&format!("ERRR:{}:Ctxt:FuncHelper:{}:Missing???", msgtag, fname));
         // Map farg names of the func to be called to actual var names.
         if fargs.len() != passedargs.len() {
             panic!("ERRR:{}:Ctxt:FuncHelper:Num of required and passed args dont match", msgtag);
         }
         let ocurfargsmap = self.fargsmapstack.last();
-        let mut curfargsmap: &HashMap<String, (isize, String)> = &HashMap::new();
+        let mut curfargsmap: &HashMap<String, (VarSpace, String)> = &HashMap::new();
         if ocurfargsmap.is_some() {
             curfargsmap = ocurfargsmap.unwrap();
         }
-        let mut newfargsmap: HashMap<String, (isize, String)> = HashMap::new();
+        let mut newfargsmap: HashMap<String, (VarSpace, String)> = HashMap::new();
         for i in 0..passedargs.len() {
             let fargname = &fargs[i];
-            let mut baseloc = -2isize;
+            let mut baseloc = VarSpace::Either;
             let mut basename= &passedargs[i];
             if ocurfargsmap.is_some() {
                 let obaseinfo = curfargsmap.get(basename);
                 if obaseinfo.is_some() {
                     let baseinfo = obaseinfo.unwrap();
-                    baseloc = baseinfo.0;
+                    baseloc = baseinfo.0.clone();
                     basename = &baseinfo.1;
                 }
             }
-            // Not a passed func arg, so setup as local variable, if it is the case
-            if baseloc == -2 {
+            // Not a passed func arg, so not yet resolved wrt its true location
+            // so cross check if it is a local variable
+            if baseloc == VarSpace::Either {
                 let olvars = self.localsstack.last();
                 if olvars.is_some() {
                     let lvars = olvars.unwrap();
                     let olvar = lvars.get(basename);
                     if olvar.is_some() {
-                        baseloc = (self.localsstack.len() - 1) as isize;
+                        baseloc = VarSpace::Local(self.localsstack.len() - 1);
                     }
                 }
             }
-            // Not a local var also, so setup as global variable
-            if baseloc == -2 {
-                baseloc = -1;
+            // Not in local var space also
+            // so setup as global variable
+            if baseloc == VarSpace::Either {
+                baseloc = VarSpace::Global;
             }
             newfargsmap.insert(fargname.to_string(), (baseloc, basename.to_string()));
         }
