@@ -608,7 +608,7 @@ enum AluAOP {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 enum AluLOP {
     And,
     Or,
@@ -797,7 +797,12 @@ impl Op {
                 let args: Vec<&str> = sargs.split_whitespace().collect();
                 let dmdst = DataM::compile(ctxt, args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
                 let dmsrc1 = DataM::compile(ctxt, args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
-                let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
+                let dmsrc2;
+                if aluop != AluLOP::Not {
+                    dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
+                } else {
+                    dmsrc2 = dmsrc1.clone();
+                }
                 return Ok(Op::AluLogical(aluop, dmdst, dmsrc1, dmsrc2));
             }
 
