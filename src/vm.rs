@@ -98,13 +98,12 @@ impl Context {
     /// * if the name corresponds to a global variable
     ///
     pub fn var_get(&self, datakind: &DataKind, vname: &str) -> Option<&Variant> {
-        let (vnameindex, vname) = self.var_farg2real_ifreqd(datakind, vname);
+        let (vnamespace, vname) = self.var_farg2real_ifreqd(datakind, vname);
 
-        let ovhm = match vnameindex {
+        let ovhm = match vnamespace {
             VarSpace::Either => self.localsstack.last(),
             VarSpace::Global => Some(&self.globals),
             VarSpace::Local(localindex) => Some(&self.localsstack[localindex]),
-            _ => todo!(),
         };
         if ovhm.is_some() {
             let vhm = ovhm.unwrap();
@@ -114,7 +113,7 @@ impl Context {
             }
         }
         // Either checked for in local space and not found, so check in global space
-        if vnameindex == VarSpace::Either {
+        if vnamespace == VarSpace::Either {
             let vval = self.globals.get(&vname);
             if vval.is_some() {
                 return vval;
