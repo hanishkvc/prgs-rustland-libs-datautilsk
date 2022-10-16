@@ -599,7 +599,7 @@ impl CondOp {
 
 
 #[derive(Debug, Clone)]
-enum ALUOP {
+enum AluAOP {
     Add,
     Sub,
     Mult,
@@ -615,7 +615,7 @@ enum Op {
     LetLocal(char, DataM, DataM),
     Inc(DataM),
     Dec(DataM),
-    Alu(ALUOP, DataM, DataM, DataM),
+    Alu(AluAOP, DataM, DataM, DataM),
     IobNew(String, String, HashMap<String, String>),
     IobWrite(String, DataM),
     IobFlush(String),
@@ -763,11 +763,11 @@ impl Op {
             }
             "add" | "sub" | "mult" | "div" | "mod" => {
                 let aluop = match sop {
-                    "add" => ALUOP::Add,
-                    "sub" => ALUOP::Sub,
-                    "mult" => ALUOP::Mult,
-                    "div" => ALUOP::Div,
-                    "mod" => ALUOP::Mod,
+                    "add" => AluAOP::Add,
+                    "sub" => AluAOP::Sub,
+                    "mult" => AluAOP::Mult,
+                    "div" => AluAOP::Div,
+                    "mod" => AluAOP::Mod,
                     _ => todo!(),
                 };
                 let args: Vec<&str> = sargs.split_whitespace().collect();
@@ -1034,11 +1034,11 @@ impl Op {
                 let src1 = dmsrc1.get_isize(ctxt, &format!("{}:Alu:Src1", msgtag));
                 let src2 = dmsrc2.get_isize(ctxt, &format!("{}:Alu:Src2", msgtag));
                 let res = match aluop {
-                    ALUOP::Add => src1 + src2,
-                    ALUOP::Sub => src1 - src2,
-                    ALUOP::Mult => src1 * src2,
-                    ALUOP::Div => src1 / src2,
-                    ALUOP::Mod => src1 % src2,
+                    AluAOP::Add => src1 + src2,
+                    AluAOP::Sub => src1 - src2,
+                    AluAOP::Mult => src1 * src2,
+                    AluAOP::Div => src1 / src2,
+                    AluAOP::Mod => src1 % src2,
                 };
                 destvid.set_isize(ctxt, res, &format!("{}:Alu:{:?}:{:?}", msgtag, aluop, destvid));
             },
