@@ -20,6 +20,18 @@ use crate::cfgfiles;
 mod datas;
 use datas::{Variant, VDataType};
 
+
+///
+/// Specify / Identify as to where a given variable is alloted internally.
+///
+#[derive(Debug)]
+enum VarSpace {
+    Either,
+    Global,
+    Local(isize),
+}
+
+
 struct Context {
     globals: HashMap<String, Variant>,
     iobs: HashMap<String, IOBridge>,
@@ -30,7 +42,7 @@ struct Context {
     iptr_commonupdate: bool,
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
-    fargsmapstack: Vec<HashMap<String, (isize, String)>>,
+    fargsmapstack: Vec<HashMap<String, (VarSpace, String)>>,
     localsstack: Vec<HashMap<String, Variant>>,
     bcompilingfunc: bool,
     compilingfunc: String,
@@ -140,12 +152,13 @@ impl Context {
     }
 
     ///
-    /// The returned isize could be
-    /// -2   => if the passed name is not a func arg
-    /// -1   => if the func arg maps to a global var
-    /// >= 0 => if the func arg maps to a local var (then the stack function index)
+    /// Returns the location and real name assoiciated with passed variable name
+    /// If the passed vname corresponds to a func arg, then
+    /// * it will get mapped to its underlying actual variable name
+    /// * and the location/variable space where it can be found.
+    ///   * for local variable it includes the stack index wrt the multiple local var spaces in the stack.
     ///
-    pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> (isize, String) {
+    pub fn var_farg2real_ifreqd(&self, datakind: &DataKind, vname: &str) -> (VarSpace, String) {
         if let DataKind::FuncArg = datakind {
             let fargs = self.fargsmapstack.last().expect("ERRR:FuzzerK:VM:Ctxt:FArg2Real:Can be called only from run phase");
             let rname = fargs.get(vname);
@@ -156,7 +169,7 @@ impl Context {
             let rname = rname.unwrap();
             return (rname.0, rname.1.to_string());
         }
-        return (-2, vname.to_string());
+        return (VarSpace::Either, vname.to_string());
     }
 
 }
