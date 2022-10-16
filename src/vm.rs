@@ -44,6 +44,8 @@ struct Context {
     iptr: usize,
     iptr_commonupdate: bool,
     // Funcs related
+    /// This maintains the address of the call op and not next instruction bcas
+    /// the vm auto increments the instruction pointer, and the same is used wrt ret also.
     callretstack: Vec<usize>,
     funcs: HashMap<String, (usize, Vec<String>)>,
     fargsmapstack: Vec<HashMap<String, (VarSpace, String)>>,
@@ -1459,8 +1461,10 @@ impl VM {
                 theop.0.run(&mut self.ctxt, theop.1);
             }));
             if rt.is_err() {
-                let err = rt.unwrap_err();
-                print!("Paniced:{:?}", err);
+                for i in (0..self.ctxt.callretstack.len()).rev() {
+                    let iptr = self.ctxt.callretstack[i];
+                    println!("{}:{}:{:?}", i, iptr, self.ops[iptr]);
+                }
                 process::exit(-12);
             }
             if self.ctxt.iptr_commonupdate {
