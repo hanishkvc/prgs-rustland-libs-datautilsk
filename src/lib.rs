@@ -19,6 +19,12 @@ trait Fuzz {
     /// Generate the next fuzzed output and append to the passed buf
     /// The fuzzer cant/doesnt update itself in this case.
     fn append_fuzzed_immut(&self, step: usize, buf: &mut Vec<u8>);
+
+    /// Fuzzer can override this to indicate that it needs a mutable reference
+    /// to itself, when fuzz chain will call its append_fuzzed
+    fn need_mutable(&self) -> bool {
+        false
+    }
 }
 
 mod fixed;
@@ -63,9 +69,15 @@ impl FuzzChain {
     fn get(&mut self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         for fuzzer in &mut self.chain {
-            let mut mfuzzer = fuzzer.borrow_mut();
-            mfuzzer.append_fuzzed(self.step, &mut buf);
-            drop(mfuzzer);
+            let imfuzzer = fuzzer.borrow();
+            if imfuzzer.need_mutable() {
+                let mut mfuzzer = fuzzer.borrow_mut();
+                mfuzzer.append_fuzzed(self.step, &mut buf);
+                drop(mfuzzer);
+            } else {
+                imfuzzer.append_fuzzed_immut(self.step, &mut buf);
+            }
+            drop(imfuzzer);
         }
         self.step += 1;
         buf
@@ -202,7 +214,7 @@ mod tests {
         fc1.append(rspacesf1);
         fc1.append(rfpf.clone());
         fc1.append(rspacesf2);
-        fc1.append(rfpf);
+        fc1.append(rfpf); // The same fuzzer instance can be chained multiple times, if data pattern reqd dictates it.
         fc1.append(rfpf2);
         for i in 0..8 {
             let fuzzed = fc1.get();
