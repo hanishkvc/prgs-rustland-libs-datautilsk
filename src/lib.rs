@@ -5,6 +5,7 @@
 //!
 
 use std::rc::Rc;
+use std::cell::RefCell;
 
 
 ///
@@ -34,15 +35,18 @@ pub mod vm;
 /// so that byte buffer with the reqd pattern of data can be generated.
 ///
 #[allow(dead_code)]
-struct FuzzChain<'a> {
-    chain: Vec<&'a mut dyn Fuzz>,
+struct FuzzChain {
+    chain: Vec<Rc<RefCell<dyn Fuzz>>>,
+    /// step allows the fuzzer to know (if it wants to) that
+    /// it is being called as part of the same step,
+    /// if multiple instances of it are in the fuzz chain.
     step: usize,
 }
 
 #[allow(dead_code)]
-impl<'a> FuzzChain<'a> {
+impl FuzzChain {
 
-    pub fn new() -> FuzzChain<'a> {
+    pub fn new() -> FuzzChain {
         FuzzChain {
             chain: Vec::new(),
             step: 0,
@@ -50,7 +54,7 @@ impl<'a> FuzzChain<'a> {
     }
 
     /// Chain a muttable fuzzer, as part of setting up to achieve the reqd data pattern
-    fn append(&mut self, fuzzer: &'a mut dyn Fuzz) {
+    fn append(&mut self, fuzzer: Rc<RefCell<dyn Fuzz>>) {
         self.chain.push(fuzzer);
     }
 
@@ -58,13 +62,10 @@ impl<'a> FuzzChain<'a> {
     /// chain of Fuzzers in this FuzzChain instance
     fn get(&mut self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
-        /*
         for fuzzer in &mut self.chain {
-            fuzzer.append_fuzzed(self.step, &mut buf)
-        }
-         */
-        for i in 0..self.chain.len() {
-            self.chain[i].append_fuzzed(self.step, &mut buf)
+            let mut mfuzzer = fuzzer.borrow_mut();
+            mfuzzer.append_fuzzed(self.step, &mut buf);
+            drop(mfuzzer);
         }
         self.step += 1;
         buf
@@ -111,7 +112,7 @@ impl FuzzChainImmuts {
 #[cfg(test)]
 mod tests {
     use crate::{fixed::{self, RandomFixedStringsFuzzer}, random::{self, RandomFixedFuzzer}, Fuzz, FuzzChain, FuzzChainImmuts};
-    use std::rc::Rc;
+    use std::{rc::Rc, cell::RefCell};
 
     #[test]
     fn it_works() {
@@ -185,17 +186,24 @@ mod tests {
     #[test]
     fn fuzzchain_t1() {
         let mut fc1 = FuzzChain::new();
-        let mut rfsf = RandomFixedStringsFuzzer::new(vec![Vec::from("Hello"), Vec::from("World")]);
-        let mut rspacesf1 = RandomFixedStringsFuzzer::new(vec![Vec::from(" "), Vec::from("  ")]);
-        let mut rspacesf2 = RandomFixedFuzzer::new(1, 5, vec![' ' as u8]);
-        let mut rfpf = RandomFixedFuzzer::new_printables(3, 10);
-        let mut rfpf2 = RandomFixedFuzzer::new_printables(3, 10);
-        fc1.append(&mut rfsf);
-        fc1.append(&mut rspacesf1);
-        fc1.append(&mut rfpf);
-        fc1.append(&mut rspacesf2);
-        //fc1.append(&mut rfpf); // Cant do mutable borrow more than once
-        fc1.append(&mut rfpf2);
+
+        let rfsf = RandomFixedStringsFuzzer::new(vec![Vec::from("Hello"), Vec::from("World")]);
+        let rfsf = Rc::new(RefCell::new(rfsf));
+        let rspacesf1 = RandomFixedStringsFuzzer::new(vec![Vec::from(" "), Vec::from("  ")]);
+        let rspacesf1 = Rc::new(RefCell::new(rspacesf1));
+        let rspacesf2 = RandomFixedFuzzer::new(1, 5, vec![' ' as u8]);
+        let rspacesf2 = Rc::new(RefCell::new(rspacesf2));
+        let rfpf = RandomFixedFuzzer::new_printables(3, 10);
+        let rfpf = Rc::new(RefCell::new(rfpf));
+        let rfpf2 = RandomFixedFuzzer::new_printables(3, 10);
+        let rfpf2 = Rc::new(RefCell::new(rfpf2));
+
+        fc1.append(rfsf);
+        fc1.append(rspacesf1);
+        fc1.append(rfpf.clone());
+        fc1.append(rspacesf2);
+        fc1.append(rfpf);
+        fc1.append(rfpf2);
         for i in 0..8 {
             let fuzzed = fc1.get();
             println!("TEST:FuzzChainT1:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
