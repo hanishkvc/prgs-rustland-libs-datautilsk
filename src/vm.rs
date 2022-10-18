@@ -1405,13 +1405,13 @@ impl VM {
         }
     }
 
-    pub fn load_prg(&mut self, prgfile: &str) {
-        if prgfile.len() == 0 {
-            log_w("WARN:FuzzerK:VM:LoadPRG:Empty filename passed, skipping...");
+    pub fn load_asmprg(&mut self, asmfile: &str) {
+        if asmfile.len() == 0 {
+            log_w("WARN:FuzzerK:VM:LoadASMPrg:Empty filename passed, skipping...");
             return;
         }
         let mut ops = Vec::<String>::new();
-        let prgdata = fs::read_to_string(prgfile).expect("ERRR:FuzzerK:VM:Loading prg");
+        let prgdata = fs::read_to_string(asmfile).expect("ERRR:FuzzerK:VM:LoadASMPrg:Loading asm script file");
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
         for l in prgdata {
             //log_d(&format!("IN :{}\n", l));
@@ -1423,22 +1423,22 @@ impl VM {
         self.compile(ops);
     }
 
-    pub fn predefined_prg(&mut self, fc: &str, loopcnt: usize, ioaddr: &str, ioargshm: &HashMap<String, String>) {
+    pub fn predefined_asmprg(&mut self, fc: &str, loopcnt: usize, ioaddr: &str, ioargshm: &HashMap<String, String>) {
         let mut ioargs = String::new();
         for ioarg in ioargshm {
             let sioarg = format!("{}={} ", ioarg.0, ioarg.1);
             ioargs.push_str(&sioarg);
         }
-        let mut runcmds = Vec::<String>::new();
-        runcmds.push("letint loopcnt 0".to_string());
-        runcmds.push("!label freshstart".to_string());
-        runcmds.push(format!("iobnew srvX {} {}", ioaddr, ioargs));
-        runcmds.push(format!("fcget {} fuzzgot", fc));
-        runcmds.push("iobwrite srvX fuzzgot".to_string());
-        runcmds.push("iobflush srvX".to_string());
-        runcmds.push("inc loopcnt".to_string());
-        runcmds.push(format!("iflt.i loopcnt {} goto freshstart", loopcnt));
-        self.compile(runcmds);
+        let mut asmprg = Vec::<String>::new();
+        asmprg.push("letint loopcnt 0".to_string());
+        asmprg.push("!label freshstart".to_string());
+        asmprg.push(format!("iobnew srvX {} {}", ioaddr, ioargs));
+        asmprg.push(format!("fcget {} fuzzgot", fc));
+        asmprg.push("iobwrite srvX fuzzgot".to_string());
+        asmprg.push("iobflush srvX".to_string());
+        asmprg.push("inc loopcnt".to_string());
+        asmprg.push(format!("iflt.i loopcnt {} goto freshstart", loopcnt));
+        self.compile(asmprg);
     }
 
     pub fn load_fcrtm(&mut self, cfgfc: &str) {
