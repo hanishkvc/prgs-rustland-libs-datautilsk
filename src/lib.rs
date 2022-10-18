@@ -66,20 +66,34 @@ impl FuzzChain {
 
     /// Get a byte buffer, whose data matches the pattern specified by the
     /// chain of Fuzzers in this FuzzChain instance
-    fn get(&mut self) -> Vec<u8> {
+    ///
+    /// step: indicates a new call wrt fuzz chain fuzzed data generation.
+    ///       Calls to a fuzzer, where step is same, indicates that, that fuzzer has been chained more than once.
+    ///       If specified, same will be passed to fuzzers, else the internally maintained step counter's value will be passed.
+    fn get(&mut self, step: Option<usize>) -> Vec<u8> {
+        let ustep;
+        if step.is_none() {
+            ustep = self.step;
+        } else {
+            ustep = step.unwrap();
+        }
         let mut buf: Vec<u8> = Vec::new();
         for fuzzer in &mut self.chain {
             let imfuzzer = fuzzer.borrow();
             if imfuzzer.need_mutable() {
                 let mut mfuzzer = fuzzer.borrow_mut();
-                mfuzzer.append_fuzzed(self.step, &mut buf);
+                mfuzzer.append_fuzzed(ustep, &mut buf);
                 drop(mfuzzer);
             } else {
-                imfuzzer.append_fuzzed_immut(self.step, &mut buf);
+                imfuzzer.append_fuzzed_immut(ustep, &mut buf);
             }
             drop(imfuzzer);
         }
-        self.step += 1;
+        if step.is_none() {
+            self.step += 1;
+        } else {
+            self.step = ustep;
+        }
         buf
     }
 
@@ -109,6 +123,10 @@ impl FuzzChainImmuts {
 
     /// Get a byte buffer, whose data matches the pattern specified by the
     /// chain of Fuzzers in this FuzzChainImmuts instance
+    ///
+    /// step: indicates a new call wrt fuzz chain fuzzed data generation.
+    ///       calls to a fuzzer, where step is same, indicates that, that fuzzer has been chained more than once.
+    ///       This cant be None here.
     pub fn get(&self, step: Option<usize>) -> Vec<u8> {
         let step = step.expect("ERRR:FuzzChainImmuts:Get: step cant be None");
         let mut buf: Vec<u8> = Vec::new();
@@ -218,7 +236,7 @@ mod tests {
         fc1.append(rfpf); // The same fuzzer instance can be chained multiple times, if data pattern reqd dictates it.
         fc1.append(rfpf2);
         for i in 0..8 {
-            let fuzzed = fc1.get();
+            let fuzzed = fc1.get(None);
             println!("TEST:FuzzChainT1:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
         }
     }
