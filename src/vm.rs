@@ -1149,8 +1149,8 @@ impl Op {
                 thread::sleep(Duration::from_millis(msec as u64));
             }
             Self::FcGet(fcid, vid) => {
-                let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:{}:FcGet:UnknownFC???:{}", msgtag, fcid));
-                let gotfuzz = fci.get(Some(ctxt.stepu));
+                let fc = ctxt.fcrtm.fchain(&fcid).expect(&format!("ERRR:{}:FcGet:UnknownFC???:{}", msgtag, fcid));
+                let gotfuzz = fc.get(Some(ctxt.stepu));
                 log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
                 vid.set_bufvu8(ctxt, gotfuzz, &format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
                 ctxt.stepu += 1;

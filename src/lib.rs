@@ -41,7 +41,7 @@ pub mod vm;
 /// so that byte buffer with the reqd pattern of data can be generated.
 ///
 #[allow(dead_code)]
-struct FuzzChain {
+pub struct FuzzChain {
     chain: Vec<Rc<RefCell<dyn Fuzz>>>,
     /// step allows the fuzzer to know (if it wants to) that
     /// it is being called as part of the same step,
@@ -100,49 +100,10 @@ impl FuzzChain {
 }
 
 
-///
-/// Allow a chain of immuttable fuzzers (whose internal contexts cant change) to be created,
-/// so that byte buffer with the reqd pattern of data can be generated.
-///
-pub struct FuzzChainImmuts {
-    chain: Vec<Rc<dyn Fuzz>>,
-}
-
-impl FuzzChainImmuts {
-
-    pub fn new() -> FuzzChainImmuts {
-        FuzzChainImmuts {
-            chain: Vec::new(),
-        }
-    }
-
-    /// Chain a immuttable fuzzer, as part of setting up to achieve the reqd data pattern
-    fn append(&mut self, fuzzer: Rc<dyn Fuzz>) {
-        self.chain.push(fuzzer);
-    }
-
-    /// Get a byte buffer, whose data matches the pattern specified by the
-    /// chain of Fuzzers in this FuzzChainImmuts instance
-    ///
-    /// step: indicates a new call wrt fuzz chain fuzzed data generation.
-    ///       calls to a fuzzer, where step is same, indicates that, that fuzzer has been chained more than once.
-    ///       This cant be None here.
-    pub fn get(&self, step: Option<usize>) -> Vec<u8> {
-        let step = step.expect("ERRR:FuzzChainImmuts:Get: step cant be None");
-        let mut buf: Vec<u8> = Vec::new();
-        for i in 0..self.chain.len() {
-            self.chain[i].append_fuzzed_immut(step, &mut buf)
-        }
-        buf
-    }
-
-}
-
-
 
 #[cfg(test)]
 mod tests {
-    use crate::{fixed::{self, RandomFixedStringsFuzzer}, random::{self, RandomFixedFuzzer}, Fuzz, FuzzChain, FuzzChainImmuts};
+    use crate::{fixed::{self, RandomFixedStringsFuzzer}, random::{self, RandomFixedFuzzer}, Fuzz, FuzzChain};
     use std::{rc::Rc, cell::RefCell};
 
     #[test]
@@ -238,28 +199,6 @@ mod tests {
         for i in 0..8 {
             let fuzzed = fc1.get(None);
             println!("TEST:FuzzChainT1:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
-        }
-    }
-
-    #[test]
-    fn fuzzchainimmuts_t2() {
-        let mut fc1 = FuzzChainImmuts::new();
-        let rfsf = RandomFixedStringsFuzzer::new(vec![Vec::from("Hello"), Vec::from("World")]);
-        let rfsf = Rc::new(rfsf);
-        let rspacesf1 = RandomFixedStringsFuzzer::new(vec![Vec::from(" "), Vec::from("  ")]);
-        let rspacesf1 = Rc::new(rspacesf1);
-        let rspacesf2 = RandomFixedFuzzer::new(1, 5, vec![' ' as u8]);
-        let rspacesf2 = Rc::new(rspacesf2);
-        let rfpf = RandomFixedFuzzer::new_printables(3, 10);
-        let rfpf = Rc::new(rfpf);
-        fc1.append(rfsf);
-        fc1.append(rspacesf1);
-        fc1.append(rfpf.clone());
-        fc1.append(rspacesf2);
-        fc1.append(rfpf); // The same fuzzer instance can be chained multiple times, if data pattern reqd dictates it.
-        for i in 0..8 {
-            let fuzzed = fc1.get(Some(i));
-            println!("TEST:FuzzChainImmutsT2:{}:{:?}:{:?}", i, fuzzed.clone(), String::from_utf8(fuzzed));
         }
     }
 
