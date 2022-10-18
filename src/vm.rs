@@ -1150,7 +1150,7 @@ impl Op {
             }
             Self::FcGet(fcid, vid) => {
                 let fci = ctxt.fcrtm.fcimmuts(&fcid).expect(&format!("ERRR:{}:FcGet:UnknownFC???:{}", msgtag, fcid));
-                let gotfuzz = fci.get(ctxt.stepu);
+                let gotfuzz = fci.get(Some(ctxt.stepu));
                 log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
                 vid.set_bufvu8(ctxt, gotfuzz, &format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
                 ctxt.stepu += 1;
