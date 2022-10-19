@@ -645,6 +645,7 @@ enum Op {
     BufNew(DataM, DataM),
     Buf8Randomize(DataM, DataM, DataM, DataM, DataM, DataM),
     BufMerged(char, DataM, Vec<DataM>),
+    EMagic(DataM, DataM),
 }
 
 
@@ -1024,6 +1025,14 @@ impl Op {
                 let opdatatype = Op::opcompile_opdatatype_autoinfer_ifreqd(sop, ctxt, &datadm, &format!("{}:LetLocal", msgtag));
                 return Ok(Op::LetLocal(opdatatype, viddm, datadm));
             }
+
+            "emagic" => {
+                let (smt, sma) = sargs.split_once(' ').expect(&format!("{}:EMagic:Extract args", msgtag));
+                let mtype = DataM::compile(ctxt, smt, "any", &format!("{}:EMagic:Type:{}", msgtag, smt));
+                let marg = DataM::compile(ctxt, sma, "any", &format!("{}:EMagic:Arg:{}", msgtag, sma));
+                return Ok(Op::EMagic(mtype, marg));
+            }
+
             _ => panic!("ERRR:{}:UnknownOp:{}", msgtag, sop)
         }
     }
@@ -1322,6 +1331,14 @@ impl Op {
                 }
                 log_d(&format!("DBUG:{}:LetLocal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
                 vardm.set_value(ctxt, vdata, true, &format!("{}:LetLocal:Set the value", msgtag));
+            }
+
+            Self::EMagic(mtype, marg) => {
+                let mtype = mtype.get_isize(ctxt, &format!("{}:EMagic:MType:{:?}", msgtag, mtype));
+                if mtype == 0x010 {
+                    let mbuf = marg.get_bufvu8(ctxt, &format!("{}:EMagic:Marg:Buf", msgtag));
+                    log_e(&format!("EMAGIC:{}:{:?}:Len:{}:Cap:{}", mtype, mbuf, mbuf.len(), mbuf.capacity()));
+                }
             }
 
         }
