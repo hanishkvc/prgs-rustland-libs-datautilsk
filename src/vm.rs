@@ -879,7 +879,11 @@ impl Op {
                 let nxtop;
                 match desttype {
                     "goto" => {
-                        nxtop = Op::Jump(destdata.to_string());
+                        if destdata == "__NEXT__" {
+                            nxtop = Op::Nop;
+                        } else {
+                            nxtop = Op::Jump(destdata.to_string());
+                        }
                     }
                     "callvo" => {
                         let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
@@ -904,7 +908,11 @@ impl Op {
                 return Ok(Op::CheckJump(arg1dm, arg2dm, args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
             "jump" | "goto" => {
-                return Ok(Op::Jump(sargs.to_string()));
+                if sargs == "__NEXT__" {
+                    return Ok(Op::Nop);
+                } else {
+                    return Ok(Op::Jump(sargs.to_string()));
+                }
             }
             "callvo" => {
                 let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
@@ -1202,11 +1210,9 @@ impl Op {
                 }
             }
             Self::Jump(label) => {
-                if label != "__NEXT__" {
-                    ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:{}:Jump:Label:{}", msgtag, label));
-                    ctxt.iptr_commonupdate = false;
-                    //log_d(&format!("DBUG:{}:Jump:{}:{}", msgtag, label, ctxt.iptr));
-                }
+                ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:{}:Jump:Label:{}", msgtag, label));
+                ctxt.iptr_commonupdate = false;
+                //log_d(&format!("DBUG:{}:Jump:{}:{}", msgtag, label, ctxt.iptr));
             }
             Self::Call(fname, passedargs) => {
                 let (fptr, fargsmap) = ctxt.func_helper(fname, passedargs, &format!("{}:Call:{}", msgtag, fname));
