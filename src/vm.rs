@@ -1429,8 +1429,37 @@ impl VM {
         }
     }
 
+    ///
+    /// Replace indirect JumpRaws in the compiled instructions, with direct Jumps
+    /// NOTE: THe way things are structured, the aot compiled program will still run
+    /// even if compile_phase2 is not called.
+    ///
+    pub fn compile_p2(&mut self) {
+        let ops = &mut self.ops;
+        for i in 0..ops.len() {
+            let op = &ops[i];
+            match &op.0 {
+                Op::JumpRaw(label) => {
+                    let dptr = self.ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Compile:P2:JumpRaw:target:{}", label));
+                    ops[i] = (Op::Jump(*dptr), op.1);
+                }
+                Op::If(cop, arg1, arg2, nxtop) => {
+                    match &**nxtop {
+                        Op::JumpRaw(label) => {
+                            let dptr = self.ctxt.lbls.get(label).expect(&format!("ERRR:FuzzerK:VM:Compile:P2:If:Goto target:{}", label));
+                            ops[i] = (Op::If(cop.clone(), arg1.clone(), arg2.clone(), Box::new(Op::Jump(*dptr))), op.1);
+                        }
+                        _ => (),
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+
     pub fn compile(&mut self, ops: Vec<String>) {
         self.compile_p1(ops);
+        self.compile_p2();
     }
 
     #[allow(dead_code)]
