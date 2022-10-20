@@ -11,7 +11,7 @@ use std::thread;
 use std::time::Duration;
 use std::panic;
 
-use loggerk::{log_w, log_e, log_d};
+use loggerk::{log_w, log_e, log_d, ldebug};
 use rand::Rng;
 use crate::datautils;
 use crate::iob::IOBridge;
@@ -20,15 +20,6 @@ use crate::cfgfiles;
 
 mod datas;
 use datas::{Variant, VDataType};
-
-
-macro_rules! ldebug {
-    ($($got:tt)*) => {
-       if cfg!(debug_assertions) {
-        log_d($($got)*)
-       }
-    };
-}
 
 
 ///
