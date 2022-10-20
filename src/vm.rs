@@ -637,7 +637,8 @@ enum Op {
     IobClose(String),
     If(CondOp, DataM, DataM, Box<Op>),
     CheckJump(DataM, DataM, String, String, String),
-    Jump(String),
+    JumpRaw(String),
+    Jump(usize),
     Call(String, Vec<String>),
     Ret,
     SleepMSec(DataM),
@@ -882,7 +883,7 @@ impl Op {
                         if destdata == "__NEXT__" {
                             nxtop = Op::Nop;
                         } else {
-                            nxtop = Op::Jump(destdata.to_string());
+                            nxtop = Op::JumpRaw(destdata.to_string());
                         }
                     }
                     "callvo" => {
@@ -911,7 +912,7 @@ impl Op {
                 if sargs == "__NEXT__" {
                     return Ok(Op::Nop);
                 } else {
-                    return Ok(Op::Jump(sargs.to_string()));
+                    return Ok(Op::JumpRaw(sargs.to_string()));
                 }
             }
             "callvo" => {
@@ -1209,10 +1210,15 @@ impl Op {
                     ctxt.iptr_commonupdate = false;
                 }
             }
-            Self::Jump(label) => {
+            Self::JumpRaw(label) => {
                 ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:{}:Jump:Label:{}", msgtag, label));
                 ctxt.iptr_commonupdate = false;
-                //log_d(&format!("DBUG:{}:Jump:{}:{}", msgtag, label, ctxt.iptr));
+                //log_d(&format!("DBUG:{}:JumpRaw:{}:{}", msgtag, label, ctxt.iptr));
+            }
+            Self::Jump(dstptr) => {
+                ctxt.iptr = *dstptr;
+                ctxt.iptr_commonupdate = false;
+                //log_d(&format!("DBUG:{}:Jump:{}", msgtag, ctxt.iptr));
             }
             Self::Call(fname, passedargs) => {
                 let (fptr, fargsmap) = ctxt.func_helper(fname, passedargs, &format!("{}:Call:{}", msgtag, fname));
