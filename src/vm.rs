@@ -646,6 +646,7 @@ enum Op {
     Buf8Randomize(DataM, DataM, DataM, DataM, DataM, DataM),
     BufMerged(char, DataM, Vec<DataM>),
     EMagic(DataM, DataM),
+    GetSize(DataM, DataM),
 }
 
 
@@ -1033,6 +1034,16 @@ impl Op {
                 return Ok(Op::EMagic(mtype, marg));
             }
 
+            "getsize" => {
+                let (src, dst) = sargs.split_once(' ').expect(&format!("{}:GetSize:Extract args", msgtag));
+                let sdm = DataM::compile(ctxt, src, "any", &format!("{}:GetSize:Src:{}", msgtag, src));
+                let ddm = DataM::compile(ctxt, dst, "any", &format!("{}:GetSize:WriteSizeToVar:{}", msgtag, dst));
+                if ddm.is_value() {
+                    panic!("ERRR:{}:GetSize:Dest[{:?}] needs to be a variable", msgtag, ddm);
+                }
+                return Ok(Op::GetSize(sdm, ddm));
+            }
+
             _ => panic!("ERRR:{}:UnknownOp:{}", msgtag, sop)
         }
     }
@@ -1339,6 +1350,11 @@ impl Op {
                     let mbuf = marg.get_bufvu8(ctxt, &format!("{}:EMagic:Marg:Buf", msgtag));
                     log_e(&format!("EMAGIC:{}:{:?}:Len:{}:Cap:{}", mtype, mbuf, mbuf.len(), mbuf.capacity()));
                 }
+            }
+
+            Self::GetSize(sdm, ddm) => {
+                let tbuf = sdm.get_bufvu8(ctxt, &format!("{}:GetSize:Fetching src:{:?}", msgtag, sdm));
+                ddm.set_isize(ctxt, tbuf.len() as isize, &format!("{}:GetSize:Writing size to:{:?}", msgtag, ddm));
             }
 
         }
