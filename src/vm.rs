@@ -22,6 +22,15 @@ mod datas;
 use datas::{Variant, VDataType};
 
 
+macro_rules! ldebug {
+    ($($got:tt)*) => {
+       if cfg!(debug_assertions) {
+        log_d($($got)*)
+       }
+    };
+}
+
+
 ///
 /// Specify / Identify as to where a given variable is alloted internally.
 ///
@@ -181,7 +190,7 @@ impl Context {
             if rname.is_none() {
                 panic!("DBUG:FuzzerK:VM:Ctxt:Farg2Real:FArg:{:?}:{}:not in fargsmapstack", datakind, vname);
             }
-            log_d(&format!("DBUG:FuzzerK:VM:Ctxt:FArg2Real:{:?}:{}=>{:?}", datakind, vname, rname.unwrap()));
+            ldebug!(&format!("DBUG:FuzzerK:VM:Ctxt:FArg2Real:{:?}:{}=>{:?}", datakind, vname, rname.unwrap()));
             let rname = rname.unwrap();
             return (rname.0.clone(), rname.1.to_string());
         }
@@ -243,7 +252,7 @@ impl Context {
             }
             newfargsmap.insert(fargname.to_string(), (baseloc, basename.to_string()));
         }
-        log_d(&format!("DBUG:{}:Ctxt:FuncHelper:{}:{:?}:{:?}", msgtag, fptr, fargs, newfargsmap));
+        ldebug!(&format!("DBUG:{}:Ctxt:FuncHelper:{}:{:?}:{:?}", msgtag, fptr, fargs, newfargsmap));
         return (*fptr, newfargsmap);
     }
 
@@ -567,7 +576,7 @@ impl CondOp {
             CondOp::IfLtInt => {
                 let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val1");
                 let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val2");
-                log_d(&format!("DBUG:CondOp:IfLtInt:[{}] vs [{}]", val1, val2));
+                ldebug!(&format!("DBUG:CondOp:IfLtInt:[{}] vs [{}]", val1, val2));
                 if val1 < val2 {
                     return true;
                 }
@@ -587,7 +596,7 @@ impl CondOp {
             CondOp::IfEqBuf => {
                 let val1 = val1.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val1");
                 let val2 = val2.get_bufvu8(ctxt, "FuzzerK:Vm:CondOp:IfEqBuf:Val2");
-                log_d(&format!("DBUG:CondOp:IfEqBuf:[{:?}] vs [{:?}]", val1, val2));
+                ldebug!(&format!("DBUG:CondOp:IfEqBuf:[{:?}] vs [{:?}]", val1, val2));
                 if val1 == val2 {
                     return true;
                 }
@@ -1177,13 +1186,12 @@ impl Op {
             Self::FcGet(fcid, vid) => {
                 let fc = ctxt.fcrtm.fchain(&fcid).expect(&format!("ERRR:{}:FcGet:UnknownFC???:{}", msgtag, fcid));
                 let gotfuzz = fc.get(Some(ctxt.stepu));
-                log_d(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
+                ldebug!(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
                 vid.set_bufvu8(ctxt, gotfuzz, &format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
                 ctxt.stepu += 1;
             }
             Self::If(cop, val1dm, val2dm, nxtop) => {
                 let mut opdo = false;
-                //log_d(&format!("DBUG:{}:IfLt:{},{},{},{}", msgtag, val1, val2, sop, oparg));
                 if cop.check(ctxt, val1dm, val2dm) {
                     opdo = true;
                 }
@@ -1213,12 +1221,11 @@ impl Op {
             Self::JumpRaw(label) => {
                 ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:{}:Jump:Label:{}", msgtag, label));
                 ctxt.iptr_commonupdate = false;
-                //log_d(&format!("DBUG:{}:JumpRaw:{}:{}", msgtag, label, ctxt.iptr));
+                ldebug!(&format!("DBUG:{}:JumpRaw:{}:{}", msgtag, label, ctxt.iptr));
             }
             Self::Jump(dstptr) => {
                 ctxt.iptr = *dstptr;
                 ctxt.iptr_commonupdate = false;
-                //log_d(&format!("DBUG:{}:Jump:{}", msgtag, ctxt.iptr));
             }
             Self::Call(fname, passedargs) => {
                 let (fptr, fargsmap) = ctxt.func_helper(fname, passedargs, &format!("{}:Call:{}", msgtag, fname));
@@ -1295,7 +1302,7 @@ impl Op {
                     }
                     destbuf.append(&mut sbuf);
                 }
-                log_d(&format!("DBUG:{}:BufMerged:{:?}:{:?}", msgtag, destbufdm, destbuf));
+                ldebug!(&format!("DBUG:{}:BufMerged:{:?}:{:?}", msgtag, destbufdm, destbuf));
                 destbufdm.set_bufvu8(ctxt, destbuf, &format!("{}:BufMerged.{}:{:?}", msgtag, mtype, destbufdm));
             }
 
@@ -1318,7 +1325,7 @@ impl Op {
                     }
                     _ => panic!("{}:LetGlobal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
-                log_d(&format!("DBUG:{}:LetGlobal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
+                ldebug!(&format!("DBUG:{}:LetGlobal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
                 vardm.set_value(ctxt, vdata, false, &format!("{}:LetGlobal:Set the value", msgtag));
             }
 
@@ -1341,7 +1348,7 @@ impl Op {
                     }
                     _ => panic!("{}:LetLocal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
-                log_d(&format!("DBUG:{}:LetLocal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
+                ldebug!(&format!("DBUG:{}:LetLocal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
                 vardm.set_value(ctxt, vdata, true, &format!("{}:LetLocal:Set the value", msgtag));
             }
 
@@ -1412,7 +1419,7 @@ impl VM {
             if sop.starts_with("#") || (sop.len() == 0) {
                 continue;
             }
-            //log_d(&format!("DBUG:FuzzerK:VM:Compile:Op:{}:{}", self.ctxt.compilingline, sop));
+            //ldebug!(&format!("DBUG:FuzzerK:VM:Compile:Op:{}:{}", self.ctxt.compilingline, sop));
             if sop.starts_with("!") {
                 self.compile_directive(sop);
                 continue;
@@ -1421,10 +1428,10 @@ impl VM {
             let op = Op::compile(sop, &mut self.ctxt).expect(&format!("ERRR:FuzzerK:VM:Compile:Op:{}", sop));
             for i in 0..self.ctxt.preops.len() {
                 let opx = self.ctxt.preops[i].clone();
-                log_d(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, opx));
+                ldebug!(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, opx));
                 self.ops.push((opx, self.ctxt.compilingline));
             }
-            log_d(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
+            ldebug!(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
             self.ops.push((op,self.ctxt.compilingline));
         }
     }
@@ -1522,7 +1529,7 @@ impl VM {
                 break;
             }
             let theop = &self.ops[self.ctxt.iptr];
-            log_d(&format!("INFO:FuzzerK:VM:Op:ToRun:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
+            ldebug!(&format!("INFO:FuzzerK:VM:Op:ToRun:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
             self.ctxt.iptr_commonupdate = true;
             let rt = panic::catch_unwind(panic::AssertUnwindSafe(||{
                 theop.0.run(&mut self.ctxt, theop.1);
