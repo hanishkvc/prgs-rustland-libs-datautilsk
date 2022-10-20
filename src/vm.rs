@@ -635,7 +635,7 @@ enum Op {
     IobFlush(String),
     IobRead(String, DataM),
     IobClose(String),
-    If(CondOp, DataM, DataM, String, String, Vec<String>),
+    If(CondOp, DataM, DataM, Box<Op>),
     CheckJump(DataM, DataM, String, String, String),
     Jump(String),
     Call(String, Vec<String>),
@@ -876,26 +876,23 @@ impl Op {
                     "ifne" | "ifne.b" | "ifne.i" | "ifne.s" => CondOp::IfNeBuf,
                     _ => todo!(),
                 };
-                let destname;
-                let destargs;
+                let nxtop;
                 match desttype {
                     "goto" => {
-                        destname = destdata.to_string();
-                        destargs = Vec::new();
+                        nxtop = Op::Jump(destdata.to_string());
                     }
                     "callvo" => {
                         let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
-                        destname = na.0;
-                        destargs = na.1;
+                        nxtop = Op::Call(na.0, na.1);
                     }
                     "call" => {
                         let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
-                        destname = na.0;
-                        destargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:IfCall", msgtag));
+                        let destargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:IfCall", msgtag));
+                        nxtop = Op::Call(na.0, destargs);
                     }
                     _ => todo!()
                 }
-                return Ok(Op::If(cop, val1dm, val2dm, desttype.to_string(), destname, destargs));
+                return Ok(Op::If(cop, val1dm, val2dm, Box::new(nxtop)));
             }
             "checkjump" => {
                 let args: Vec<&str> = sargs.splitn(5, ' ').collect();
@@ -1175,25 +1172,17 @@ impl Op {
                 vid.set_bufvu8(ctxt, gotfuzz, &format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
                 ctxt.stepu += 1;
             }
-            Self::If(cop, val1dm, val2dm, sop , destname, destargs) => {
+            Self::If(cop, val1dm, val2dm, nxtop) => {
                 let mut opdo = false;
                 //log_d(&format!("DBUG:{}:IfLt:{},{},{},{}", msgtag, val1, val2, sop, oparg));
                 if cop.check(ctxt, val1dm, val2dm) {
                     opdo = true;
                 }
                 if opdo {
-                    match sop.as_str() {
-                        // Translating the label here at runtime, rather than during compile time, allows goto to refer to label
-                        // that might not yet have been defined at the point where goto or rather the If condition is encountered.
-                        // Especially when only a single pass parsing of the program is done.
-                        "goto" | "jump" => {
-                            Op::Jump(destname.to_string()).run(ctxt, linenum);
-                        }
-                        "callvo" | "call" => {
-                            Op::Call(destname.to_string(), destargs.clone()).run(ctxt, linenum);
-                        }
-                        _ => todo!()
-                    }
+                    // Translating the label here at runtime, rather than during compile time, allows goto to refer to label
+                    // that might not yet have been defined at the point where goto or rather the If condition is encountered.
+                    // Especially when only a single pass parsing of the program is done.
+                    nxtop.run(ctxt, linenum);
                 }
             }
             Self::CheckJump(arg1, arg2, ltlabel, eqlabel, gtlabel) => {
