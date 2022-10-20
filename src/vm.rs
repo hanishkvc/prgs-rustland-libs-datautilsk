@@ -1404,7 +1404,7 @@ impl VM {
         }
     }
 
-    pub fn compile(&mut self, ops: Vec<String>) {
+    pub fn compile_p1(&mut self, ops: Vec<String>) {
         self.ctxt.compilingline = 0;
         for sop in ops {
             self.ctxt.compilingline += 1;
@@ -1427,6 +1427,10 @@ impl VM {
             log_d(&format!("DBUG:FuzzerK:VM:Compiled:Op:{}:{:?}", self.ctxt.compilingline, op));
             self.ops.push((op,self.ctxt.compilingline));
         }
+    }
+
+    pub fn compile(&mut self, ops: Vec<String>) {
+        self.compile_p1(ops);
     }
 
     #[allow(dead_code)]
