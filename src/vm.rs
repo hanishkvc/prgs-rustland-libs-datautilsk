@@ -266,6 +266,7 @@ enum XCastData {
 
 
 impl XCastData {
+
     fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
         match self {
             Self::Str(dm) => {
@@ -289,6 +290,30 @@ impl XCastData {
             }
         }
     }
+
+    fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
+        // As of now all XCasts are str generating, so do casting as part of get_string
+        let sdata = self.get_string(ctxt, &format!("{}:XCastData:GetISize:Casting:{:?}", smsg, self));
+        return Variant::StrValue(sdata).get_isize(&format!("{}:XCastData:GetISize:Converting:{:?}", smsg, self));
+    }
+
+    fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
+        // As of now all XCasts are str generating, so do casting as part of get_string
+        let sdata = self.get_string(ctxt, &format!("{}:XCastData:GetBuf:Casting:{:?}", smsg, self));
+        return Variant::StrValue(sdata).get_bufvu8();
+    }
+
+    fn get_value(&self, ctxt: &mut Context, smsg: &str) -> Variant {
+        // As of now all XCasts are str generating, so do casting as part of get_string
+        let sdata = self.get_string(ctxt, &format!("{}:XCastData:GetValue:Casting:{:?}", smsg, self));
+        return Variant::StrValue(sdata);
+    }
+
+    fn get_type(&self) -> VDataType {
+        // As of now all XCasts are str generating, so do below
+        return VDataType::String;
+    }
+
 }
 
 ///
@@ -438,8 +463,8 @@ impl DataM {
                     return ovalue.unwrap().get_type();
                 }
             }
-            Self::XCast(_xdata) => {
-                return VDataType::String;
+            Self::XCast(xdata) => {
+                return xdata.get_type();
             }
         }
         return VDataType::Unknown;
@@ -460,12 +485,12 @@ impl DataM {
             Self::Variable(datakind, vid) => {
                 let ovalue = ctxt.var_get(datakind, vid);
                 if ovalue.is_some() {
-                    return ovalue.unwrap().get_isize(&format!("{}:DataM:GetISize:", smsg));
+                    return ovalue.unwrap().get_isize(&format!("{}:DataM:GetISize:Var", smsg));
                 }
                 panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
             }
-            Self::XCast(_xdata) => {
-                panic!("ERRR:{}:DataM:GetISize:XCast:{:?}:Not supported", smsg, self);
+            Self::XCast(xdata) => {
+                return xdata.get_isize(ctxt, &format!("{}:DataM:GetISize:XCast", smsg));
             }
         }
     }
@@ -529,7 +554,7 @@ impl DataM {
                 panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
             }
             Self::XCast(xdata) => {
-                return Vec::from(xdata.get_string(ctxt, &format!("{}:DataM:GetBuf:XCast:{:?}", smsg, self)))
+                return xdata.get_bufvu8(ctxt, &format!("{}:DataM:GetBuf:XCast", smsg));
             }
         }
     }
@@ -546,7 +571,7 @@ impl DataM {
                 panic!("ERRR:{}:DataM:GetVal:Var:Unknown:{}", smsg, vname);
             }
             Self::XCast(xdata) => {
-                return Variant::StrValue(xdata.get_string(ctxt, &format!("{}:DataM:GetVal:XCast", smsg)));
+                return xdata.get_value(ctxt, &format!("{}:DataM:GetVal:XCast", smsg));
             }
         }
     }
@@ -563,8 +588,8 @@ impl DataM {
                 panic!("ERRR:{}:DataM:GetTypeVal:Var:Unknown:{}", smsg, vname);
             }
             Self::XCast(xdata) => {
-                let vdata = xdata.get_string(ctxt, &format!("{}:DataM:TypeGetVal:XCast", smsg));
-                return (VDataType::String, Variant::StrValue(vdata));
+                let oval = xdata.get_value(ctxt, &format!("{}:DataM:GetTypeVal:XCast", smsg));
+                return (oval.get_type(), oval);
             }
         }
     }
