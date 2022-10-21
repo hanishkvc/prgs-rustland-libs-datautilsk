@@ -269,19 +269,17 @@ impl XCastData {
     fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
         match self {
             Self::Str(dm) => {
-                let dmtype = dm.get_type(ctxt);
-                let smsg = &format!("{}:XCastData:Str:GetString:{:?}", smsg, self);
-                match dmtype {
-                    VDataType::Buffer => return String::from_utf8_lossy(&dm.get_bufvu8(ctxt, smsg)).to_string(),
-                    _ => return dm.get_string(ctxt, smsg),
+                let (vtype, vvalue) = dm.get_type_value(ctxt, &format!("{}:XCastData:Str:GetString:{:?}", smsg, self));
+                match vtype {
+                    VDataType::Buffer => return String::from_utf8_lossy(&vvalue.get_bufvu8()).to_string(),
+                    _ => return vvalue.get_string(),
                 }
             }
             Self::StrTrim(dm) => {
-                let dmtype = dm.get_type(ctxt);
-                let smsg = format!("{}:XCastData:StrTrim:GetString:{:?}", smsg, self);
-                let sdata = match dmtype {
-                    VDataType::Buffer => String::from_utf8_lossy(&dm.get_bufvu8(ctxt, &smsg)).to_string(),
-                    _ => dm.get_string(ctxt, &smsg)
+                let (vtype, vvalue) = dm.get_type_value(ctxt, &format!("{}:XCastData:StrTrim:GetString:{:?}", smsg, self));
+                let sdata = match vtype {
+                    VDataType::Buffer => String::from_utf8_lossy(&vvalue.get_bufvu8()).to_string(),
+                    _ => vvalue.get_string(),
                 };
                 return sdata.trim().to_string();
             }
@@ -532,6 +530,41 @@ impl DataM {
             }
             Self::XCast(xdata) => {
                 return Vec::from(xdata.get_string(ctxt, &format!("{}:DataM:GetBuf:XCast:{:?}", smsg, self)))
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    fn get_value(&self, ctxt: &mut Context, smsg: &str) -> Variant {
+        match self {
+            Self::Value(oval) => return oval.clone(),
+            Self::Variable(datakind, vname) => {
+                let oval = ctxt.var_get(datakind, vname);
+                if oval.is_some() {
+                    return oval.unwrap().clone();
+                }
+                panic!("ERRR:{}:DataM:GetVal:Var:Unknown:{}", smsg, vname);
+            }
+            Self::XCast(xdata) => {
+                return Variant::StrValue(xdata.get_string(ctxt, &format!("{}:DataM:GetVal:XCast", smsg)));
+            }
+        }
+    }
+
+    fn get_type_value(&self, ctxt: &mut Context, smsg: &str) -> (VDataType, Variant) {
+        match self {
+            Self::Value(oval) => return (oval.get_type(), oval.clone()),
+            Self::Variable(datakind, vname) => {
+                let oval = ctxt.var_get(datakind, vname);
+                if oval.is_some() {
+                    let oval = oval.unwrap();
+                    return (oval.get_type(), oval.clone());
+                }
+                panic!("ERRR:{}:DataM:GetTypeVal:Var:Unknown:{}", smsg, vname);
+            }
+            Self::XCast(xdata) => {
+                let vdata = xdata.get_string(ctxt, &format!("{}:DataM:TypeGetVal:XCast", smsg));
+                return (VDataType::String, Variant::StrValue(vdata));
             }
         }
     }
