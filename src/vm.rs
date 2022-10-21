@@ -437,6 +437,9 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
             }
+            Self::XCast(_xtype, _xdm) => {
+                panic!("ERRR:{}:DataM:GetISize:XCast:{:?}:Not supported", smsg, self);
+            }
         }
     }
 
@@ -472,6 +475,9 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetString:Var:Unknown:{}", smsg, vid);
             }
+            Self::XCast(_xtype, _xdm) => {
+                todo!("ERRR:{}:DataM:GetString:XCast:{:?}:Not supported", smsg, self);
+            }
         }
     }
 
@@ -495,6 +501,9 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
             }
+            Self::XCast(_xtype, _xdm) => {
+                todo!("ERRR:{}:DataM:GetBuf:XCast:{:?}:Not supported", smsg, self);
+            }
         }
     }
 
@@ -516,6 +525,9 @@ impl DataM {
                 }
                 return gotr.unwrap();
             }
+            Self::XCast(_xtype, _xdm) => {
+                panic!("ERRR:{}:DataM:GetBufVu8Mut:XCast:{:?}:Not supported", smsg, self);
+            }
         }
     }
 
@@ -525,6 +537,9 @@ impl DataM {
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::IntValue(vvalue);
                 ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetISize", smsg));
+            }
+            Self::XCast(_xtype, _xdm) => {
+                panic!("ERRR:{}:DataM:SetISize:XCast:{:?}:Not supported", smsg, self);
             }
         }
     }
@@ -537,6 +552,9 @@ impl DataM {
                 let vvalue = Variant::StrValue(vvalue);
                 ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetString", smsg));
             }
+            Self::XCast(_xtype, _xdm) => {
+                panic!("ERRR:{}:DataM:SetString:XCast:{:?}:Not supported", smsg, self);
+            }
         }
     }
 
@@ -547,6 +565,9 @@ impl DataM {
                 let vvalue = Variant::BufValue(vvalue);
                 ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetBuf", smsg));
             }
+            Self::XCast(_xtype, _xdm) => {
+                panic!("ERRR:{}:DataM:SetBuf:XCast:{:?}:Not supported", smsg, self);
+            }
         }
     }
 
@@ -555,6 +576,9 @@ impl DataM {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
             DataM::Variable(datakind, vname) => {
                 ctxt.var_set(datakind, vname, vvalue, bforcelocal, &format!("{}:DataM:SetValue", smsg));
+            }
+            Self::XCast(_xtype, _xdm) => {
+                panic!("ERRR:{}:DataM:SetValue:XCast:{:?}:Not supported", smsg, self);
             }
         }
     }
