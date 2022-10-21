@@ -501,8 +501,33 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
             }
-            Self::XCast(_xtype, _xdm) => {
-                todo!("ERRR:{}:DataM:GetBuf:XCast:{:?}:Not supported", smsg, self);
+            Self::XCast(xtype, xdm) => {
+                let xdmtype = xdm.get_type(ctxt);
+                match xtype {
+                    XCastType::Str => {
+                        match xdmtype {
+                            VDataType::Integer => return Vec::from(xdm.get_string(ctxt, smsg)),
+                            VDataType::Buffer => return Vec::from(String::from_utf8_lossy(&xdm.get_bufvu8(ctxt, smsg)).to_string()),
+                            _ => return xdm.get_bufvu8(ctxt, smsg),
+                        }
+                    }
+                    XCastType::StrTrim => {
+                        match xdmtype {
+                            VDataType::String => {
+                                let sdata = xdm.get_string(ctxt, smsg);
+                                return Vec::from(sdata.trim());
+                            }
+                            VDataType::Buffer => {
+                                let sdata = String::from_utf8_lossy(&xdm.get_bufvu8(ctxt, smsg)).to_string();
+                                return Vec::from(sdata.trim());
+                            }
+                            _ => panic!("ERRR:{}:DataM:GetBuf:XCast:{:?}:Not supported", smsg, self),
+                        }
+                    }
+                    XCastType::StrHex => {
+                        todo!("ERRR:{}:DataM:GetBuf:XCast:{:?}:Not supported", smsg, self);
+                    }
+                }
             }
         }
     }
