@@ -739,6 +739,18 @@ impl Op {
         return srctype;
     }
 
+    /// Has Jump can occur either on its own or through if,
+    /// so put its handling into a common helper.
+    fn opcompile_jump(destlbl: &str) -> Op {
+        let theop;
+        if destlbl == "__NEXT__" {
+            theop = Op::Nop;
+        } else {
+            theop = Op::JumpRaw(destlbl.to_string());
+        }
+        return theop;
+    }
+
     fn compile(opplus: &str, ctxt: &mut Context) -> Result<Op, String> {
         let msgtag = &format!("FuzzerK:VM:Op:Compile:{}:", ctxt.compilingline);
         let sop;
@@ -880,11 +892,7 @@ impl Op {
                 let nxtop;
                 match desttype {
                     "goto" => {
-                        if destdata == "__NEXT__" {
-                            nxtop = Op::Nop;
-                        } else {
-                            nxtop = Op::JumpRaw(destdata.to_string());
-                        }
+                        nxtop = Op::opcompile_jump(destdata);
                     }
                     "callvo" => {
                         let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
@@ -909,11 +917,7 @@ impl Op {
                 return Ok(Op::CheckJump(arg1dm, arg2dm, args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
             "jump" | "goto" => {
-                if sargs == "__NEXT__" {
-                    return Ok(Op::Nop);
-                } else {
-                    return Ok(Op::JumpRaw(sargs.to_string()));
-                }
+                return Ok(Op::opcompile_jump(sargs));
             }
             "callvo" => {
                 let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
