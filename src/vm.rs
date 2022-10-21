@@ -257,6 +257,14 @@ enum DataKind {
 }
 
 
+#[derive(Debug, PartialEq, Clone)]
+enum XCastType {
+    Str,
+    StrHex,
+    StrTrim,
+}
+
+
 ///
 /// NOTE: The program logic currently implements a simple one pass compilation, which inturn
 /// only does a partial/quasi ahead of time (AOT) compilation.
@@ -274,6 +282,7 @@ enum DataKind {
 enum DataM {
     Value(Variant),
     Variable(DataKind, String),
+    XCast(XCastType, Box<DataM>),
 }
 
 
@@ -333,6 +342,17 @@ impl DataM {
                     }
                     panic!("ERRR:{}:DataM:Compile:{}:Unknown Special Tag {}???", smsg, stype, sdata);
                 }
+                if schar == '!' && echar == ')' {
+                    let sa = sdata.split_once('(').unwrap();
+                    let dm = DataM::compile(ctxt, &sa.1[..sa.1.len()-1], stype, &format!("{}:XCast-{}:",smsg, sa.0));
+                    let xtype = match sa.0 {
+                        "!str" => XCastType::Str,
+                        "!strhex" => XCastType::StrHex,
+                        "!strtrim" => XCastType::StrTrim,
+                        _ => panic!("ERRR:{}:DataM:{}:Unknown XCast type:{:?}", smsg, stype, sa),
+                    };
+                    return DataM::XCast(xtype, Box::new(dm));
+                }
             }
 
         }
@@ -359,6 +379,7 @@ impl DataM {
         match self {
             DataM::Value(_) => true,
             DataM::Variable(_, _) => false,
+            DataM::XCast(_, _) => false,
         }
     }
 
@@ -370,6 +391,7 @@ impl DataM {
         match self {
             DataM::Value(_) => false,
             DataM::Variable(_, _) => true,
+            DataM::XCast(_, _) => false,
         }
     }
 
@@ -388,6 +410,9 @@ impl DataM {
                 if ovalue.is_some() {
                     return ovalue.unwrap().get_type();
                 }
+            }
+            Self::XCast(_xtype, _xdm) => {
+                return VDataType::String;
             }
         }
         return VDataType::Unknown;
