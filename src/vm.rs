@@ -270,6 +270,7 @@ impl XCastData {
         match self {
             Self::Str(dm) => {
                 let dmtype = dm.get_type(ctxt);
+                let smsg = &format!("{}:XCastData:Str:GetString:{:?}", smsg, self);
                 match dmtype {
                     VDataType::Buffer => return String::from_utf8_lossy(&dm.get_bufvu8(ctxt, smsg)).to_string(),
                     _ => return dm.get_string(ctxt, smsg),
@@ -277,18 +278,16 @@ impl XCastData {
             }
             Self::StrTrim(dm) => {
                 let dmtype = dm.get_type(ctxt);
-                match dmtype {
-                    VDataType::String => {
-                        return dm.get_string(ctxt, smsg).trim().to_string();
-                    }
-                    VDataType::Buffer => {
-                        return String::from_utf8_lossy(&dm.get_bufvu8(ctxt, smsg)).trim().to_string();
-                    }
-                    _ => panic!("ERRR:{}:XCastData:StrTrim:GetString:{:?}:Not supported", smsg, self),
-                }
+                let smsg = format!("{}:XCastData:StrTrim:GetString:{:?}", smsg, self);
+                let sdata = match dmtype {
+                    VDataType::Buffer => String::from_utf8_lossy(&dm.get_bufvu8(ctxt, &smsg)).to_string(),
+                    _ => dm.get_string(ctxt, &smsg)
+                };
+                return sdata.trim().to_string();
             }
-            Self::StrHex(_dm) => {
-                todo!("ERRR:{}:XCastData:StrHex:GetString{:?}:Not supported", smsg, self);
+            Self::StrHex(dm) => {
+                let bdata = dm.get_bufvu8(ctxt, &format!("{}:XCastData:StrHex:GetString{:?}", smsg, self));
+                return datautils::hex_from_vu8(&bdata);
             }
         }
     }
