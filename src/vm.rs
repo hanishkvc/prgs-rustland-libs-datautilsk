@@ -751,6 +751,25 @@ impl Op {
         return theop;
     }
 
+    /// Has Call can occur either on its own or through if,
+    /// so put its handling into a common helper.
+    fn opcompile_call(ctxt: &mut Context, sop: &str, sargs: &str, msgtag: &str) -> Op {
+        let theop;
+        match sop {
+            "callvo" => {
+                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:{}:Extract name and args:{}", msgtag, sop, sargs));
+                theop = Op::Call(na.0, na.1);
+            }
+            "call" => {
+                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:{}:Extract name and args:{}", msgtag, sop, sargs));
+                let destargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:{}:{}", msgtag, sop, sargs));
+                theop = Op::Call(na.0, destargs);
+            }
+            _ => panic!("ERRR:{}:Unknown type of call op:{}:{}", msgtag, sop, sargs),
+        }
+        return theop;
+    }
+
     fn compile(opplus: &str, ctxt: &mut Context) -> Result<Op, String> {
         let msgtag = &format!("FuzzerK:VM:Op:Compile:{}:", ctxt.compilingline);
         let sop;
@@ -894,14 +913,8 @@ impl Op {
                     "goto" => {
                         nxtop = Op::opcompile_jump(destdata);
                     }
-                    "callvo" => {
-                        let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
-                        nxtop = Op::Call(na.0, na.1);
-                    }
-                    "call" => {
-                        let na = Op::name_args(destdata).expect(&format!("ERRR:{}:IfCall", msgtag));
-                        let destargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:IfCall", msgtag));
-                        nxtop = Op::Call(na.0, destargs);
+                    "callvo" | "call" => {
+                        nxtop = Op::opcompile_call(ctxt, desttype, destdata, &format!("{}:{}", msgtag, sop));
                     }
                     _ => todo!()
                 }
@@ -919,14 +932,8 @@ impl Op {
             "jump" | "goto" => {
                 return Ok(Op::opcompile_jump(sargs));
             }
-            "callvo" => {
-                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
-                return Ok(Op::Call(na.0, na.1));
-            }
-            "call" => {
-                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:Call", msgtag));
-                let vargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:Call", msgtag));
-                return Ok(Op::Call(na.0, vargs));
+            "callvo" | "call" => {
+                return Ok(Op::opcompile_call(ctxt, sop, sargs, &format!("{}:{}", msgtag, sop)));
             }
             "ret" => {
                 ctxt.bcompilingfunc = false;
