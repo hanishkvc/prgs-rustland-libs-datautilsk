@@ -257,13 +257,42 @@ enum DataKind {
 }
 
 
-#[derive(Debug, PartialEq, Clone)]
-enum XCastType {
-    Str,
-    StrHex,
-    StrTrim,
+#[derive(Debug, Clone)]
+enum XCastData {
+    Str(Box<DataM>),
+    StrHex(Box<DataM>),
+    StrTrim(Box<DataM>),
 }
 
+
+impl XCastData {
+    fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
+        match self {
+            Self::Str(dm) => {
+                let dmtype = dm.get_type(ctxt);
+                match dmtype {
+                    VDataType::Buffer => return String::from_utf8_lossy(&dm.get_bufvu8(ctxt, smsg)).to_string(),
+                    _ => return dm.get_string(ctxt, smsg),
+                }
+            }
+            Self::StrTrim(dm) => {
+                let dmtype = dm.get_type(ctxt);
+                match dmtype {
+                    VDataType::String => {
+                        return dm.get_string(ctxt, smsg).trim().to_string();
+                    }
+                    VDataType::Buffer => {
+                        return String::from_utf8_lossy(&dm.get_bufvu8(ctxt, smsg)).trim().to_string();
+                    }
+                    _ => panic!("ERRR:{}:XCastData:StrTrim:GetString:{:?}:Not supported", smsg, self),
+                }
+            }
+            Self::StrHex(_dm) => {
+                todo!("ERRR:{}:XCastData:StrHex:GetString{:?}:Not supported", smsg, self);
+            }
+        }
+    }
+}
 
 ///
 /// NOTE: The program logic currently implements a simple one pass compilation, which inturn
@@ -282,7 +311,7 @@ enum XCastType {
 enum DataM {
     Value(Variant),
     Variable(DataKind, String),
-    XCast(XCastType, Box<DataM>),
+    XCast(XCastData),
 }
 
 
@@ -345,13 +374,14 @@ impl DataM {
                 if schar == '!' && echar == ')' {
                     let sa = sdata.split_once('(').unwrap();
                     let dm = DataM::compile(ctxt, &sa.1[..sa.1.len()-1], stype, &format!("{}:XCast-{}:",smsg, sa.0));
-                    let xtype = match sa.0 {
-                        "!str" => XCastType::Str,
-                        "!strhex" => XCastType::StrHex,
-                        "!strtrim" => XCastType::StrTrim,
+                    let boxdm = Box::new(dm);
+                    let xdata = match sa.0 {
+                        "!str" => XCastData::Str(boxdm),
+                        "!strhex" => XCastData::StrHex(boxdm),
+                        "!strtrim" => XCastData::StrTrim(boxdm),
                         _ => panic!("ERRR:{}:DataM:{}:Unknown XCast type:{:?}", smsg, stype, sa),
                     };
-                    return DataM::XCast(xtype, Box::new(dm));
+                    return DataM::XCast(xdata);
                 }
             }
 
@@ -379,7 +409,7 @@ impl DataM {
         match self {
             DataM::Value(_) => true,
             DataM::Variable(_, _) => false,
-            DataM::XCast(_, _) => false,
+            DataM::XCast(_) => false,
         }
     }
 
@@ -391,7 +421,7 @@ impl DataM {
         match self {
             DataM::Value(_) => false,
             DataM::Variable(_, _) => true,
-            DataM::XCast(_, _) => false,
+            DataM::XCast(_) => false,
         }
     }
 
@@ -411,7 +441,7 @@ impl DataM {
                     return ovalue.unwrap().get_type();
                 }
             }
-            Self::XCast(_xtype, _xdm) => {
+            Self::XCast(_xdata) => {
                 return VDataType::String;
             }
         }
@@ -437,7 +467,7 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
             }
-            Self::XCast(_xtype, _xdm) => {
+            Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:GetISize:XCast:{:?}:Not supported", smsg, self);
             }
         }
@@ -475,8 +505,8 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetString:Var:Unknown:{}", smsg, vid);
             }
-            Self::XCast(_xtype, _xdm) => {
-                todo!("ERRR:{}:DataM:GetString:XCast:{:?}:Not supported", smsg, self);
+            Self::XCast(xdata) => {
+                return xdata.get_string(ctxt, &format!("{}:DataM:GetString:XCast:{:?}", smsg, self));
             }
         }
     }
@@ -501,33 +531,8 @@ impl DataM {
                 }
                 panic!("ERRR:{}:DataM:GetBuf:Var:Unknown:{}", smsg, vid);
             }
-            Self::XCast(xtype, xdm) => {
-                let xdmtype = xdm.get_type(ctxt);
-                match xtype {
-                    XCastType::Str => {
-                        match xdmtype {
-                            VDataType::Integer => return Vec::from(xdm.get_string(ctxt, smsg)),
-                            VDataType::Buffer => return Vec::from(String::from_utf8_lossy(&xdm.get_bufvu8(ctxt, smsg)).to_string()),
-                            _ => return xdm.get_bufvu8(ctxt, smsg),
-                        }
-                    }
-                    XCastType::StrTrim => {
-                        match xdmtype {
-                            VDataType::String => {
-                                let sdata = xdm.get_string(ctxt, smsg);
-                                return Vec::from(sdata.trim());
-                            }
-                            VDataType::Buffer => {
-                                let sdata = String::from_utf8_lossy(&xdm.get_bufvu8(ctxt, smsg)).to_string();
-                                return Vec::from(sdata.trim());
-                            }
-                            _ => panic!("ERRR:{}:DataM:GetBuf:XCast:{:?}:Not supported", smsg, self),
-                        }
-                    }
-                    XCastType::StrHex => {
-                        todo!("ERRR:{}:DataM:GetBuf:XCast:{:?}:Not supported", smsg, self);
-                    }
-                }
+            Self::XCast(xdata) => {
+                return Vec::from(xdata.get_string(ctxt, &format!("{}:DataM:GetBuf:XCast:{:?}", smsg, self)))
             }
         }
     }
@@ -550,7 +555,7 @@ impl DataM {
                 }
                 return gotr.unwrap();
             }
-            Self::XCast(_xtype, _xdm) => {
+            Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:GetBufVu8Mut:XCast:{:?}:Not supported", smsg, self);
             }
         }
@@ -563,7 +568,7 @@ impl DataM {
                 let vvalue = Variant::IntValue(vvalue);
                 ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetISize", smsg));
             }
-            Self::XCast(_xtype, _xdm) => {
+            Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:SetISize:XCast:{:?}:Not supported", smsg, self);
             }
         }
@@ -577,7 +582,7 @@ impl DataM {
                 let vvalue = Variant::StrValue(vvalue);
                 ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetString", smsg));
             }
-            Self::XCast(_xtype, _xdm) => {
+            Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:SetString:XCast:{:?}:Not supported", smsg, self);
             }
         }
@@ -590,7 +595,7 @@ impl DataM {
                 let vvalue = Variant::BufValue(vvalue);
                 ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetBuf", smsg));
             }
-            Self::XCast(_xtype, _xdm) => {
+            Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:SetBuf:XCast:{:?}:Not supported", smsg, self);
             }
         }
@@ -602,7 +607,7 @@ impl DataM {
             DataM::Variable(datakind, vname) => {
                 ctxt.var_set(datakind, vname, vvalue, bforcelocal, &format!("{}:DataM:SetValue", smsg));
             }
-            Self::XCast(_xtype, _xdm) => {
+            Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:SetValue:XCast:{:?}:Not supported", smsg, self);
             }
         }
