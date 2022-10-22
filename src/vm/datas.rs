@@ -92,12 +92,17 @@ impl Variant {
     /// If the underlying value is negative, then it will panic
     ///
     #[allow(dead_code)]
-    fn get_usize(&self, smsg: &str) -> usize {
-        let ival = self.get_isize().expect(&format!("{}:Variant:GetUSize",smsg));
-        if ival < 0 {
-            panic!("ERRR:{}:Variant:GetUSize: Negative int value not supported here", smsg)
+    fn get_usize(&self) -> Result<usize, String> {
+        let ival = self.get_isize();
+        match ival {
+            Ok(ival) => {
+                if ival < 0 {
+                    panic!("Variant:GetUSize: Negative int value not supported here")
+                }
+                return Ok(ival as usize);
+            }
+            Err(msg) => return Err(format!("Variant:GetUSize:{}", msg)),
         }
-        return ival as usize;
     }
 
     ///
