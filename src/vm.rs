@@ -720,15 +720,19 @@ impl DataM {
         }
     }
 
-    fn set_bufvu8(&self, ctxt: &mut Context, vvalue: Vec<u8>, smsg: &str) {
+    fn set_bufvu8(&self, ctxt: &mut Context, vvalue: Vec<u8>) -> Result<(), String> {
         match  self {
-            DataM::Value(_) => panic!("ERRR:{}:DataM:SetBuf:Cant set a value!", smsg),
+            DataM::Value(_) => return Err("DataM:SetBuf:Val:Cant set a value!".to_string()),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::BufValue(vvalue);
-                ctxt.var_set(datakind, vname, vvalue, false).expect(&format!("{}:DataM:SetBuf", smsg));
+                let ok = ctxt.var_set(datakind, vname, vvalue, false);
+                if ok.is_ok() {
+                    return ok;
+                }
+                return Err(format!("DataM:SetBuf:{}", ok.unwrap_err()));
             }
             Self::XCast(_xdata) => {
-                panic!("ERRR:{}:DataM:SetBuf:XCast:{:?}:Not supported", smsg, self);
+                return Err(format!("DataM:SetBuf:XCast:{:?}:Not supported", self));
             }
         }
     }
@@ -1336,7 +1340,7 @@ impl Op {
                     };
                     vres.push(res);
                 }
-                destvid.set_bufvu8(ctxt, vres, &format!("{}:AluL:{:?}:{:?}", msgtag, aluop, destvid));
+                destvid.set_bufvu8(ctxt, vres).expect(&format!("{}:AluL:{:?}:{:?}", msgtag, aluop, destvid));
             },
 
             Self::IobNew(ioid, ioaddr, ioargs) => {
@@ -1382,7 +1386,7 @@ impl Op {
                     readsize = gotr.unwrap();
                 }
                 buf.resize(readsize, 0);
-                bufid.set_bufvu8(ctxt, buf.to_vec(), &format!("{}:IobRead:Updating ToBuf:{:?}", msgtag, bufid));
+                bufid.set_bufvu8(ctxt, buf.to_vec()).expect(&format!("{}:IobRead:Updating ToBuf:{:?}", msgtag, bufid));
             }
             Self::IobClose(ioid) => {
                 let zenio = ctxt.iobs.get_mut(ioid).unwrap();
@@ -1400,7 +1404,7 @@ impl Op {
                 let fc = ctxt.fcrtm.fchain(&fcid).expect(&format!("ERRR:{}:FcGet:UnknownFC???:{}", msgtag, fcid));
                 let gotfuzz = fc.get(Some(ctxt.stepu));
                 ldebug!(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
-                vid.set_bufvu8(ctxt, gotfuzz, &format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
+                vid.set_bufvu8(ctxt, gotfuzz).expect(&format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
                 ctxt.stepu += 1;
             }
             Self::If(cop, val1dm, val2dm, nxtop) => {
@@ -1459,7 +1463,7 @@ impl Op {
                 let mut buf = Vec::<u8>::new();
                 let bufsize = dmbufsize.get_usize(ctxt).expect(&format!("{}:BufNew:BufSize", msgtag));
                 buf.resize(bufsize, 0);
-                bufid.set_bufvu8(ctxt, buf, &format!("{}:BufNew:{:?}", msgtag, bufid));
+                bufid.set_bufvu8(ctxt, buf).expect(&format!("{}:BufNew:{:?}", msgtag, bufid));
             }
             Self::Buf8Randomize(bufid, dmrandcount, dmstartoffset, dmendoffset, dmstartval, dmendval) => {
                 let b8rmsg = &format!("{}:Buf8Randomize", msgtag);
@@ -1501,7 +1505,7 @@ impl Op {
                     let curval = startval + (rng.gen::<u16>() % valwidth) as u8;
                     buf[curind] = curval;
                 }
-                bufid.set_bufvu8(ctxt, buf, &format!("{}:Buf:{:?}:SettingResult", b8rmsg, bufid));
+                bufid.set_bufvu8(ctxt, buf).expect(&format!("{}:Buf:{:?}:SettingResult", b8rmsg, bufid));
             }
             Self::BufMerged(mtype, destbufdm, srcdms) => {
                 let mut destbuf = Vec::new();
@@ -1516,7 +1520,7 @@ impl Op {
                     destbuf.append(&mut sbuf);
                 }
                 ldebug!(&format!("DBUG:{}:BufMerged:{:?}:{:?}", msgtag, destbufdm, destbuf));
-                destbufdm.set_bufvu8(ctxt, destbuf, &format!("{}:BufMerged.{}:{:?}", msgtag, mtype, destbufdm));
+                destbufdm.set_bufvu8(ctxt, destbuf).expect(&format!("{}:BufMerged.{}:{:?}", msgtag, mtype, destbufdm));
             }
 
             Self::LetGlobal(ltype, vardm, datadm) => {
