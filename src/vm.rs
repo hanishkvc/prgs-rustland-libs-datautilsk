@@ -515,12 +515,18 @@ impl DataM {
     /// Return a positive interger value, this is built upon get_isize
     /// If the underlying value is negative, then it will panic
     ///
-    fn get_usize(&self, ctxt: &mut Context, smsg: &str) -> usize {
-        let ival = self.get_isize(ctxt).expect(&format!("{}:DataM:GetUSize",smsg));
-        if ival < 0 {
-            panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
+    fn get_usize(&self, ctxt: &mut Context) -> Result<usize, String> {
+        let ival = self.get_isize(ctxt);
+        //.expect(&format!("{}:DataM:GetUSize",smsg));
+        match ival {
+            Ok(ival) => {
+                if ival < 0 {
+                    return Err("DataM:GetUSize: Negative int value not supported here".to_string());
+                }
+                return Ok(ival as usize);
+            }
+            Err(msg) => return Err(format!("DataM:GetUSize:{}", msg)),
         }
-        return ival as usize;
     }
 
     ///
@@ -1338,7 +1344,7 @@ impl Op {
                 ctxt.iobs.remove(ioid);
             }
             Self::SleepMSec(msecdm) => {
-                let msec = msecdm.get_usize(ctxt, &format!("{}:SleepMSec:Value:{:?}", msgtag, msecdm));
+                let msec = msecdm.get_usize(ctxt).expect(&format!("{}:SleepMSec:Value:{:?}", msgtag, msecdm));
                 thread::sleep(Duration::from_millis(msec as u64));
             }
             Self::FcGet(fcid, vid) => {
@@ -1402,7 +1408,7 @@ impl Op {
 
             Self::BufNew(bufid, dmbufsize) => {
                 let mut buf = Vec::<u8>::new();
-                let bufsize = dmbufsize.get_usize(ctxt, &format!("{}:BufNew:BufSize", msgtag));
+                let bufsize = dmbufsize.get_usize(ctxt).expect(&format!("{}:BufNew:BufSize", msgtag));
                 buf.resize(bufsize, 0);
                 bufid.set_bufvu8(ctxt, buf, &format!("{}:BufNew:{:?}", msgtag, bufid));
             }
