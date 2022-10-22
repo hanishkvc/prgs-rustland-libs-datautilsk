@@ -658,15 +658,19 @@ impl DataM {
     }
 
     #[allow(dead_code)]
-    fn set_string(&self, ctxt: &mut Context, vvalue: String, smsg: &str) {
+    fn set_string(&self, ctxt: &mut Context, vvalue: String) -> Result<(), String> {
         match  self {
-            DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
+            DataM::Value(_) => return Err("DataM:SetString:Val:Cant set a value!".to_string()),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::StrValue(vvalue);
-                ctxt.var_set(datakind, vname, vvalue, false).expect(&format!("{}:DataM:SetString", smsg));
+                let ok = ctxt.var_set(datakind, vname, vvalue, false);
+                if ok.is_ok() {
+                    return ok;
+                }
+                return Err(format!("DataM:SetString:{}", ok.unwrap_err()));
             }
             Self::XCast(_xdata) => {
-                panic!("ERRR:{}:DataM:SetString:XCast:{:?}:Not supported", smsg, self);
+                return Err(format!("DataM:SetString:XCast:{:?}:Not supported", self));
             }
         }
     }
