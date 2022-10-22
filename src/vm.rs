@@ -737,14 +737,18 @@ impl DataM {
         }
     }
 
-    fn set_value(&self, ctxt: &mut Context, vvalue: Variant, bforcelocal: bool, smsg: &str) {
+    fn set_value(&self, ctxt: &mut Context, vvalue: Variant, bforcelocal: bool) -> Result<(), String> {
         match  self {
-            DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
+            DataM::Value(_) => return Err("DataM:SetValue:Val:Cant set a value! to a value".to_string()),
             DataM::Variable(datakind, vname) => {
-                ctxt.var_set(datakind, vname, vvalue, bforcelocal).expect(&format!("{}:DataM:SetValue", smsg));
+                let ok = ctxt.var_set(datakind, vname, vvalue, bforcelocal);
+                if ok.is_ok() {
+                    return  ok;
+                }
+                return Err(format!("DataM:SetValue:{}", ok.unwrap_err()));
             }
             Self::XCast(_xdata) => {
-                panic!("ERRR:{}:DataM:SetValue:XCast:{:?}:Not supported", smsg, self);
+                return Err(format!("DataM:SetValue:XCast:{:?}:Not supported", self));
             }
         }
     }
@@ -1543,7 +1547,7 @@ impl Op {
                     _ => panic!("{}:LetGlobal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
                 ldebug!(&format!("DBUG:{}:LetGlobal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
-                vardm.set_value(ctxt, vdata, false, &format!("{}:LetGlobal:Set the value", msgtag));
+                vardm.set_value(ctxt, vdata, false).expect(&format!("{}:LetGlobal:Set the value", msgtag));
             }
 
             Self::LetLocal(ltype, vardm, datadm) => {
@@ -1566,7 +1570,7 @@ impl Op {
                     _ => panic!("{}:LetLocal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
                 ldebug!(&format!("DBUG:{}:LetLocal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
-                vardm.set_value(ctxt, vdata, true, &format!("{}:LetLocal:Set the value", msgtag));
+                vardm.set_value(ctxt, vdata, true).expect(&format!("{}:LetLocal:Set the value", msgtag));
             }
 
             Self::EMagic(mtype, marg) => {
