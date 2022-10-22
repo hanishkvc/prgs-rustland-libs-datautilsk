@@ -1310,9 +1310,9 @@ impl Op {
             Self::Nop => (),
 
             Self::Inc(vid) => {
-                let mut val = vid.get_isize(ctxt).expect(&format!("{}:Inc:{:?}", msgtag, vid));
+                let mut val = vid.get_isize(ctxt).expect(&dformat!("{}:Inc:{:?}", msgtag, vid));
                 val += 1;
-                vid.set_isize(ctxt, val).expect(&format!("{}:Inc:{:?}", msgtag, vid));
+                vid.set_isize(ctxt, val).expect(&dformat!("{}:Inc:{:?}", msgtag, vid));
             }
             Self::Dec(vid) => {
                 let mut val = vid.get_isize(ctxt).expect(&format!("{}:Dec:{:?}", msgtag, vid));
@@ -1320,8 +1320,8 @@ impl Op {
                 vid.set_isize(ctxt, val).expect(&format!("{}:Dec:{:?}", msgtag, vid));
             },
             Self::AluArith(aluop, destvid, dmsrc1, dmsrc2) => {
-                let src1 = dmsrc1.get_isize(ctxt).expect(&format!("{}:AluA:Src1", msgtag));
-                let src2 = dmsrc2.get_isize(ctxt).expect(&format!("{}:AluA:Src2", msgtag));
+                let src1 = dmsrc1.get_isize(ctxt).expect(&dformat!("{}:AluA:Src1", msgtag));
+                let src2 = dmsrc2.get_isize(ctxt).expect(&dformat!("{}:AluA:Src2", msgtag));
                 let res = match aluop {
                     AluAOP::Add => src1 + src2,
                     AluAOP::Sub => src1 - src2,
@@ -1329,7 +1329,7 @@ impl Op {
                     AluAOP::Div => src1 / src2,
                     AluAOP::Mod => src1 % src2,
                 };
-                destvid.set_isize(ctxt, res).expect(&format!("{}:AluA:{:?}:{:?}", msgtag, aluop, destvid));
+                destvid.set_isize(ctxt, res).expect(&dformat!("{}:AluA:{:?}:{:?}", msgtag, aluop, destvid));
             },
             Self::AluLogical(aluop, destvid, dmsrc1, dmsrc2) => {
                 let src1 = dmsrc1.get_bufvu8(ctxt).expect(&format!("{}:AluL:Src1", msgtag));
@@ -1440,7 +1440,7 @@ impl Op {
                 }
             }
             Self::JumpRaw(label) => {
-                ctxt.iptr = *ctxt.lbls.get(label).expect(&format!("ERRR:{}:Jump:Label:{}", msgtag, label));
+                ctxt.iptr = *ctxt.lbls.get(label).expect(&dformat!("ERRR:{}:Jump:Label:{}", msgtag, label));
                 ctxt.iptr_commonupdate = false;
                 ldebug!(&format!("DBUG:{}:JumpRaw:{}:{}", msgtag, label, ctxt.iptr));
             }
@@ -1547,7 +1547,7 @@ impl Op {
                     _ => panic!("{}:LetGlobal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
                 ldebug!(&format!("DBUG:{}:LetGlobal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
-                vardm.set_value(ctxt, vdata, false).expect(&format!("{}:LetGlobal:Set the value", msgtag));
+                vardm.set_value(ctxt, vdata, false).expect(&dformat!("{}:LetGlobal:Set the value", msgtag));
             }
 
             Self::LetLocal(ltype, vardm, datadm) => {
