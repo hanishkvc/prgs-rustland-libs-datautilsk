@@ -160,22 +160,23 @@ impl Context {
     /// Setting a new variable creates it. bforcelocal helps control whether it is created has a local variable
     /// or a global variable.
     ///
-    pub fn var_set(&mut self, datakind: &DataKind, vname: &str, vvalue: Variant, bforcelocal: bool, smsg: &str) {
+    pub fn var_set(&mut self, datakind: &DataKind, vname: &str, vvalue: Variant, bforcelocal: bool) -> Result<(), String> {
         if let DataKind::FuncArg = datakind  {
-            panic!("ERRR:{}:Ctxt:VarSet:Cant set a funcarg, they are readonly currently", smsg);
+            return Err(format!("Ctxt:VarSet:{}:Cant set funcargs, they are readonly currently", vname));
         }
         let olocals = self.localsstack.last_mut();
         if olocals.is_some() {
             let locals = olocals.unwrap();
             if locals.contains_key(vname) || bforcelocal {
                 locals.insert(vname.to_string(), vvalue);
-                return;
+                return Ok(());
             }
         }
         if bforcelocal {
-            panic!("ERRR:{}:Ctxt:VarSet:Cant set a local variable, outside a function", smsg);
+            return Err(format!("Ctxt:VarSet:{}:Cant set a local variable, outside a function", vname));
         }
         self.globals.insert(vname.to_string(), vvalue);
+        return Ok(());
     }
 
     ///
@@ -633,15 +634,19 @@ impl DataM {
         }
     }
 
-    fn set_isize(&self, ctxt: &mut Context, vvalue: isize, smsg: &str) {
+    fn set_isize(&self, ctxt: &mut Context, vvalue: isize) -> Result<(), String> {
         match  self {
-            DataM::Value(_) => panic!("ERRR:{}:DataM:SetISize:Cant set a value!", smsg),
+            DataM::Value(_) => return Err("DataM:SetISize:Val:Cant set a value!".to_string()),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::IntValue(vvalue);
-                ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetISize", smsg));
+                let ok = ctxt.var_set(datakind, vname, vvalue, false);
+                if ok.is_ok() {
+                    return ok;
+                }
+                return Err(format!("DataM:SetISize:{}", ok.unwrap_err()));
             }
             Self::XCast(_xdata) => {
-                panic!("ERRR:{}:DataM:SetISize:XCast:{:?}:Not supported", smsg, self);
+                return Err(format!("DataM:SetISize:XCast:{:?}:Not supported", self));
             }
         }
     }
@@ -652,7 +657,7 @@ impl DataM {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetString:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::StrValue(vvalue);
-                ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetString", smsg));
+                ctxt.var_set(datakind, vname, vvalue, false).expect(&format!("{}:DataM:SetString", smsg));
             }
             Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:SetString:XCast:{:?}:Not supported", smsg, self);
@@ -665,7 +670,7 @@ impl DataM {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetBuf:Cant set a value!", smsg),
             DataM::Variable(datakind, vname) => {
                 let vvalue = Variant::BufValue(vvalue);
-                ctxt.var_set(datakind, vname, vvalue, false, &format!("{}:DataM:SetBuf", smsg));
+                ctxt.var_set(datakind, vname, vvalue, false).expect(&format!("{}:DataM:SetBuf", smsg));
             }
             Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:SetBuf:XCast:{:?}:Not supported", smsg, self);
@@ -677,7 +682,7 @@ impl DataM {
         match  self {
             DataM::Value(_) => panic!("ERRR:{}:DataM:SetValue:Cant set a value! to a value", smsg),
             DataM::Variable(datakind, vname) => {
-                ctxt.var_set(datakind, vname, vvalue, bforcelocal, &format!("{}:DataM:SetValue", smsg));
+                ctxt.var_set(datakind, vname, vvalue, bforcelocal).expect(&format!("{}:DataM:SetValue", smsg));
             }
             Self::XCast(_xdata) => {
                 panic!("ERRR:{}:DataM:SetValue:XCast:{:?}:Not supported", smsg, self);
@@ -1244,12 +1249,12 @@ impl Op {
             Self::Inc(vid) => {
                 let mut val = vid.get_isize(ctxt).expect(&format!("{}:Inc:{:?}", msgtag, vid));
                 val += 1;
-                vid.set_isize(ctxt, val, &format!("{}:Inc:{:?}", msgtag, vid));
+                vid.set_isize(ctxt, val).expect(&format!("{}:Inc:{:?}", msgtag, vid));
             }
             Self::Dec(vid) => {
                 let mut val = vid.get_isize(ctxt).expect(&format!("{}:Dec:{:?}", msgtag, vid));
                 val -= 1;
-                vid.set_isize(ctxt, val, &format!("{}:Dec:{:?}", msgtag, vid));
+                vid.set_isize(ctxt, val).expect(&format!("{}:Dec:{:?}", msgtag, vid));
             },
             Self::AluArith(aluop, destvid, dmsrc1, dmsrc2) => {
                 let src1 = dmsrc1.get_isize(ctxt).expect(&format!("{}:AluA:Src1", msgtag));
@@ -1261,7 +1266,7 @@ impl Op {
                     AluAOP::Div => src1 / src2,
                     AluAOP::Mod => src1 % src2,
                 };
-                destvid.set_isize(ctxt, res, &format!("{}:AluA:{:?}:{:?}", msgtag, aluop, destvid));
+                destvid.set_isize(ctxt, res).expect(&format!("{}:AluA:{:?}:{:?}", msgtag, aluop, destvid));
             },
             Self::AluLogical(aluop, destvid, dmsrc1, dmsrc2) => {
                 let src1 = dmsrc1.get_bufvu8(ctxt, &format!("{}:AluL:Src1", msgtag));
@@ -1515,7 +1520,7 @@ impl Op {
 
             Self::GetSize(sdm, ddm) => {
                 let tbuf = sdm.get_bufvu8(ctxt, &format!("{}:GetSize:Fetching src:{:?}", msgtag, sdm));
-                ddm.set_isize(ctxt, tbuf.len() as isize, &format!("{}:GetSize:Writing size to:{:?}", msgtag, ddm));
+                ddm.set_isize(ctxt, tbuf.len() as isize).expect(&format!("{}:GetSize:Writing size to:{:?}", msgtag, ddm));
             }
 
         }
