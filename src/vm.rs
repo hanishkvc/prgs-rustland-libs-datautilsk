@@ -305,7 +305,7 @@ impl XCastData {
     fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
         // As of now all XCasts are str generating, so do casting as part of get_string
         let sdata = self.get_string(ctxt, &format!("{}:XCastData:GetISize:Casting:{:?}", smsg, self));
-        return Variant::StrValue(sdata).get_isize(&format!("{}:XCastData:GetISize:Converting:{:?}", smsg, self));
+        return Variant::StrValue(sdata).get_isize().expect(&format!("{}:XCastData:GetISize:Converting:{:?}", smsg, self));
     }
 
     fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
@@ -368,7 +368,7 @@ impl DataM {
         let echar = sdata.chars().last().unwrap();
 
         if schar.is_numeric() || schar == '+' || schar == '-' {
-            let idata = datautils::intvalue(sdata, &format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
+            let idata = datautils::intvalue(sdata).expect(&format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
             return DataM::Value(Variant::IntValue(idata));
         }
 
@@ -488,20 +488,24 @@ impl DataM {
     /// * XTimeStamp -> milliseconds from UnixEpoch truncated
     /// * XRandomBytes -> a randomly generated Int (limited to min(Int size,requested bytes))
     ///
-    fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
+    fn get_isize(&self, ctxt: &mut Context) -> Result<isize, String> {
         match self {
             Self::Value(oval) => {
-                return oval.get_isize(smsg);
+                return oval.get_isize();
             }
             Self::Variable(datakind, vid) => {
                 let ovalue = ctxt.var_get(datakind, vid);
                 if ovalue.is_some() {
-                    return ovalue.unwrap().get_isize(&format!("{}:DataM:GetISize:Var", smsg));
+                    let ivalue = ovalue.unwrap().get_isize();
+                    if ivalue.is_ok() {
+                        return ivalue;
+                    }
+                    return Err(format!("DataM:GetISize:Var:{}", ivalue.unwrap_err()));
                 }
-                panic!("ERRR:{}:DataM:GetISize:Var:Unknown:{}", smsg, vid);
+                return Err(format!("DataM:GetISize:Var:Unknown:{}", vid));
             }
             Self::XCast(xdata) => {
-                return xdata.get_isize(ctxt, &format!("{}:DataM:GetISize:XCast", smsg));
+                return Ok(xdata.get_isize(ctxt, &format!("DataM:GetISize:XCast")));
             }
         }
     }
@@ -511,7 +515,7 @@ impl DataM {
     /// If the underlying value is negative, then it will panic
     ///
     fn get_usize(&self, ctxt: &mut Context, smsg: &str) -> usize {
-        let ival = self.get_isize(ctxt, &format!("{}:DataM:GetUSize",smsg));
+        let ival = self.get_isize(ctxt).expect(&format!("{}:DataM:GetUSize",smsg));
         if ival < 0 {
             panic!("ERRR:{}:DataM:GetUSize: Negative int value not supported here", smsg)
         }
@@ -712,8 +716,8 @@ impl CondOp {
     fn check(&self, ctxt: &mut Context, val1: &DataM, val2: &DataM) -> bool {
         match self {
             CondOp::IfLtInt => {
-                let val1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val1");
-                let val2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLtInt:Val2");
+                let val1 = val1.get_isize(ctxt).expect("FuzzerK:Vm:CondOp:IfLtInt:Val1");
+                let val2 = val2.get_isize(ctxt).expect("FuzzerK:Vm:CondOp:IfLtInt:Val2");
                 ldebug!(&format!("DBUG:CondOp:IfLtInt:[{}] vs [{}]", val1, val2));
                 if val1 < val2 {
                     return true;
@@ -724,11 +728,11 @@ impl CondOp {
                 return CondOp::IfLtInt.check(ctxt, val2, val1);
             },
             CondOp::IfLeInt => {
-                let adjval2 = val2.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfLeInt:Val2") + 1;
+                let adjval2 = val2.get_isize(ctxt).expect("FuzzerK:Vm:CondOp:IfLeInt:Val2") + 1;
                 return CondOp::IfLtInt.check(ctxt, val1, &DataM::Value(Variant::IntValue(adjval2)));
             },
             CondOp::IfGeInt => {
-                let adjval1 = val1.get_isize(ctxt, "FuzzerK:Vm:CondOp:IfGeInt:Val1") + 1;
+                let adjval1 = val1.get_isize(ctxt).expect("FuzzerK:Vm:CondOp:IfGeInt:Val1") + 1;
                 return CondOp::IfLtInt.check(ctxt, val2, &DataM::Value(Variant::IntValue(adjval1)));
             },
             CondOp::IfEqBuf => {
@@ -1238,18 +1242,18 @@ impl Op {
             Self::Nop => (),
 
             Self::Inc(vid) => {
-                let mut val = vid.get_isize(ctxt, &format!("{}:Inc:{:?}", msgtag, vid));
+                let mut val = vid.get_isize(ctxt).expect(&format!("{}:Inc:{:?}", msgtag, vid));
                 val += 1;
                 vid.set_isize(ctxt, val, &format!("{}:Inc:{:?}", msgtag, vid));
             }
             Self::Dec(vid) => {
-                let mut val = vid.get_isize(ctxt, &format!("{}:Dec:{:?}", msgtag, vid));
+                let mut val = vid.get_isize(ctxt).expect(&format!("{}:Dec:{:?}", msgtag, vid));
                 val -= 1;
                 vid.set_isize(ctxt, val, &format!("{}:Dec:{:?}", msgtag, vid));
             },
             Self::AluArith(aluop, destvid, dmsrc1, dmsrc2) => {
-                let src1 = dmsrc1.get_isize(ctxt, &format!("{}:AluA:Src1", msgtag));
-                let src2 = dmsrc2.get_isize(ctxt, &format!("{}:AluA:Src2", msgtag));
+                let src1 = dmsrc1.get_isize(ctxt).expect(&format!("{}:AluA:Src1", msgtag));
+                let src2 = dmsrc2.get_isize(ctxt).expect(&format!("{}:AluA:Src2", msgtag));
                 let res = match aluop {
                     AluAOP::Add => src1 + src2,
                     AluAOP::Sub => src1 - src2,
@@ -1352,8 +1356,8 @@ impl Op {
                 }
             }
             Self::CheckJump(arg1, arg2, ltlabel, eqlabel, gtlabel) => {
-                let varg1 = arg1.get_isize(ctxt, &format!("{}:CheckJump:GetArg1:{:?}", msgtag, arg1));
-                let varg2 = arg2.get_isize(ctxt, &format!("{}:CheckJump:GetArg2:{:?}", msgtag, arg2));
+                let varg1 = arg1.get_isize(ctxt).expect(&format!("{}:CheckJump:GetArg1:{:?}", msgtag, arg1));
+                let varg2 = arg2.get_isize(ctxt).expect(&format!("{}:CheckJump:GetArg2:{:?}", msgtag, arg2));
                 let label;
                 if varg1 < varg2 {
                     label = ltlabel;
@@ -1401,7 +1405,7 @@ impl Op {
                 let b8rmsg = &format!("{}:Buf8Randomize", msgtag);
                 let mut buf = bufid.get_bufvu8(ctxt, &format!("{}:Getting TheBuf:{:?}", b8rmsg, bufid));
 
-                let randcount = dmrandcount.get_isize(ctxt, &format!("{}:RandCount", b8rmsg));
+                let randcount = dmrandcount.get_isize(ctxt).expect(&format!("{}:RandCount", b8rmsg));
                 let trandcount;
                 if randcount < 0 {
                     trandcount = rand::random::<usize>() % buf.len();
@@ -1409,7 +1413,7 @@ impl Op {
                     trandcount = randcount as usize;
                 }
 
-                let startoffset = dmstartoffset.get_isize(ctxt, &format!("{}:StartOffset", b8rmsg));
+                let startoffset = dmstartoffset.get_isize(ctxt).expect(&format!("{}:StartOffset", b8rmsg));
                 let tstartoffset;
                 if startoffset < 0 {
                     tstartoffset = 0;
@@ -1417,7 +1421,7 @@ impl Op {
                     tstartoffset = startoffset as usize;
                 }
 
-                let endoffset = dmendoffset.get_isize(ctxt, &format!("{}:EndOffset", b8rmsg));
+                let endoffset = dmendoffset.get_isize(ctxt).expect(&format!("{}:EndOffset", b8rmsg));
                 let tendoffset;
                 if endoffset < 0 {
                     tendoffset = buf.len()-1;
@@ -1426,8 +1430,8 @@ impl Op {
                 }
 
                 // TOTHINK: Should I truncate silently or should I panic if truncation required.
-                let startval = dmstartval.get_isize(ctxt, &format!("{}:StartVal", b8rmsg)) as u8;
-                let endval = dmendval.get_isize(ctxt, &format!("{}:EndVal", b8rmsg)) as u8;
+                let startval = dmstartval.get_isize(ctxt).expect(&format!("{}:StartVal", b8rmsg)) as u8;
+                let endval = dmendval.get_isize(ctxt).expect(&format!("{}:EndVal", b8rmsg)) as u8;
 
                 let mut rng = rand::thread_rng();
                 let offsetwidth = tendoffset - tstartoffset + 1;
@@ -1469,7 +1473,7 @@ impl Op {
                         vdata = Variant::StrValue(tdata);
                     }
                     'i' => {
-                        let tdata = datadm.get_isize(ctxt, &format!("{}:LetGlobal.i:GetSrcData", msgtag));
+                        let tdata = datadm.get_isize(ctxt).expect(&format!("{}:LetGlobal.i:GetSrcData", msgtag));
                         vdata = Variant::IntValue(tdata);
                     }
                     _ => panic!("{}:LetGlobal:GetSrcData:Unknown type:{}", msgtag, ltype),
@@ -1492,7 +1496,7 @@ impl Op {
                         vdata = Variant::StrValue(tdata);
                     }
                     'i' => {
-                        let tdata = datadm.get_isize(ctxt, &format!("{}:LetLocal.i:GetSrcData", msgtag));
+                        let tdata = datadm.get_isize(ctxt).expect(&format!("{}:LetLocal.i:GetSrcData", msgtag));
                         vdata = Variant::IntValue(tdata);
                     }
                     _ => panic!("{}:LetLocal:GetSrcData:Unknown type:{}", msgtag, ltype),
@@ -1502,7 +1506,7 @@ impl Op {
             }
 
             Self::EMagic(mtype, marg) => {
-                let mtype = mtype.get_isize(ctxt, &format!("{}:EMagic:MType:{:?}", msgtag, mtype));
+                let mtype = mtype.get_isize(ctxt).expect(&format!("{}:EMagic:MType:{:?}", msgtag, mtype));
                 if mtype == 0x010 {
                     let mbuf = marg.get_bufvu8(ctxt, &format!("{}:EMagic:Marg:Buf", msgtag));
                     log_e(&format!("EMAGIC:{}:{:?}:Len:{}:Cap:{}", mtype, mbuf, mbuf.len(), mbuf.capacity()));
