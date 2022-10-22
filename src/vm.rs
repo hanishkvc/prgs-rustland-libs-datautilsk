@@ -279,26 +279,38 @@ enum XCastData {
 
 impl XCastData {
 
-    fn get_string(&self, ctxt: &mut Context, smsg: &str) -> String {
+    fn get_string(&self, ctxt: &mut Context) -> Result<String, String> {
         match self {
             Self::Str(dm) => {
-                let (vtype, vvalue) = dm.get_type_value(ctxt, &format!("{}:XCastData:Str:GetString:{:?}", smsg, self));
+                let tv = dm.get_type_value(ctxt);
+                if tv.is_err() {
+                    return Err(format!("XCastData:Str:GetString:{:?}", self));
+                }
+                let (vtype, vvalue) = tv.unwrap();
                 match vtype {
-                    VDataType::Buffer => return String::from_utf8_lossy(&vvalue.get_bufvu8()).to_string(),
-                    _ => return vvalue.get_string(),
+                    VDataType::Buffer => return Ok(String::from_utf8_lossy(&vvalue.get_bufvu8()).to_string()),
+                    _ => return Ok(vvalue.get_string()),
                 }
             }
             Self::StrTrim(dm) => {
-                let (vtype, vvalue) = dm.get_type_value(ctxt, &format!("{}:XCastData:StrTrim:GetString:{:?}", smsg, self));
+                let tv = dm.get_type_value(ctxt);
+                if tv.is_err() {
+                    return Err(format!("XCastData:StrTrim:GetString:{:?}", self));
+                }
+                let (vtype, vvalue) = tv.unwrap();
                 let sdata = match vtype {
                     VDataType::Buffer => String::from_utf8_lossy(&vvalue.get_bufvu8()).to_string(),
                     _ => vvalue.get_string(),
                 };
-                return sdata.trim().to_string();
+                return Ok(sdata.trim().to_string());
             }
             Self::StrHex(dm) => {
-                let bdata = dm.get_bufvu8(ctxt).expect(&format!("{}:XCastData:StrHex:GetString{:?}", smsg, self));
-                return datautils::hex_from_vu8(&bdata);
+                let bdata = dm.get_bufvu8(ctxt);
+                if bdata.is_err() {
+                    return Err(format!("XCastData:StrHex:GetString{:?}", self));
+                }
+                let bdata = bdata.unwrap();
+                return Ok(datautils::hex_from_vu8(&bdata));
             }
         }
     }
@@ -598,20 +610,20 @@ impl DataM {
         }
     }
 
-    fn get_type_value(&self, ctxt: &mut Context, smsg: &str) -> (VDataType, Variant) {
+    fn get_type_value(&self, ctxt: &mut Context) -> Result<(VDataType, Variant), String> {
         match self {
-            Self::Value(oval) => return (oval.get_type(), oval.clone()),
+            Self::Value(oval) => return Ok((oval.get_type(), oval.clone())),
             Self::Variable(datakind, vname) => {
                 let oval = ctxt.var_get(datakind, vname);
                 if oval.is_some() {
                     let oval = oval.unwrap();
-                    return (oval.get_type(), oval.clone());
+                    return Ok((oval.get_type(), oval.clone()));
                 }
-                panic!("ERRR:{}:DataM:GetTypeVal:Var:Unknown:{}", smsg, vname);
+                return Err(format!("DataM:GetTypeVal:Var:Unknown:{}", vname));
             }
             Self::XCast(xdata) => {
-                let oval = xdata.get_value(ctxt, &format!("{}:DataM:GetTypeVal:XCast", smsg));
-                return (oval.get_type(), oval);
+                let oval = xdata.get_value(ctxt, &format!("DataM:GetTypeVal:XCast"));
+                return Ok((oval.get_type(), oval));
             }
         }
     }
