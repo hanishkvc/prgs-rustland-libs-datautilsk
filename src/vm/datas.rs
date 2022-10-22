@@ -47,21 +47,30 @@ impl Variant {
     /// * XTimeStamp -> milliseconds from UnixEpoch truncated
     /// * XRandomBytes -> a randomly generated Int (limited to min(Int size,requested bytes))
     ///
-    pub fn get_isize(&self, smsg: &str) -> isize {
+    pub fn get_isize(&self) -> Result<isize, String> {
         match self {
             Self::IntValue(ival) => {
-                return *ival;
+                return Ok(*ival);
             },
             Self::StrValue(sval) => {
-                return datautils::intvalue(sval, &format!("ERRR:{}:Variant:GetISize:StrValue: Conversion failed", smsg));
+                let ival = datautils::intvalue(sval);
+                if ival.is_ok() {
+                    return Ok(ival.unwrap());
+                }
+                return Err(format!("Variant:GetISize:StrValue: Conversion failed:{}", ival.unwrap_err()));
             },
             Self::BufValue(bval) => {
-                return isize::from_ne_bytes(bval.as_slice().try_into().expect(&format!("ERRR:{}:Variant:GetISize:BufValue: Conversion failed", smsg)));
+                let bval = bval.as_slice().try_into();
+                if bval.is_ok() {
+                    let bval = bval.unwrap();
+                    return Ok(isize::from_ne_bytes(bval));
+                }
+                return Err(format!("Variant:GetISize:BufValue: Conversion failed:{}", bval.unwrap_err()));
             },
             Self::XTimeStamp => {
                 let ts = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap();
                 let uts = ts.as_millis();
-                return uts as isize;
+                return Ok(uts as isize);
             },
             Self::XRandomBytes(bytelen) => {
                 let mut rng = rand::thread_rng();
@@ -73,7 +82,7 @@ impl Variant {
                 for _i in 0..ibytes {
                     vdata.push(rng.gen_range(0..=255)); // rusty 0..256
                 }
-                return isize::from_ne_bytes(vdata.as_slice().try_into().unwrap());
+                return Ok(isize::from_ne_bytes(vdata.as_slice().try_into().unwrap()));
             }
         }
     }
@@ -84,7 +93,7 @@ impl Variant {
     ///
     #[allow(dead_code)]
     fn get_usize(&self, smsg: &str) -> usize {
-        let ival = self.get_isize(&format!("{}:Variant:GetUSize",smsg));
+        let ival = self.get_isize().expect(&format!("{}:Variant:GetUSize",smsg));
         if ival < 0 {
             panic!("ERRR:{}:Variant:GetUSize: Negative int value not supported here", smsg)
         }

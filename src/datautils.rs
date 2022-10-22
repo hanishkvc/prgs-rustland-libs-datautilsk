@@ -5,6 +5,7 @@
 //!
 
 use core::convert::From;
+use std::num::ParseIntError;
 
 
 ///
@@ -207,13 +208,13 @@ impl From<isize> for U8X {
 /// or hexdecimal (if starts with 0x) string value.
 ///
 /// Inturn try convert the isize to specified type.
-pub fn intvalue<T: std::convert::From<isize>>(sval: &str, exceptmsg: &str) -> T {
+pub fn intvalue<T: std::convert::From<isize>>(sval: &str) -> Result<T, ParseIntError> {
     let sval = sval.trim();
     let ival;
     if sval.starts_with("0x") {
-        ival = isize::from_str_radix(&sval[2..], 16).expect(exceptmsg);
+        ival = isize::from_str_radix(&sval[2..], 16)?;
     } else {
-        ival = isize::from_str_radix(sval, 10).expect(exceptmsg);
+        ival = isize::from_str_radix(sval, 10)?;
     }
-    return T::try_from(ival).unwrap();
+    return Ok(T::try_from(ival).unwrap());
 }
