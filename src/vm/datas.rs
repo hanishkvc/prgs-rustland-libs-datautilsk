@@ -10,6 +10,7 @@ use rand::Rng;
 use crate::datautils;
 
 
+#[derive(Debug)]
 pub enum VDataType {
     Unknown,
     Integer,

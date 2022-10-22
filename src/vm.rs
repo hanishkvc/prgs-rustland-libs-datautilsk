@@ -284,7 +284,7 @@ impl XCastData {
             Self::Str(dm) => {
                 let tv = dm.get_type_value(ctxt);
                 if tv.is_err() {
-                    return Err(format!("XCastData:Str:GetString:{:?}", self));
+                    return Err(format!("XCastData:Str:GetString:{:?}:{}", self, tv.unwrap_err()));
                 }
                 let (vtype, vvalue) = tv.unwrap();
                 match vtype {
@@ -295,7 +295,7 @@ impl XCastData {
             Self::StrTrim(dm) => {
                 let tv = dm.get_type_value(ctxt);
                 if tv.is_err() {
-                    return Err(format!("XCastData:StrTrim:GetString:{:?}", self));
+                    return Err(format!("XCastData:StrTrim:GetString:{:?}:{}", self, tv.unwrap_err()));
                 }
                 let (vtype, vvalue) = tv.unwrap();
                 let sdata = match vtype {
@@ -307,30 +307,43 @@ impl XCastData {
             Self::StrHex(dm) => {
                 let bdata = dm.get_bufvu8(ctxt);
                 if bdata.is_err() {
-                    return Err(format!("XCastData:StrHex:GetString{:?}", self));
+                    return Err(format!("XCastData:StrHex:GetString{:?}:{}", self, bdata.unwrap_err()));
                 }
-                let bdata = bdata.unwrap();
-                return Ok(datautils::hex_from_vu8(&bdata));
+                return Ok(datautils::hex_from_vu8(&bdata.unwrap()));
             }
         }
     }
 
-    fn get_isize(&self, ctxt: &mut Context, smsg: &str) -> isize {
+    fn get_isize(&self, ctxt: &mut Context) -> Result<isize, String> {
         // As of now all XCasts are str generating, so do casting as part of get_string
-        let sdata = self.get_string(ctxt, &format!("{}:XCastData:GetISize:Casting:{:?}", smsg, self));
-        return Variant::StrValue(sdata).get_isize().expect(&format!("{}:XCastData:GetISize:Converting:{:?}", smsg, self));
+        let sdata = self.get_string(ctxt);
+        if sdata.is_err() {
+            return Err(format!("XCastData:GetISize:Casting:{:?}:{}", self, sdata.unwrap_err()));
+        }
+        let sdata = sdata.unwrap();
+        let ival = Variant::StrValue(sdata).get_isize();
+        if ival.is_err() {
+            return Err(format!("XCastData:GetISize:Converting:{:?}:{}", self, ival.unwrap_err()));
+        }
+        return Ok(ival.unwrap());
     }
 
-    fn get_bufvu8(&self, ctxt: &mut Context, smsg: &str) -> Vec<u8> {
+    fn get_bufvu8(&self, ctxt: &mut Context) -> Result<Vec<u8>, String> {
         // As of now all XCasts are str generating, so do casting as part of get_string
-        let sdata = self.get_string(ctxt, &format!("{}:XCastData:GetBuf:Casting:{:?}", smsg, self));
-        return Variant::StrValue(sdata).get_bufvu8();
+        let sdata = self.get_string(ctxt);
+        if sdata.is_err() {
+            return Err(format!("XCastData:GetBuf:Casting:{:?}:{}", self, sdata.unwrap_err()));
+        }
+        return Ok(Variant::StrValue(sdata.unwrap()).get_bufvu8());
     }
 
-    fn get_value(&self, ctxt: &mut Context, smsg: &str) -> Variant {
+    fn get_value(&self, ctxt: &mut Context) -> Result<Variant, String> {
         // As of now all XCasts are str generating, so do casting as part of get_string
-        let sdata = self.get_string(ctxt, &format!("{}:XCastData:GetValue:Casting:{:?}", smsg, self));
-        return Variant::StrValue(sdata);
+        let sdata = self.get_string(ctxt);
+        if sdata.is_err() {
+            return Err(format!("XCastData:GetValue:Casting:{:?}:{}", self, sdata.unwrap_err()));
+        }
+        return Ok(Variant::StrValue(sdata.unwrap()));
     }
 
     fn get_type(&self) -> VDataType {
@@ -518,7 +531,11 @@ impl DataM {
                 return Err(format!("DataM:GetISize:Var:Unknown:{}", vid));
             }
             Self::XCast(xdata) => {
-                return Ok(xdata.get_isize(ctxt, &format!("DataM:GetISize:XCast")));
+                let ival = xdata.get_isize(ctxt);
+                if ival.is_err() {
+                    return Err(format!("DataM:GetISize:XCast:{:?}:{}", xdata, ival.unwrap_err()));
+                }
+                return Ok(ival.unwrap());
             }
         }
     }
@@ -562,7 +579,11 @@ impl DataM {
                 return Err(format!("DataM:GetString:Var:Unknown:{}", vid));
             }
             Self::XCast(xdata) => {
-                return Ok(xdata.get_string(ctxt, &format!("DataM:GetString:XCast:{:?}", self)));
+                let sdata = xdata.get_string(ctxt);
+                if sdata.is_err() {
+                    return Err(format!("DataM:GetString:XCast:{:?}:{}", self, sdata.unwrap_err()));
+                }
+                return Ok(sdata.unwrap());
             }
         }
     }
@@ -588,24 +609,32 @@ impl DataM {
                 return Err(format!("DataM:GetBuf:Var:Unknown:{}", vid));
             }
             Self::XCast(xdata) => {
-                return Ok(xdata.get_bufvu8(ctxt, &format!("DataM:GetBuf:XCast")));
+                let bval = xdata.get_bufvu8(ctxt);
+                if bval.is_err() {
+                    return Err(format!("DataM:GetBuf:XCast:{}", bval.unwrap_err()));
+                }
+                return Ok(bval.unwrap());
             }
         }
     }
 
     #[allow(dead_code)]
-    fn get_value(&self, ctxt: &mut Context, smsg: &str) -> Variant {
+    fn get_value(&self, ctxt: &mut Context) -> Result<Variant, String> {
         match self {
-            Self::Value(oval) => return oval.clone(),
+            Self::Value(oval) => return Ok(oval.clone()),
             Self::Variable(datakind, vname) => {
                 let oval = ctxt.var_get(datakind, vname);
                 if oval.is_some() {
-                    return oval.unwrap().clone();
+                    return Ok(oval.unwrap().clone());
                 }
-                panic!("ERRR:{}:DataM:GetVal:Var:Unknown:{}", smsg, vname);
+                return Err(format!("DataM:GetVal:Var:Unknown:{}", vname));
             }
             Self::XCast(xdata) => {
-                return xdata.get_value(ctxt, &format!("{}:DataM:GetVal:XCast", smsg));
+                let vval = xdata.get_value(ctxt);
+                if vval.is_err() {
+                    return Err(format!("DataM:GetVal:XCast:{}", vval.unwrap_err()));
+                }
+                return Ok(vval.unwrap());
             }
         }
     }
@@ -622,7 +651,11 @@ impl DataM {
                 return Err(format!("DataM:GetTypeVal:Var:Unknown:{}", vname));
             }
             Self::XCast(xdata) => {
-                let oval = xdata.get_value(ctxt, &format!("DataM:GetTypeVal:XCast"));
+                let oval = xdata.get_value(ctxt);
+                if oval.is_err() {
+                    return Err(format!("DataM:GetTypeVal:XCast:{}", oval.unwrap_err()));
+                }
+                let oval = oval.unwrap();
                 return Ok((oval.get_type(), oval));
             }
         }
