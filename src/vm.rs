@@ -22,6 +22,17 @@ mod datas;
 use datas::{Variant, VDataType};
 
 
+macro_rules! dformat {
+    ($($got:tt)*) => {
+        if cfg!(debug_assertions) {
+            format!($($got)*)
+        } else {
+            "".to_string()
+        }
+    };
+}
+
+
 ///
 /// Specify / Identify as to where a given variable is alloted internally.
 ///
@@ -1222,7 +1233,7 @@ impl Op {
     }
 
     fn run(&self, ctxt: &mut Context, linenum: u32) {
-        let msgtag = &format!("FuzzerK:VM:Op:Run:{}", linenum);
+        let msgtag = &dformat!("FuzzerK:VM:Op:Run:{}", linenum);
         match self {
             Self::Nop => (),
 
