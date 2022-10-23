@@ -1413,7 +1413,11 @@ impl Op {
                     panic!("ERRR:{}:IobWrite:Getting SrcBuf:{:?}:{}", msgtag, srcdm, buf.unwrap_err());
                 }
                 let buf = buf.unwrap();
-                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:{}:IobWrite:Getting IOB:{}", msgtag, ioid));
+                let zenio = ctxt.iobs.get_mut(ioid);
+                if zenio.is_none() {
+                    panic!("ERRR:{}:IobWrite:Getting IOB:{}", msgtag, ioid);
+                }
+                let zenio = zenio.unwrap();
                 let gotr = zenio.write(&buf);
                 if gotr.is_err() {
                     log_e(&format!("ERRR:{}:IobWrite:{}:Writing src:{:?}:{}", msgtag, ioid, srcdm, gotr.unwrap_err()));
@@ -1432,7 +1436,11 @@ impl Op {
                     panic!("ERRR:{}:IobRead:Getting ToBuf:{:?}:{}", msgtag, bufid, buf.unwrap_err());
                 }
                 let buf = &mut buf.unwrap();
-                let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:{}:IobRead:Getting IOB:{}", msgtag, ioid));
+                let zenio = ctxt.iobs.get_mut(ioid);
+                if zenio.is_none() {
+                    panic!("ERRR:{}:IobRead:Getting IOB:{}", msgtag, ioid);
+                }
+                let zenio = zenio.unwrap();
                 let gotr = zenio.read(buf);
                 let readsize;
                 if gotr.is_err() {
