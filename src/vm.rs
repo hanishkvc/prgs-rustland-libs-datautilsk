@@ -1511,7 +1511,11 @@ impl Op {
                 }
             }
             Self::JumpRaw(label) => {
-                ctxt.iptr = *ctxt.lbls.get(label).expect(&dformat!("ERRR:{}:Jump:Label:{}", msgtag, label));
+                let oiptr = ctxt.lbls.get(label);
+                if oiptr.is_none() {
+                    panic!("ERRR:{}:Jump:Label:{}:Unknown?", msgtag, label);
+                }
+                ctxt.iptr = *oiptr.unwrap();
                 ctxt.iptr_commonupdate = false;
                 ldebug!(&format!("DBUG:{}:JumpRaw:{}:{}", msgtag, label, ctxt.iptr));
             }
