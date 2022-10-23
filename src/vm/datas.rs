@@ -58,15 +58,15 @@ impl Variant {
                 if ival.is_ok() {
                     return Ok(ival.unwrap());
                 }
-                return Err(format!("Variant:GetISize:StrValue: Conversion failed:{}", ival.unwrap_err()));
+                return Err(format!("Variant:GetISize:StrValue:[{}]:Conversion failed:{}", sval, ival.unwrap_err()));
             },
             Self::BufValue(bval) => {
-                let bval = bval.as_slice().try_into();
-                if bval.is_ok() {
-                    let bval = bval.unwrap();
+                let bsval = bval.as_slice().try_into();
+                if bsval.is_ok() {
+                    let bval = bsval.unwrap();
                     return Ok(isize::from_ne_bytes(bval));
                 }
-                return Err(format!("Variant:GetISize:BufValue: Conversion failed:{}", bval.unwrap_err()));
+                return Err(format!("Variant:GetISize:BufValue:[{:?}]:Adapting buf for int failed? Wrong number of bytes or?:{}", bval, bsval.unwrap_err()));
             },
             Self::XTimeStamp => {
                 let ts = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap();
