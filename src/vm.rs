@@ -1591,15 +1591,25 @@ impl Op {
                 for srcdm in srcdms {
                     let mut sbuf;
                     if *mtype == 'b' {
-                        sbuf = srcdm.get_bufvu8(ctxt).expect(&format!("{}:BufMerged.B:Src:{:?}", msgtag, srcdm));
+                        let tbuf = srcdm.get_bufvu8(ctxt);
+                        if tbuf.is_err() {
+                            panic!("ERRR:{}:BufMerged.B:Src:{:?}:{}", msgtag, srcdm, tbuf.unwrap_err());
+                        }
+                        sbuf = tbuf.unwrap();
                     } else {
-                        let tbuf = srcdm.get_string(ctxt).expect(&format!("{}:BufMerged.S:Src:{:?}", msgtag, srcdm));
-                        sbuf = Vec::from(tbuf);
+                        let tbuf = srcdm.get_string(ctxt);
+                        if tbuf.is_err() {
+                            panic!("ERRR:{}:BufMerged.S:Src:{:?}:{}", msgtag, srcdm, tbuf.unwrap_err());
+                        }
+                        sbuf = Vec::from(tbuf.unwrap());
                     }
                     destbuf.append(&mut sbuf);
                 }
                 ldebug!(&format!("DBUG:{}:BufMerged:{:?}:{:?}", msgtag, destbufdm, destbuf));
-                destbufdm.set_bufvu8(ctxt, destbuf).expect(&format!("{}:BufMerged.{}:{:?}", msgtag, mtype, destbufdm));
+                let ok = destbufdm.set_bufvu8(ctxt, destbuf);
+                if ok.is_err() {
+                    panic!("ERRR:{}:BufMerged.{}:{:?}:{}", msgtag, mtype, destbufdm, ok.unwrap_err());
+                }
             }
 
             Self::LetGlobal(ltype, vardm, datadm) => {
