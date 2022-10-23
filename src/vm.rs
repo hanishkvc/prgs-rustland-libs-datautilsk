@@ -1408,7 +1408,11 @@ impl Op {
                 ctxt.iobs.insert(ioid.to_string(), zenio);
             }
             Self::IobWrite(ioid, srcdm) => {
-                let buf = srcdm.get_bufvu8(ctxt).expect(&format!("{}:IobWrite:Getting SrcBuf:{:?}", msgtag, srcdm));
+                let buf = srcdm.get_bufvu8(ctxt);
+                if buf.is_err() {
+                    panic!("ERRR:{}:IobWrite:Getting SrcBuf:{:?}:{}", msgtag, srcdm, buf.unwrap_err());
+                }
+                let buf = buf.unwrap();
                 let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:{}:IobWrite:Getting IOB:{}", msgtag, ioid));
                 let gotr = zenio.write(&buf);
                 if gotr.is_err() {
@@ -1423,7 +1427,11 @@ impl Op {
                 }
             }
             Self::IobRead(ioid, bufid) => {
-                let buf = &mut bufid.get_bufvu8(ctxt).expect(&format!("{}:IobRead:Getting ToBuf:{:?}", msgtag, bufid));
+                let buf = bufid.get_bufvu8(ctxt);
+                if buf.is_err() {
+                    panic!("ERRR:{}:IobRead:Getting ToBuf:{:?}:{}", msgtag, bufid, buf.unwrap_err());
+                }
+                let buf = &mut buf.unwrap();
                 let zenio = ctxt.iobs.get_mut(ioid).expect(&format!("ERRR:{}:IobRead:Getting IOB:{}", msgtag, ioid));
                 let gotr = zenio.read(buf);
                 let readsize;
@@ -1435,7 +1443,10 @@ impl Op {
                     readsize = gotr.unwrap();
                 }
                 buf.resize(readsize, 0);
-                bufid.set_bufvu8(ctxt, buf.to_vec()).expect(&format!("{}:IobRead:Updating ToBuf:{:?}", msgtag, bufid));
+                let ok = bufid.set_bufvu8(ctxt, buf.to_vec());
+                if ok.is_err() {
+                    panic!("ERRR:{}:IobRead:Updating ToBuf:{:?}:{}", msgtag, bufid, ok.unwrap_err());
+                }
             }
             Self::IobClose(ioid) => {
                 let zenio = ctxt.iobs.get_mut(ioid).unwrap();
