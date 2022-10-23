@@ -1338,9 +1338,16 @@ impl Op {
                 }
             }
             Self::Dec(vid) => {
-                let mut val = vid.get_isize(ctxt).expect(&format!("ERRR:{}:Dec:{}", msgtag, vid.identify()));
+                let val = vid.get_isize(ctxt);
+                if val.is_err() {
+                    panic!("ERRR:{}:Dec:{}:{}", msgtag, vid.identify(), val.unwrap_err());
+                }
+                let mut val = val.unwrap();
                 val -= 1;
-                vid.set_isize(ctxt, val).expect(&format!("ERRR:{}:Dec:{}", msgtag, vid.identify()));
+                let ok = vid.set_isize(ctxt, val);
+                if ok.is_err() {
+                    panic!("ERRR:{}:Dec:{}:{}", msgtag, vid.identify(), ok.unwrap_err());
+                }
             },
             Self::AluArith(aluop, destvid, dmsrc1, dmsrc2) => {
                 let src1 = dmsrc1.get_isize(ctxt);
