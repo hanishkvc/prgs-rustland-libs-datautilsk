@@ -1326,14 +1326,16 @@ impl Op {
             Self::Nop => (),
 
             Self::Inc(vid) => {
-                let mut val = vid.get_isize(ctxt).expect(&format!("{}:Inc:{}", msgtag, vid.identify()));
+                let val = vid.get_isize(ctxt);
+                if val.is_err() {
+                    panic!("{}:Inc:{}:{}", msgtag, vid.identify(), val.unwrap_err());
+                }
+                let mut val = val.unwrap();
                 val += 1;
-                /*
-                vid.set_isize(ctxt, val).or_else::<(),_>(|e| {
-                    panic!("{}:Inc:{:?}:{}", msgtag, vid, e);
-                }).unwrap();
-                */
-                vid.set_isize(ctxt, val).expect(&format!("{}:Inc:{}", msgtag, vid.identify()));
+                let ok = vid.set_isize(ctxt, val);
+                if ok.is_err() {
+                    panic!("{}:Inc:{}:{}", msgtag, vid.identify(), ok.unwrap_err());
+                }
             }
             Self::Dec(vid) => {
                 let mut val = vid.get_isize(ctxt).expect(&format!("{}:Dec:{:?}", msgtag, vid));
