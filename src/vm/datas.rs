@@ -76,12 +76,19 @@ impl Variant {
             Self::XRandomBytes(bytelen) => {
                 let mut rng = rand::thread_rng();
                 let mut vdata: Vec<u8> = Vec::new();
-                let mut ibytes = isize::BITS/8;
-                if (ibytes as usize) > *bytelen {
-                    ibytes = *bytelen as u32;
+                let mut ibytes = (isize::BITS/8) as usize;
+                let irem;
+                if ibytes > *bytelen {
+                    irem = ibytes - *bytelen;
+                    ibytes = *bytelen;
+                } else {
+                    return Err(format!("WARN:Variant:GetISize:XRandomBytes:Specified length {}, greater than int length {}", *bytelen, ibytes));
                 }
                 for _i in 0..ibytes {
                     vdata.push(rng.gen_range(0..=255)); // rusty 0..256
+                }
+                for _i in 0..irem {
+                    vdata.push(0);
                 }
                 return Ok(isize::from_ne_bytes(vdata.as_slice().try_into().unwrap()));
             }
