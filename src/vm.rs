@@ -1328,13 +1328,13 @@ impl Op {
             Self::Inc(vid) => {
                 let val = vid.get_isize(ctxt);
                 if val.is_err() {
-                    panic!("{}:Inc:{}:{}", msgtag, vid.identify(), val.unwrap_err());
+                    panic!("ERRR:{}:Inc:{}:{}", msgtag, vid.identify(), val.unwrap_err());
                 }
                 let mut val = val.unwrap();
                 val += 1;
                 let ok = vid.set_isize(ctxt, val);
                 if ok.is_err() {
-                    panic!("{}:Inc:{}:{}", msgtag, vid.identify(), ok.unwrap_err());
+                    panic!("ERRR:{}:Inc:{}:{}", msgtag, vid.identify(), ok.unwrap_err());
                 }
             }
             Self::Dec(vid) => {
@@ -1343,8 +1343,16 @@ impl Op {
                 vid.set_isize(ctxt, val).expect(&format!("{}:Dec:{:?}", msgtag, vid));
             },
             Self::AluArith(aluop, destvid, dmsrc1, dmsrc2) => {
-                let src1 = dmsrc1.get_isize(ctxt).expect(&dformat!("{}:AluA:Src1", msgtag));
-                let src2 = dmsrc2.get_isize(ctxt).expect(&dformat!("{}:AluA:Src2", msgtag));
+                let src1 = dmsrc1.get_isize(ctxt);
+                if src1.is_err() {
+                    panic!("ERRR:{}:AluA:Src1:{}:{}", msgtag, dmsrc1.identify(), src1.unwrap_err());
+                }
+                let src1 = src1.unwrap();
+                let src2 = dmsrc2.get_isize(ctxt);
+                if src2.is_err() {
+                    panic!("ERRR:{}:AluA:Src2:{}:{}", msgtag, dmsrc2.identify(), src2.unwrap_err());
+                }
+                let src2 = src2.unwrap();
                 let res = match aluop {
                     AluAOP::Add => src1 + src2,
                     AluAOP::Sub => src1 - src2,
@@ -1352,11 +1360,22 @@ impl Op {
                     AluAOP::Div => src1 / src2,
                     AluAOP::Mod => src1 % src2,
                 };
-                destvid.set_isize(ctxt, res).expect(&dformat!("{}:AluA:{:?}:{:?}", msgtag, aluop, destvid));
+                let ok = destvid.set_isize(ctxt, res);
+                if ok.is_err() {
+                    panic!("ERRR:{}:AluA:Dest:{:?}:{}:{}", msgtag, aluop, destvid.identify(), ok.unwrap_err());
+                }
             },
             Self::AluLogical(aluop, destvid, dmsrc1, dmsrc2) => {
-                let src1 = dmsrc1.get_bufvu8(ctxt).expect(&format!("{}:AluL:Src1", msgtag));
-                let src2 = dmsrc2.get_bufvu8(ctxt).expect(&format!("{}:AluL:Src2", msgtag));
+                let src1 = dmsrc1.get_bufvu8(ctxt);
+                if src1.is_err() {
+                    panic!("ERRR:{}:AluL:Src1:{}:{}", msgtag, dmsrc1.identify(), src1.unwrap_err());
+                }
+                let src1 = src1.unwrap();
+                let src2 = dmsrc2.get_bufvu8(ctxt);
+                if src2.is_err() {
+                    panic!("ERRR:{}:AluL:Src2:{}:{}", msgtag, dmsrc2.identify(), src2.unwrap_err());
+                }
+                let src2 = src2.unwrap();
                 let mut vres = Vec::new();
                 for i in 0..src1.len() {
                     let res = match aluop {
@@ -1367,7 +1386,10 @@ impl Op {
                     };
                     vres.push(res);
                 }
-                destvid.set_bufvu8(ctxt, vres).expect(&format!("{}:AluL:{:?}:{:?}", msgtag, aluop, destvid));
+                let ok = destvid.set_bufvu8(ctxt, vres);
+                if ok.is_err() {
+                    panic!("ERRR:{}:AluL:Dest:{:?}:{}:{}", msgtag, aluop, destvid.identify(), ok.unwrap_err());
+                }
             },
 
             Self::IobNew(ioid, ioaddr, ioargs) => {
