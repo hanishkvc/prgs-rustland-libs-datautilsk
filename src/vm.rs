@@ -1694,6 +1694,7 @@ impl VM {
             }
             _ => panic!("ERRR:FuzzerK:VM:CompileDirective:Unknown:{}", sdirplus),
         }
+        ldebug!(&format!("DBUG:FuzzerK:VM:Compiled:Directive:{}:{:?}", self.ctxt.compilingline, sdirplus));
     }
 
     pub fn compile_p1(&mut self, ops: Vec<String>) {
