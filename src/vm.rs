@@ -1608,21 +1608,36 @@ impl Op {
                 let vdata;
                 match dtype {
                     'b' => {
-                        let tdata = datadm.get_bufvu8(ctxt).expect(&format!("{}:LetGlobal.b:GetSrcData", msgtag));
+                        let tdata = datadm.get_bufvu8(ctxt);
+                        if tdata.is_err() {
+                            panic!("ERRR:{}:LetGlobal.b:GetSrcData:{}:{}", msgtag, datadm.identify(), tdata.unwrap_err());
+                        }
+                        let tdata = tdata.unwrap();
                         vdata = Variant::BufValue(tdata);
                     }
                     's' => {
-                        let tdata = datadm.get_string(ctxt).expect(&format!("{}:LetGlobal.s:GetSrcData", msgtag));
+                        let tdata = datadm.get_string(ctxt);
+                        if tdata.is_err() {
+                            panic!("ERRR:{}:LetGlobal.s:GetSrcData:{}:{}", msgtag, datadm.identify(), tdata.unwrap_err());
+                        }
+                        let tdata = tdata.unwrap();
                         vdata = Variant::StrValue(tdata);
                     }
                     'i' => {
-                        let tdata = datadm.get_isize(ctxt).expect(&format!("{}:LetGlobal.i:GetSrcData", msgtag));
+                        let tdata = datadm.get_isize(ctxt);
+                        if tdata.is_err() {
+                            panic!("ERRR:{}:LetGlobal.i:GetSrcData:{}:{}", msgtag, datadm.identify(), tdata.unwrap_err());
+                        }
+                        let tdata = tdata.unwrap();
                         vdata = Variant::IntValue(tdata);
                     }
-                    _ => panic!("{}:LetGlobal:GetSrcData:Unknown type:{}", msgtag, ltype),
+                    _ => panic!("ERRR:{}:LetGlobal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
                 ldebug!(&format!("DBUG:{}:LetGlobal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
-                vardm.set_value(ctxt, vdata, false).expect(&dformat!("{}:LetGlobal:Set the value", msgtag));
+                let ok = vardm.set_value(ctxt, vdata, false);
+                if ok.is_err() {
+                    panic!("ERRR:{}:LetGlobal:Setting the value for:{}:{}", msgtag, vardm.identify(), ok.unwrap_err());
+                }
             }
 
             Self::LetLocal(ltype, vardm, datadm) => {
@@ -1631,21 +1646,36 @@ impl Op {
                 let dtype = Op::oprun_opdatatype_infer(*ltype, ctxt, datadm);
                 match dtype {
                     'b' => {
-                        let tdata = datadm.get_bufvu8(ctxt).expect(&format!("{}:LetLocal.b:GetSrcData", msgtag));
+                        let tdata = datadm.get_bufvu8(ctxt);
+                        if tdata.is_err() {
+                            panic!("ERRR:{}:LetLocal.b:GetSrcData:{}:{}", msgtag, datadm.identify(), tdata.unwrap_err());
+                        }
+                        let tdata = tdata.unwrap();
                         vdata = Variant::BufValue(tdata);
                     }
                     's' => {
-                        let tdata = datadm.get_string(ctxt).expect(&format!("{}:LetLocal.s:GetSrcData", msgtag));
+                        let tdata = datadm.get_string(ctxt);
+                        if tdata.is_err() {
+                            panic!("ERRR:{}:LetLocal.s:GetSrcData:{}:{}", msgtag, datadm.identify(), tdata.unwrap_err());
+                        }
+                        let tdata = tdata.unwrap();
                         vdata = Variant::StrValue(tdata);
                     }
                     'i' => {
-                        let tdata = datadm.get_isize(ctxt).expect(&format!("{}:LetLocal.i:GetSrcData", msgtag));
+                        let tdata = datadm.get_isize(ctxt);
+                        if tdata.is_err() {
+                            panic!("ERRR:{}:LetLocal.i:GetSrcData:{}:{}", msgtag, datadm.identify(), tdata.unwrap_err());
+                        }
+                        let tdata = tdata.unwrap();
                         vdata = Variant::IntValue(tdata);
                     }
-                    _ => panic!("{}:LetLocal:GetSrcData:Unknown type:{}", msgtag, ltype),
+                    _ => panic!("ERRR:{}:LetLocal:GetSrcData:Unknown type:{}", msgtag, ltype),
                 }
                 ldebug!(&format!("DBUG:{}:LetLocal.{}:{:?}:{:?}", msgtag, ltype, vardm, vdata));
-                vardm.set_value(ctxt, vdata, true).expect(&format!("{}:LetLocal:Set the value", msgtag));
+                let ok = vardm.set_value(ctxt, vdata, true);
+                if ok.is_err() {
+                    panic!("ERRR:{}:LetLocal:Setting the value for:{}:{}", msgtag, vardm.identify(), ok.unwrap_err());
+                }
             }
 
             Self::EMagic(mtype, marg) => {
