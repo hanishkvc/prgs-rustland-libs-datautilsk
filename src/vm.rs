@@ -212,11 +212,15 @@ impl Context {
     /// * is it a local variable of the current function
     /// * is it a global variable
     ///
-    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>, msgtag: &str) -> (usize, HashMap<String, (VarSpace, String)>) {
-        let (fptr, fargs) = self.funcs.get(fname).expect(&format!("ERRR:{}:Ctxt:FuncHelper:{}:Missing???", msgtag, fname));
+    fn func_helper(&mut self, fname: &str, passedargs: &Vec<String>) -> Result<(usize, HashMap<String, (VarSpace, String)>), String> {
+        let finfo = self.funcs.get(fname);
+        if finfo.is_none() {
+            return Err(format!("Ctxt:FuncHelper:{}:Missing???", fname));
+        }
+        let (fptr, fargs) = finfo.unwrap();
         // Map farg names of the func to be called to actual var names.
         if fargs.len() != passedargs.len() {
-            panic!("ERRR:{}:Ctxt:FuncHelper:Num of required and passed args dont match", msgtag);
+            return Err(format!("Ctxt:FuncHelper:{}:Num of required and passed args dont match", fname));
         }
         let ocurfargsmap = self.fargsmapstack.last();
         let mut curfargsmap: &HashMap<String, (VarSpace, String)> = &HashMap::new();
@@ -255,8 +259,8 @@ impl Context {
             }
             newfargsmap.insert(fargname.to_string(), (baseloc, basename.to_string()));
         }
-        ldebug!(&format!("DBUG:{}:Ctxt:FuncHelper:{}:{:?}:{:?}", msgtag, fptr, fargs, newfargsmap));
-        return (*fptr, newfargsmap);
+        ldebug!(&format!("DBUG:Ctxt:FuncHelper:{}:{}:{:?}:{:?}", fname, fptr, fargs, newfargsmap));
+        return Ok((*fptr, newfargsmap));
     }
 
 }
@@ -1524,7 +1528,11 @@ impl Op {
                 ctxt.iptr_commonupdate = false;
             }
             Self::Call(fname, passedargs) => {
-                let (fptr, fargsmap) = ctxt.func_helper(fname, passedargs, &format!("{}:Call:{}", msgtag, fname));
+                let finfo = ctxt.func_helper(fname, passedargs);
+                if finfo.is_err() {
+                    panic!("ERRR:{}:Call:{}:{}", msgtag, fname, finfo.unwrap_err());
+                }
+                let (fptr, fargsmap) = finfo.unwrap();
                 // Setup the call
                 ctxt.callretstack.push(ctxt.iptr);
                 ctxt.iptr = fptr;
