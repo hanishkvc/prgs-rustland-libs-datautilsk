@@ -279,6 +279,14 @@ enum XCastData {
 
 impl XCastData {
 
+    fn identify(&self) -> String {
+        match self {
+            Self::Str(dm) => format!("!Str({})", dm.identify()),
+            Self::StrTrim(dm) => format!("!StrTrim({})", dm.identify()),
+            Self::StrHex(dm) => format!("!StrHex({})", dm.identify()),
+        }
+    }
+
     fn get_string(&self, ctxt: &mut Context) -> Result<String, String> {
         match self {
             Self::Str(dm) => {
@@ -481,6 +489,14 @@ impl DataM {
             DataM::Value(_) => false,
             DataM::Variable(_, _) => true,
             DataM::XCast(_) => false,
+        }
+    }
+
+    fn identify(&self) -> String {
+        match self {
+            Self::Value(vval) => format!("Val:{}", vval.get_string()),
+            Self::Variable(_datakind, vname) => format!("Var:{}", vname),
+            Self::XCast(xdata) => xdata.identify(),
         }
     }
 
@@ -1310,15 +1326,14 @@ impl Op {
             Self::Nop => (),
 
             Self::Inc(vid) => {
-                let mut val = vid.get_isize(ctxt).expect(&format!("{}:Inc", msgtag));
+                let mut val = vid.get_isize(ctxt).expect(&format!("{}:Inc:{}", msgtag, vid.identify()));
                 val += 1;
                 /*
-                vid.set_isize(ctxt, val).or_else::<(),_>(|e| -> Result<(), _> {
-                    panic!("{}:Inc:{:?}", msgtag, vid);
-                    Ok(())
-                });
+                vid.set_isize(ctxt, val).or_else::<(),_>(|e| {
+                    panic!("{}:Inc:{:?}:{}", msgtag, vid, e);
+                }).unwrap();
                 */
-                vid.set_isize(ctxt, val).expect(&format!("{}:Inc", msgtag));
+                vid.set_isize(ctxt, val).expect(&format!("{}:Inc:{}", msgtag, vid.identify()));
             }
             Self::Dec(vid) => {
                 let mut val = vid.get_isize(ctxt).expect(&format!("{}:Dec:{:?}", msgtag, vid));
