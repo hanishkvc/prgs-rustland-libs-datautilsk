@@ -1338,9 +1338,9 @@ impl Op {
                 }
             }
             Self::Dec(vid) => {
-                let mut val = vid.get_isize(ctxt).expect(&format!("{}:Dec:{:?}", msgtag, vid));
+                let mut val = vid.get_isize(ctxt).expect(&format!("ERRR:{}:Dec:{}", msgtag, vid.identify()));
                 val -= 1;
-                vid.set_isize(ctxt, val).expect(&format!("{}:Dec:{:?}", msgtag, vid));
+                vid.set_isize(ctxt, val).expect(&format!("ERRR:{}:Dec:{}", msgtag, vid.identify()));
             },
             Self::AluArith(aluop, destvid, dmsrc1, dmsrc2) => {
                 let src1 = dmsrc1.get_isize(ctxt);
@@ -1465,14 +1465,14 @@ impl Op {
                 ctxt.iobs.remove(ioid);
             }
             Self::SleepMSec(msecdm) => {
-                let msec = msecdm.get_usize(ctxt).expect(&format!("{}:SleepMSec:Value:{:?}", msgtag, msecdm));
+                let msec = msecdm.get_usize(ctxt).expect(&format!("ERRR:{}:SleepMSec:Value:{}", msgtag, msecdm.identify()));
                 thread::sleep(Duration::from_millis(msec as u64));
             }
             Self::FcGet(fcid, vid) => {
-                let fc = ctxt.fcrtm.fchain(&fcid).expect(&format!("ERRR:{}:FcGet:UnknownFC???:{}", msgtag, fcid));
+                let fc = ctxt.fcrtm.fchain(&fcid).expect(&format!("ERRR:{}:FcGet:{}:UnknownFC???", msgtag, fcid));
                 let gotfuzz = fc.get(Some(ctxt.stepu));
-                ldebug!(&format!("\n\nGot:{}:\n\t{:?}\n\t{}", ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
-                vid.set_bufvu8(ctxt, gotfuzz).expect(&format!("{}:FcGet:SetDest:{:?}", msgtag, vid));
+                ldebug!(&format!("\n\nDBUG:FcGet:{}:Got:{}:\n\t{:?}\n\t{}", fcid, ctxt.stepu, gotfuzz, String::from_utf8_lossy(&gotfuzz)));
+                vid.set_bufvu8(ctxt, gotfuzz).expect(&format!("ERRR:{}:FcGet:{}:SetDest:{}", msgtag, fcid, vid.identify()));
                 ctxt.stepu += 1;
             }
             Self::If(cop, val1dm, val2dm, nxtop) => {
