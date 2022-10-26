@@ -1881,6 +1881,8 @@ impl VM {
             let theop = &self.ops[self.ctxt.iptr];
             ldebug!(&format!("INFO:FuzzerK:VM:Op:ToRun:{}:{}:{:?}", theop.1, self.ctxt.iptr, theop.0));
             self.ctxt.iptr_commonupdate = true;
+            theop.0.run(&mut self.ctxt, theop.1);
+            /*
             let rt = panic::catch_unwind(panic::AssertUnwindSafe(||{
                 theop.0.run(&mut self.ctxt, theop.1);
             }));
@@ -1892,6 +1894,7 @@ impl VM {
                 }
                 process::exit(-12);
             }
+            */
             if self.ctxt.iptr_commonupdate {
                 self.ctxt.iptr += 1;
             }
