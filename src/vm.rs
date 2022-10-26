@@ -278,7 +278,7 @@ enum XCastData {
     Str(Box<DataM>),
     StrHex(Box<DataM>),
     StrTrim(Box<DataM>),
-    ByteEle(Box<DataM>, usize),
+    ByteEle(Box<DataM>, Box<DataM>),
 }
 
 
@@ -289,7 +289,7 @@ impl XCastData {
             Self::Str(dm) => format!("!Str({})", dm.identify()),
             Self::StrTrim(dm) => format!("!StrTrim({})", dm.identify()),
             Self::StrHex(dm) => format!("!StrHex({})", dm.identify()),
-            Self::ByteEle(dm, index) => format!("!ByteEle({}, {})", dm.identify(), index),
+            Self::ByteEle(dm, index) => format!("!ByteEle({}, {})", dm.identify(), index.identify()),
         }
     }
 
@@ -326,7 +326,11 @@ impl XCastData {
                 return Ok(datautils::hex_from_vu8(&bdata.unwrap()));
             }
             Self::ByteEle(dm, index) => {
-                let bval = dm.get_byteelement(ctxt, *index);
+                let i = index.get_usize(ctxt);
+                if i.is_err() {
+                    return Err(format!("XCastData:ByteEle:GetString:{:?}:Index:{}", self, i.unwrap_err()));
+                }
+                let bval = dm.get_byteelement(ctxt, i.unwrap());
                 if bval.is_err() {
                     return Err(format!("XCastData:ByteEle:GetString:{:?}:{}", self, bval.unwrap_err()));
                 }
@@ -339,7 +343,11 @@ impl XCastData {
     fn get_isize(&self, ctxt: &mut Context) -> Result<isize, String> {
         match self {
             Self::ByteEle(dm, index) => {
-                let bval = dm.get_byteelement(ctxt, *index);
+                let i = index.get_usize(ctxt);
+                if i.is_err() {
+                    return Err(format!("XCastData:GetISize:{:?}:Index:{}", self, i.unwrap_err()));
+                }
+                let bval = dm.get_byteelement(ctxt, i.unwrap());
                 if bval.is_err() {
                     return Err(format!("XCastData:GetISize:{:?}:{}", self, bval.unwrap_err()));
                 }
@@ -363,7 +371,11 @@ impl XCastData {
     fn get_bufvu8(&self, ctxt: &mut Context) -> Result<Vec<u8>, String> {
         match self {
             Self::ByteEle(dm, index) => {
-                let bval = dm.get_byteelement(ctxt, *index);
+                let i = index.get_usize(ctxt);
+                if i.is_err() {
+                    return Err(format!("XCastData:GetBuf:{:?}:Index:{}", self, i.unwrap_err()));
+                }
+                let bval = dm.get_byteelement(ctxt, i.unwrap());
                 if bval.is_err() {
                     return Err(format!("XCastData:GetBuf:{:?}:{}", self, bval.unwrap_err()));
                 }
@@ -385,7 +397,11 @@ impl XCastData {
     fn get_value(&self, ctxt: &mut Context) -> Result<Variant, String> {
         match self {
             Self::ByteEle(dm, index) => {
-                let bval = dm.get_byteelement(ctxt, *index);
+                let i = index.get_usize(ctxt);
+                if i.is_err() {
+                    return Err(format!("XCastData:GetBuf:{:?}:Index:{}", self, i.unwrap_err()));
+                }
+                let bval = dm.get_byteelement(ctxt, i.unwrap());
                 if bval.is_err() {
                     return Err(format!("XCastData:GetValue:{:?}:{}", self, bval.unwrap_err()));
                 }
@@ -507,6 +523,14 @@ impl DataM {
         if !schar.is_alphabetic() {
             panic!("ERRR:{}:DataM:{}:Variable name {} should start with a alphabetic char", smsg, stype, sdata);
         }
+        let index;
+        if echar == ']' {
+            let varind = sdata[..sdata.len()-1].split_once('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
+            sdata = varind.0;
+            index = varind.1;
+        } else {
+            index = "";
+        }
 
         let mut datakind = DataKind::Variable;
         if ctxt.bcompilingfunc {
@@ -515,8 +539,12 @@ impl DataM {
                 datakind = DataKind::FuncArg;
             }
         }
-        return DataM::Variable(datakind, sdata.to_string());
-
+        let dm = DataM::Variable(datakind, sdata.to_string());
+        if index == "" {
+            return dm;
+        }
+        let idm = DataM::compile(ctxt, index, stype, &format!("{}:Indexing:{}", smsg, index));
+        return DataM::XCast(XCastData::ByteEle(Box::new(dm), Box::new(idm)));
     }
 
     ///
