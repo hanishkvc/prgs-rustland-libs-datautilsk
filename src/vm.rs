@@ -942,6 +942,8 @@ enum AluLOP {
     Or,
     Not,
     Xor,
+    Srb,
+    Slb,
 }
 
 
@@ -1152,12 +1154,14 @@ impl Op {
                 let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
                 return Ok(Op::AluArith(aluop, dmdst, dmsrc1, dmsrc2));
             }
-            "and" | "or" | "not" | "xor" => {
+            "and" | "or" | "not" | "xor" | "slb" | "srb" => {
                 let aluop = match sop {
                     "and" => AluLOP::And,
                     "or" => AluLOP::Or,
                     "not" => AluLOP::Not,
                     "xor" => AluLOP::Xor,
+                    "slb" => AluLOP::Slb,
+                    "srb" => AluLOP::Srb,
                     _ => todo!(),
                 };
                 let args: Vec<&str> = sargs.split_whitespace().collect();
@@ -1477,6 +1481,8 @@ impl Op {
                     panic!("ERRR:{}:AluL:Src2:{}:{}", msgtag, dmsrc2.identify(), src2.unwrap_err());
                 }
                 let src2 = src2.unwrap();
+                let mut adj = 0u8;
+                let mut res;
                 let mut vres = Vec::new();
                 for i in 0..src1.len() {
                     let res = match aluop {
@@ -1484,6 +1490,18 @@ impl Op {
                         AluLOP::Or => src1[i] | src2[i],
                         AluLOP::Not => !src1[i],
                         AluLOP::Xor => src1[i] ^ src2[i],
+                        AluLOP::Slb => {
+                            res = (src1[i] << src2[i]) | adj;
+                            let mask = ((0x1u8 << src2[i])-1) << src2[i];
+                            adj = (src1[i] & mask) >> (8-src2[i]);
+                            res
+                        },
+                        AluLOP::Srb => {
+                            res = (src1[i] >> src2[i]) | adj;
+                            let mask = (0x1u8 << src2[i])-1;
+                            adj = (src1[i] & mask) << (8-src2[i]);
+                            res
+                        }
                     };
                     vres.push(res);
                 }
