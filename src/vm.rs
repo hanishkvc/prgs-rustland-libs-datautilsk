@@ -1492,14 +1492,36 @@ impl Op {
                         AluLOP::Xor => src1[i] ^ src2[i],
                         AluLOP::Slb => {
                             res = (src1[i] << src2[i]) | adj;
-                            let mask = ((0x1u8 << src2[i])-1) << src2[i];
-                            adj = (src1[i] & mask) >> (8-src2[i]);
+                            let mut mask = 0xffu8;
+                            if src2[i] < 8 {
+                                if src2[i] == 0 {
+                                    res = src1[i];
+                                    adj = 0;
+                                } else {
+                                    mask = ((0x1u8 << src2[i])-1) << (8-src2[i]);
+                                    adj = (src1[i] & mask) >> (8-src2[i]);
+                                }
+                            } else {
+                                adj = src1[i];
+                            }
+                            log_e(&format!("DBUG:AluLOP:Slb:Src1:{:02x}:Src2:{:02x}:mask:{:02x}:adj:{:02x}:res:{:02x}", src1[i], src2[i], mask, adj, res));
                             res
                         },
                         AluLOP::Srb => {
                             res = (src1[i] >> src2[i]) | adj;
-                            let mask = (0x1u8 << src2[i])-1;
-                            adj = (src1[i] & mask) << (8-src2[i]);
+                            let mut mask = 0xffu8;
+                            if src2[i] < 8 {
+                                if src2[i] == 0 {
+                                    res = src1[i];
+                                    adj = 0;
+                                } else {
+                                    mask = (0x1u8 << src2[i])-1;
+                                    adj = (src1[i] & mask) << (8-src2[i]);
+                                }
+                            } else {
+                                adj = src1[i];
+                            }
+                            log_e(&format!("DBUG:AluLOP:Srb:Src1:{:02x}:Src2:{:02x}:mask:{:02x}:adj:{:02x}:res:{:02x}", src1[i], src2[i], mask, adj, res));
                             res
                         }
                     };
