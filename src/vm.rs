@@ -887,6 +887,7 @@ enum Op {
     BufMerged(char, DataM, Vec<DataM>),
     EMagic(DataM, DataM),
     GetSize(DataM, DataM),
+    End,
 }
 
 
@@ -1024,6 +1025,9 @@ impl Op {
         match sop {
             "nop" => {
                 return Ok(Op::Nop);
+            }
+            "end" => {
+                return Ok(Op::End);
             }
 
             "letint" | "letstr" | "letbuf" | "letglobal.i" | "letglobal.s" | "letglobal.b" | "letglobal" => {
@@ -1328,6 +1332,7 @@ impl Op {
         let msgtag = &dformat!("FuzzerK:VM:Op:Run:{}", linenum);
         match self {
             Self::Nop => (),
+            Self::End => process::exit(0),
 
             Self::Inc(vid) => {
                 let val = vid.get_isize(ctxt);
