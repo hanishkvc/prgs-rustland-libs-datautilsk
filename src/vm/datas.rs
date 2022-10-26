@@ -190,4 +190,10 @@ impl Variant {
         return None;
     }
 
+    pub fn get_byteelement(&self, index: usize) -> u8 {
+        let bval = self.get_bufvu8();
+        let aval = bval[index];
+        return aval;
+    }
+
 }

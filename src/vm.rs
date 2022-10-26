@@ -278,6 +278,7 @@ enum XCastData {
     Str(Box<DataM>),
     StrHex(Box<DataM>),
     StrTrim(Box<DataM>),
+    ByteEle(Box<DataM>, usize),
 }
 
 
@@ -288,6 +289,7 @@ impl XCastData {
             Self::Str(dm) => format!("!Str({})", dm.identify()),
             Self::StrTrim(dm) => format!("!StrTrim({})", dm.identify()),
             Self::StrHex(dm) => format!("!StrHex({})", dm.identify()),
+            Self::ByteEle(dm, index) => format!("!ByteEle({}, {})", dm.identify(), index),
         }
     }
 
@@ -319,48 +321,92 @@ impl XCastData {
             Self::StrHex(dm) => {
                 let bdata = dm.get_bufvu8(ctxt);
                 if bdata.is_err() {
-                    return Err(format!("XCastData:StrHex:GetString{:?}:{}", self, bdata.unwrap_err()));
+                    return Err(format!("XCastData:StrHex:GetString:{:?}:{}", self, bdata.unwrap_err()));
                 }
                 return Ok(datautils::hex_from_vu8(&bdata.unwrap()));
+            }
+            Self::ByteEle(dm, index) => {
+                let bval = dm.get_byteelement(ctxt, *index);
+                if bval.is_err() {
+                    return Err(format!("XCastData:ByteEle:GetString:{:?}:{}", self, bval.unwrap_err()));
+                }
+                let cval = char::from_u32( bval.unwrap() as u32).unwrap();
+                return Ok(cval.to_string());
             }
         }
     }
 
     fn get_isize(&self, ctxt: &mut Context) -> Result<isize, String> {
-        // As of now all XCasts are str generating, so do casting as part of get_string
-        let sdata = self.get_string(ctxt);
-        if sdata.is_err() {
-            return Err(format!("XCastData:GetISize:Casting:{:?}:{}", self, sdata.unwrap_err()));
+        match self {
+            Self::ByteEle(dm, index) => {
+                let bval = dm.get_byteelement(ctxt, *index);
+                if bval.is_err() {
+                    return Err(format!("XCastData:GetISize:{:?}:{}", self, bval.unwrap_err()));
+                }
+                return Ok(bval.unwrap() as isize);
+            }
+            _ => { // All other XCasts are str generating, so do casting as part of get_string
+                let sdata = self.get_string(ctxt);
+                if sdata.is_err() {
+                    return Err(format!("XCastData:GetISize:Casting:{:?}:{}", self, sdata.unwrap_err()));
+                }
+                let sdata = sdata.unwrap();
+                let ival = Variant::StrValue(sdata).get_isize();
+                if ival.is_err() {
+                    return Err(format!("XCastData:GetISize:Converting:{:?}:{}", self, ival.unwrap_err()));
+                }
+                return Ok(ival.unwrap());
+            }
         }
-        let sdata = sdata.unwrap();
-        let ival = Variant::StrValue(sdata).get_isize();
-        if ival.is_err() {
-            return Err(format!("XCastData:GetISize:Converting:{:?}:{}", self, ival.unwrap_err()));
-        }
-        return Ok(ival.unwrap());
     }
 
     fn get_bufvu8(&self, ctxt: &mut Context) -> Result<Vec<u8>, String> {
-        // As of now all XCasts are str generating, so do casting as part of get_string
-        let sdata = self.get_string(ctxt);
-        if sdata.is_err() {
-            return Err(format!("XCastData:GetBuf:Casting:{:?}:{}", self, sdata.unwrap_err()));
+        match self {
+            Self::ByteEle(dm, index) => {
+                let bval = dm.get_byteelement(ctxt, *index);
+                if bval.is_err() {
+                    return Err(format!("XCastData:GetBuf:{:?}:{}", self, bval.unwrap_err()));
+                }
+                let mut bvec = Vec::new();
+                bvec.push(bval.unwrap());
+                return Ok(bvec);
+            }
+            _ => {
+                // All other XCasts are str generating, so do casting as part of get_string
+                let sdata = self.get_string(ctxt);
+                if sdata.is_err() {
+                    return Err(format!("XCastData:GetBuf:Casting:{:?}:{}", self, sdata.unwrap_err()));
+                }
+                return Ok(Variant::StrValue(sdata.unwrap()).get_bufvu8());
+            }
         }
-        return Ok(Variant::StrValue(sdata.unwrap()).get_bufvu8());
     }
 
     fn get_value(&self, ctxt: &mut Context) -> Result<Variant, String> {
-        // As of now all XCasts are str generating, so do casting as part of get_string
-        let sdata = self.get_string(ctxt);
-        if sdata.is_err() {
-            return Err(format!("XCastData:GetValue:Casting:{:?}:{}", self, sdata.unwrap_err()));
+        match self {
+            Self::ByteEle(dm, index) => {
+                let bval = dm.get_byteelement(ctxt, *index);
+                if bval.is_err() {
+                    return Err(format!("XCastData:GetValue:{:?}:{}", self, bval.unwrap_err()));
+                }
+                return Ok(Variant::IntValue(bval.unwrap() as isize));
+            }
+            _ => {
+                // All other XCasts are str generating, so do casting as part of get_string
+                let sdata = self.get_string(ctxt);
+                if sdata.is_err() {
+                    return Err(format!("XCastData:GetValue:Casting:{:?}:{}", self, sdata.unwrap_err()));
+                }
+                return Ok(Variant::StrValue(sdata.unwrap()));
+            }
         }
-        return Ok(Variant::StrValue(sdata.unwrap()));
     }
 
     fn get_type(&self) -> VDataType {
-        // As of now all XCasts are str generating, so do below
-        return VDataType::String;
+        match self {
+            Self::ByteEle(_,_) => return VDataType::Integer,
+            _ => return VDataType::String, // All other XCasts are str generating, so this
+        }
     }
 
 }
@@ -566,7 +612,6 @@ impl DataM {
     ///
     fn get_usize(&self, ctxt: &mut Context) -> Result<usize, String> {
         let ival = self.get_isize(ctxt);
-        //.expect(&format!("{}:DataM:GetUSize",smsg));
         match ival {
             Ok(ival) => {
                 if ival < 0 {
@@ -635,6 +680,18 @@ impl DataM {
                 }
                 return Ok(bval.unwrap());
             }
+        }
+    }
+
+    fn get_byteelement(&self, ctxt: &mut Context, index: usize) -> Result<u8, String> {
+        // ALERT: This duplicates variant's byteelement logic
+        // If the logic is changed in future, this has to be accounted at both places.
+        let ival = self.get_bufvu8(ctxt);
+        match ival {
+            Ok(ival) => {
+                return Ok(ival[index]);
+            }
+            Err(msg) => return Err(format!("DataM:GetByteEle:{}", msg)),
         }
     }
 
