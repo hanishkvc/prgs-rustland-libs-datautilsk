@@ -197,4 +197,41 @@ impl Variant {
         return aval;
     }
 
+    pub fn get_arrayelement(&self, index: usize) -> Result<Variant, String> {
+        match self {
+            Self::IntValue(_ival) => {
+                let bval = self.get_bufvu8();
+                if index >= bval.len() {
+                    return Err(format!("Variant:GetArrayEle:IntValue:Invalid index {}, available length {}", index, bval.len()));
+                }
+                return Ok(Variant::IntValue(bval[index] as isize));
+            }
+            Self::StrValue(sval) => {
+                let cval = sval.chars().nth(index);
+                let rval;
+                if cval.is_none() {
+                    return Err(format!("Variant:GetArrayEle:StrValue:Invalid index {}, beyond string", index));
+                } else {
+                    rval = cval.unwrap().to_string();
+                    return Ok(Variant::StrValue(rval));
+                }
+            }
+            Self::BufValue(bval) => {
+                if index >= bval.len() {
+                    return Err(format!("Variant:GetArrayEle:BufValue:Invalid index {}, available length {}", index, bval.len()));
+                }
+                let rval = &bval[index..index+1];
+                return Ok(Variant::BufValue(rval.to_vec()));
+            }
+            _ => {
+                let bval = self.get_bufvu8();
+                if index >= bval.len() {
+                    return Err(format!("Variant:GetArrayEle:{:?}:Invalid index {}, available length {}", self, index, bval.len()));
+                }
+                let rval = &bval[index..index+1];
+                return Ok(Variant::BufValue(rval.to_vec()));
+            }
+        }
+    }
+
 }

@@ -399,7 +399,7 @@ impl XCastData {
             Self::ByteEle(dm, index) => {
                 let i = index.get_usize(ctxt);
                 if i.is_err() {
-                    return Err(format!("XCastData:GetBuf:{:?}:Index:{}", self, i.unwrap_err()));
+                    return Err(format!("XCastData:GetValue:{:?}:Index:{}", self, i.unwrap_err()));
                 }
                 let bval = dm.get_byteelement(ctxt, i.unwrap());
                 if bval.is_err() {
@@ -414,6 +414,26 @@ impl XCastData {
                     return Err(format!("XCastData:GetValue:Casting:{:?}:{}", self, sdata.unwrap_err()));
                 }
                 return Ok(Variant::StrValue(sdata.unwrap()));
+            }
+        }
+    }
+
+    fn get_arrayelement(&self, ctxt: &mut Context, index: usize) -> Result<Variant, String> {
+        match self {
+            Self::ByteEle(_ddm, _idm) => {
+                return Err(format!("XCastData:GetArrayEle:{:?}:Not allowed on a ByteEle", self));
+            }
+            _ => {
+                // All other XCasts are str generating, so do casting as part of get_string
+                let sdata = self.get_string(ctxt);
+                if sdata.is_err() {
+                    return Err(format!("XCastData:GetArrayEle:Casting:{:?}:{}", self, sdata.unwrap_err()));
+                }
+                let rval = Variant::StrValue(sdata.unwrap()).get_arrayelement(index);
+                if rval.is_err() {
+                    return Err(format!("XCastData:GetArrayEle:Indexing:{:?}:{}", self, rval.unwrap_err()));
+                }
+                return rval;
             }
         }
     }
@@ -720,6 +740,14 @@ impl DataM {
                 return Ok(ival[index]);
             }
             Err(msg) => return Err(format!("DataM:GetByteEle:{}", msg)),
+        }
+    }
+
+    fn get_arrayelement(&self, ctxt: &mut Context, index: usize) -> Result<Variant, String> {
+        let avals = self.get_value(ctxt);
+        match avals {
+            Ok(vval) => return vval.get_arrayelement(index),
+            Err(msg) => return Err(format!("DataM:GetArrayEle:{}", msg))
         }
     }
 
