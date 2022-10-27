@@ -1618,7 +1618,7 @@ impl Op {
                             } else {
                                 adj = src1[i];
                             }
-                            log_e(&format!("DBUG:AluLOP:Slb:Src1:{:02x}:Src2:{:02x}:mask:{:02x}:adj:{:02x}:res:{:02x}", src1[i], src2[i], mask, adj, res));
+                            log_d(&format!("DBUG:AluLOP:Slb:Src1:{:02x}:Src2:{:02x}:mask:{:02x}:adj:{:02x}:res:{:02x}", src1[i], src2[i], mask, adj, res));
                             res
                         },
                         AluLOP::Srb => {
@@ -1635,7 +1635,7 @@ impl Op {
                             } else {
                                 adj = src1[i];
                             }
-                            log_e(&format!("DBUG:AluLOP:Srb:Src1:{:02x}:Src2:{:02x}:mask:{:02x}:adj:{:02x}:res:{:02x}", src1[i], src2[i], mask, adj, res));
+                            log_d(&format!("DBUG:AluLOP:Srb:Src1:{:02x}:Src2:{:02x}:mask:{:02x}:adj:{:02x}:res:{:02x}", src1[i], src2[i], mask, adj, res));
                             res
                         }
                     };
