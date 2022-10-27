@@ -830,6 +830,7 @@ impl DataM {
         }
     }
 
+    /*
     fn get_arrayelement(&self, ctxt: &mut Context, index: usize) -> Result<Variant, String> {
         let avals = self.get_value(ctxt);
         match avals {
@@ -837,7 +838,43 @@ impl DataM {
             Err(msg) => return Err(format!("DataM:GetArrayEle:{}", msg))
         }
     }
+    */
 
+    fn get_arrayelement(&self, ctxt: &mut Context, index: usize) -> Result<Variant, String> {
+        match self {
+            Self::Value(vval) => {
+                let oval = vval.get_arrayelement(index);
+                if oval.is_err() {
+                    return Err(format!("DataM:GetArrayEle:Value:{:?}:{}", self, oval.unwrap_err()));
+                }
+                return oval;
+            }
+            Self::Variable(datakind, vname) => {
+                let oval = ctxt.var_get(datakind, vname);
+                match oval {
+                    Some(vval) => {
+                        let oval = vval.get_arrayelement(index);
+                        if oval.is_err() {
+                            return Err(format!("DataM:GetArrayEle:Var:{:?}:{}", self, oval.unwrap_err()));
+                        }
+                        return oval;
+                    }
+                    None => {
+                        return Err(format!("DataM:GetArrayEle:Var:{:?}:Unknown var", self));
+                    }
+                }
+            }
+            Self::XCast(xdata) => {
+                let vval = xdata.get_arrayelement(ctxt, index);
+                if vval.is_err() {
+                    return Err(format!("DataM:GetArrayEle:XCast:{:?}:{}", self, vval.unwrap_err()));
+                }
+                return vval;
+            }
+        }
+    }
+
+    #[allow(dead_code)]
     fn get_value(&self, ctxt: &mut Context) -> Result<Variant, String> {
         match self {
             Self::Value(oval) => return Ok(oval.clone()),
