@@ -475,6 +475,7 @@ impl DataM {
     /// * string literals should be in double quotes ""
     /// * buf8 literals should start with $0x
     /// * special literals should start with __
+    /// * a xcast should start with ! and end with )
     /// * anything else is treated as a Var name.
     ///   * it needs to start with a alpabhetic char
     ///   * it could either be a func arg or local variable or a global variable.
@@ -527,12 +528,27 @@ impl DataM {
                 if schar == '!' && echar == ')' {
                     let sa = sdata.split_once('(').unwrap();
                     let sarg = &sa.1[..sa.1.len()-1];
-                    let dm = DataM::compile(ctxt, sarg, stype, &format!("{}:XCast-{}:",smsg, sa.0));
+                    let sarg1;
+                    let bdm2;
+                    if sa.0.ends_with("ele") {
+                        // ALERT: For now dont allow
+                        // * string literals with comma in them as part of args (or rather data arg) of Byte/ArrayEle xcasting
+                        // * indexing of indexing using xcasting syntax
+                        let (tdata, tindex) = sarg.split_once(',').expect(&format!("ERRR:{}:DataM:Compile:XCast:{}:Extracting args:{}", smsg, sa.0, sarg));
+                        sarg1 = tdata;
+                        let idm = DataM::compile(ctxt, tindex, stype, &format!("{}:XCast-{}:{}",smsg, sa.0, tindex));
+                        bdm2 = Some(Box::new(idm));
+                    } else {
+                        sarg1 = sarg;
+                        bdm2 = None;
+                    }
+                    let dm = DataM::compile(ctxt, sarg1, stype, &format!("{}:XCast-{}:{}",smsg, sa.0, sarg1));
                     let boxdm = Box::new(dm);
                     let xdata = match sa.0 {
                         "!str" => XCastData::Str(boxdm),
                         "!strhex" => XCastData::StrHex(boxdm),
                         "!strtrim" => XCastData::StrTrim(boxdm),
+                        "!byteele" | "!be" => XCastData::ByteEle(boxdm, bdm2.unwrap()),
                         _ => panic!("ERRR:{}:DataM:{}:Unknown XCast type:{:?}", smsg, stype, sa),
                     };
                     return DataM::XCast(xdata);
