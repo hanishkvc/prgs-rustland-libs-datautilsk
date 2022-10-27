@@ -526,7 +526,8 @@ impl DataM {
                 }
                 if schar == '!' && echar == ')' {
                     let sa = sdata.split_once('(').unwrap();
-                    let dm = DataM::compile(ctxt, &sa.1[..sa.1.len()-1], stype, &format!("{}:XCast-{}:",smsg, sa.0));
+                    let sarg = &sa.1[..sa.1.len()-1];
+                    let dm = DataM::compile(ctxt, sarg, stype, &format!("{}:XCast-{}:",smsg, sa.0));
                     let boxdm = Box::new(dm);
                     let xdata = match sa.0 {
                         "!str" => XCastData::Str(boxdm),
