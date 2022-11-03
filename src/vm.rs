@@ -578,23 +578,23 @@ impl DataM {
             }
 
             if sdata.len() > 2 {
-                if sdata.starts_with("$0x") {
-                    let bdata = datautils::vu8_from_hex(&sdata[3..]).expect(&format!("ERRR:{}:DataM:Compile:BufHexString:Conversion:{}", smsg, sdata));
+                if sdata.the_str().starts_with("$0x") {
+                    let bdata = datautils::vu8_from_hex(&sdata.the_str()[3..]).expect(&format!("ERRR:{}:DataM:Compile:BufHexString:Conversion:{}", smsg, sdata));
                     return DataM::Value(Variant::BufValue(bdata));
                 }
-                if sdata.starts_with("__") {
-                    if sdata == "__TIME__STAMP__" {
+                if sdata.the_str().starts_with("__") {
+                    if sdata.the_str() == "__TIME__STAMP__" {
                         return DataM::Value(Variant::XTimeStamp);
                     }
-                    if sdata.starts_with("__RANDOM__BYTES__") {
-                        let (_random, bytelen) = sdata.split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:Compile:RandomBytes:{}", smsg, sdata));
+                    if sdata.the_str().starts_with("__RANDOM__BYTES__") {
+                        let (_random, bytelen) = sdata.the_str().split_once("__BYTES__").expect(&format!("ERRR:{}:DataM:Compile:RandomBytes:{}", smsg, sdata));
                         let bytelen = usize::from_str_radix(bytelen, 10).expect(&format!("ERRR:{}:DataM:Compile:RandomBytes:{}", smsg, sdata));
                         return DataM::Value(Variant::XRandomBytes(bytelen));
                     }
                     panic!("ERRR:{}:DataM:Compile:{}:Unknown Special Tag {}???", smsg, stype, sdata);
                 }
                 if schar == '!' && echar == ')' {
-                    let sa = sdata.split_once('(').unwrap();
+                    let sa = sdata.the_str().split_once('(').unwrap();
                     let sarg = &sa.1[..sa.1.len()-1];
                     let sarg1;
                     let bdm2;
