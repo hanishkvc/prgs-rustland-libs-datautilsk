@@ -547,13 +547,14 @@ impl DataM {
     ///   * it needs to start with a alpabhetic char
     ///   * it could either be a func arg or local variable or a global variable.
     ///
-    fn compile(ctxt: &Context, mut sdata: &str, stype: &str, smsg: &str) -> DataM {
-        sdata = sdata.trim();
-        if sdata == "" {
+    fn compile(ctxt: &Context, sdata: &str, stype: &str, smsg: &str) -> DataM {
+        let mut sdata = TStr::from_str(sdata);
+        sdata.trim();
+        if sdata.remaining_len() == 0 {
             panic!("ERRR:{}:DataM:Compile:{}:Data token empty", smsg, stype);
         }
-        let schar = sdata.chars().nth(0).unwrap();
-        let echar = sdata.chars().last().unwrap();
+        let schar = sdata.char_first().unwrap();
+        let echar = sdata.char_last().unwrap();
 
         if schar.is_numeric() || schar == '+' || schar == '-' {
             let idata = datautils::intvalue(sdata).expect(&format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
@@ -566,11 +567,11 @@ impl DataM {
                 if schar != echar {
                     panic!("ERRR:{}:DataM:Compile:StringLiteral:Mising double quote at one of the ends:[{}]", smsg, sdata);
                 }
-                let tdata = datautils::next_token(sdata).expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Processing...", smsg));
-                if tdata.1.len() > 0 {
-                    panic!("ERRR:{}:DataM:Compile:StringLiteral:Extra data [{}] beyond end of the string[{}]???", smsg, tdata.1, tdata.0);
+                let tdata = sdata.nexttok(true).expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Processing...", smsg));
+                if sdata.remaining_len() > 0 {
+                    panic!("ERRR:{}:DataM:Compile:StringLiteral:Extra data [{}] beyond end of the string[{}]???", smsg, sdata, tdata);
                 }
-                let mut rdata = tdata.0.as_str();
+                let mut rdata = tdata.as_str();
                 rdata = rdata.strip_prefix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at start of {}", smsg, sdata));
                 rdata = rdata.strip_suffix('"').expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Missing double quote at end of {}", smsg, sdata));
                 return DataM::Value(Variant::StrValue(rdata.to_string()));
@@ -1261,6 +1262,7 @@ impl Op {
             sargs = "";
         }
         let sargs = sargs.trim();
+        let sargs = TStr::from_str(sargs);
         match sop {
             "nop" => {
                 return Ok(Op::Nop);
