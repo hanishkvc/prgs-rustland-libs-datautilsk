@@ -9,4 +9,5 @@ edition = "2021"
 rand = "0.8.5"
 loggerk = { version="0.1.0", path="../loggerk" }
 argsclsk = { version="0.1.0", path="../argsclsk" }
+tokensk = { version="0.1.0", path="../tokensk" }
 boring = "2.0.0"

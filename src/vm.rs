@@ -20,6 +20,7 @@ use crate::cfgfiles;
 
 mod datas;
 use datas::{Variant, VDataType};
+use tokensk::{TStr, self};
 
 
 macro_rules! dformat {
@@ -2115,7 +2116,7 @@ impl VM {
         let prgdata: Vec<&str> =  prgdata.split("\n").collect();
         for l in prgdata {
             //log_d(&format!("IN :{}\n", l));
-            let nl = datautils::remove_extra_whitespaces(l);
+            let nl = tokensk::util::remove_extra_whitespaces(l);
             //log_d(&format!("OUT:{}\n", nl));
             //Self::test_bruteforce_nexttoken(&nl);
             ops.push(nl.to_string());
