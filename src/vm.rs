@@ -1133,26 +1133,26 @@ enum Op {
 
 impl Op {
 
+    ///
+    /// Retrieve the function name and any following args wrt call ops
+    ///
     fn name_args(ins: &str) -> Result<(String, Vec<String>), String> {
         let ins = ins.trim();
         let n_args = ins.split_once(' ');
-        let mut vargs: Vec<String> = Vec::new();
         if n_args.is_none() {
+            let vargs: Vec<String> = Vec::new();
             if ins.trim() == "" {
                 return Err(format!("NameArgs:name missing {}", ins));
             }
             return Ok((ins.to_string(), vargs));
         }
         let n_args = n_args.unwrap();
-        let mut srem = n_args.1.to_string();
-        while srem.len() > 0 {
-            let tokplus = datautils::next_token(&srem).unwrap();
-            if tokplus.0.len() == 0 {
-                break;
-            }
-            vargs.push(tokplus.0);
-            srem = tokplus.1;
+        let mut targs = TStr::from_str_ex(n_args.1, true, true);
+        let vargs = targs.tokens_vec(' ', true, false);
+        if vargs.is_err() {
+            return Err(format!("NameArgs:args [{}] error [{}]", n_args.1, vargs.unwrap_err()));
         }
+        let vargs = vargs.unwrap();
         return Ok((n_args.0.to_string(), vargs));
     }
 
