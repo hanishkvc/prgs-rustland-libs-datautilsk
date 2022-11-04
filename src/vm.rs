@@ -549,6 +549,7 @@ impl DataM {
     ///
     fn compile(ctxt: &Context, sdata: &str, stype: &str, smsg: &str) -> DataM {
         let mut sdata = TStr::from_str(sdata);
+        sdata.escseq_defaults();
         sdata.trim();
         if sdata.remaining_len() == 0 {
             panic!("ERRR:{}:DataM:Compile:{}:Data token empty", smsg, stype);
@@ -636,10 +637,10 @@ impl DataM {
         let var;
         if echar == ']' {
             var = sdata.peel_bracket('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
+            index = sdata.to_string();
             sdata = TStr::from_str(&var);
-            index = sdata.the_str();
         } else {
-            index = "";
+            index = "".to_string();
         }
 
         let mut datakind = DataKind::Variable;
@@ -653,7 +654,7 @@ impl DataM {
         if index == "" {
             return dm;
         }
-        let idm = DataM::compile(ctxt, index, stype, &format!("{}:Indexing:{}", smsg, index));
+        let idm = DataM::compile(ctxt, &index, stype, &format!("{}:Indexing:{}", smsg, index));
         return DataM::XCast(XCastData::ByteEle(Box::new(dm), Box::new(idm)));
     }
 
