@@ -594,33 +594,32 @@ impl DataM {
                     panic!("ERRR:{}:DataM:Compile:{}:Unknown Special Tag {}???", smsg, stype, sdata);
                 }
                 if schar == '!' && echar == ')' {
-                    let sa = sdata.the_str().split_once('(').unwrap();
-                    let sarg = TStr::from_str(&sa.1[..sa.1.len()-1]);
+                    let xop = sdata.peel_bracket('(');
                     let sarg1;
                     let bdm2;
-                    match sa.0 {
+                    match xop.as_str() {
                         "!byteele" | "!be" | "!arrayele" | "!ae" => {
                             // ALERT: For now does not support
                             // * indexing of indexing using xcasting syntax
-                            let (tdata, tindex) = sarg.split_once(',').expect(&format!("ERRR:{}:DataM:Compile:XCast:{}:Extracting args:{}", smsg, sa.0, sarg));
+                            let (tdata, tindex) = sdata.split_once(',').expect(&format!("ERRR:{}:DataM:Compile:XCast:{}:Extracting args:{}", smsg, xop, sdata));
                             sarg1 = tdata.as_str();
-                            let idm = DataM::compile(ctxt, &tindex, stype, &format!("{}:XCast-{}:{}",smsg, sa.0, tindex));
+                            let idm = DataM::compile(ctxt, &tindex, stype, &format!("{}:XCast-{}:{}",smsg, xop, tindex));
                             bdm2 = Some(Box::new(idm));
                         }
                         _ => {
-                            sarg1 = sarg.the_str();
+                            sarg1 = sdata.the_str();
                             bdm2 = None;
                         }
                     }
-                    let dm = DataM::compile(ctxt, sarg1, stype, &format!("{}:XCast-{}:{}",smsg, sa.0, sarg1));
+                    let dm = DataM::compile(ctxt, sarg1, stype, &format!("{}:XCast-{}:{}",smsg, xop, sarg1));
                     let boxdm = Box::new(dm);
-                    let xdata = match sa.0 {
+                    let xdata = match xop.as_str() {
                         "!str" => XCastData::Str(boxdm),
                         "!strhex" => XCastData::StrHex(boxdm),
                         "!strtrim" => XCastData::StrTrim(boxdm),
                         "!byteele" | "!be" => XCastData::ByteEle(boxdm, bdm2.unwrap()),
                         "!arrayele" | "!ae" => XCastData::ArrayEle(boxdm, bdm2.unwrap()),
-                        _ => panic!("ERRR:{}:DataM:{}:Unknown XCast type:{:?}", smsg, stype, sa),
+                        _ => panic!("ERRR:{}:DataM:{}:Unknown XCast type:{:?}", smsg, stype, xop),
                     };
                     return DataM::XCast(xdata);
                 }
