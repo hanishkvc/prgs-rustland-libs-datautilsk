@@ -1439,9 +1439,11 @@ impl Op {
                 return Ok(Op::BufNew(bufid, dmbufsize));
             }
             "buf8randomize" => {
-                let parts: Vec<&str> = sargs.split(" ").collect();
-                let bufid = parts[0].to_string();
-                let bufid = DataM::compile(ctxt, &bufid, "any", &format!("{}:Buf8Randomize:TheBuf:{}", msgtag, bufid));
+                let parts = TStr::from_str_ex(sargs, true, true)
+                    .tokens_vec(' ', true, false)
+                    .expect(&format!("ERRR:{}:{}:Extracting args:{}", msgtag, sop, sargs));
+                let bufid = parts[0].as_ref();
+                let bufid = DataM::compile(ctxt, bufid, "any", &format!("{}:Buf8Randomize:TheBuf:{}", msgtag, bufid));
 
                 let dmrandcount;
                 let dmstartoffset;
@@ -1452,39 +1454,39 @@ impl Op {
                 let mut thepart;
 
                 if parts.len() >= 2 {
-                    thepart = parts[1].to_string();
+                    thepart = parts[1].as_ref();
                 } else {
-                    thepart = String::from("-1");
+                    thepart = "-1";
                 }
-                dmrandcount = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:RandCount:{}", msgtag, thepart));
+                dmrandcount = DataM::compile(ctxt, thepart, "isize", &format!("{}:Buf8Randomize:RandCount:{}", msgtag, thepart));
 
                 if parts.len() >= 3 {
-                    thepart = parts[2].to_string();
+                    thepart = parts[2].as_ref();
                 } else {
-                    thepart = String::from("-1");
+                    thepart = "-1";
                 }
-                dmstartoffset = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:StartOffset:{}", msgtag, thepart));
+                dmstartoffset = DataM::compile(ctxt, thepart, "isize", &format!("{}:Buf8Randomize:StartOffset:{}", msgtag, thepart));
 
                 if parts.len() >= 4 {
-                    thepart = parts[3].to_string();
+                    thepart = parts[3].as_ref();
                 } else {
-                    thepart = String::from("-1");
+                    thepart = "-1";
                 }
-                dmendoffset = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:EndOffset:{}", msgtag, thepart));
+                dmendoffset = DataM::compile(ctxt, thepart, "isize", &format!("{}:Buf8Randomize:EndOffset:{}", msgtag, thepart));
 
                 if parts.len() >= 5 {
-                    thepart = parts[4].to_string();
+                    thepart = parts[4].as_ref();
                 } else {
-                    thepart = String::from("0");
+                    thepart = "0";
                 }
-                dmstartval = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:StartVal:{}", msgtag, thepart));
+                dmstartval = DataM::compile(ctxt, thepart, "isize", &format!("{}:Buf8Randomize:StartVal:{}", msgtag, thepart));
 
                 if parts.len() == 6 {
-                    thepart = parts[5].to_string();
+                    thepart = parts[5].as_ref();
                 } else {
-                    thepart = String::from("255");
+                    thepart = "255";
                 }
-                dmendval = DataM::compile(ctxt, &thepart, "isize", &format!("{}:Buf8Randomize:EndVal:{}", msgtag, thepart));
+                dmendval = DataM::compile(ctxt, thepart, "isize", &format!("{}:Buf8Randomize:EndVal:{}", msgtag, thepart));
 
                 if parts.len() > 6 {
                     panic!("ERRR:{}:Buf8Randomize:Too many args:{}", msgtag, sargs);
