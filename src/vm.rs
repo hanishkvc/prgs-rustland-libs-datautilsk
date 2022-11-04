@@ -1331,23 +1331,23 @@ impl Op {
             }
 
             "iobnew" => {
-                let args: Vec<&str> = sargs.splitn(3, ' ').collect();
+                let mut tsargs = TStr::from_str_ex(sargs, true, true);
+                let args = tsargs.splitn(3, ' ').expect(&format!("ERRR:{}:{}:Extracting arguments[{}]", msgtag, sop, sargs));
                 if args.len() < 2 {
                     panic!("ERRR:{}:IobNew:InsufficientArgs:{}:[{:?}]", msgtag, sargs, args);
                 }
-                let ioid = args[0].to_string();
-                let ioaddr = args[1].to_string();
+                let ioid = args[0].clone();
+                let ioaddr = args[1].clone();
                 let mut sioargs = "";
                 if args.len() == 3 {
-                    sioargs = args[2];
+                    sioargs = args[2].as_str();
                 }
                 let mut ioargs = HashMap::new();
-                let lioargs = sioargs.split(" ").collect::<Vec<&str>>();
+                let lioargs = TStr::from_str_ex(sioargs, true, true)
+                    .tokens_vec(' ', true, false)
+                    .expect(&format!("ERRR:{}:{}:IoArgs:{}", msgtag, sop, sioargs));
                 for sioarg in lioargs {
-                    if sioarg.len() == 0 {
-                        continue;
-                    }
-                    let (k, v) = sioarg.split_once("=").expect(&format!("ERRR:{}:IobNew:IoArgs:{}", msgtag, sioargs));
+                    let (k, v) = sioarg.split_once("=").expect(&format!("ERRR:{}:{}:Extracting IoArg:{}", msgtag, sop, sioarg));
                     ioargs.insert(k.to_string(), v.to_string());
                 }
                 return Ok(Op::IobNew(ioid, ioaddr, ioargs));
