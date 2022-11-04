@@ -1401,12 +1401,12 @@ impl Op {
                 return Ok(Op::If(cop, val1dm, val2dm, Box::new(nxtop)));
             }
             "checkjump" => {
-                let args: Vec<&str> = sargs.splitn(5, ' ').collect();
+                let args = TStr::from_str_ex(sargs, true, true).splitn(5, ' ').expect(&format!("ERRR:{}:{}:Extracting operands:{}", msgtag, sop, sargs));
                 if args.len() != 5 {
-                    panic!("ERRR:{}:CheckJump:InsufficientArgs:{}", msgtag, sargs);
+                    panic!("ERRR:{}:CheckJump:Insufficient args:{}", msgtag, sargs);
                 }
-                let arg1dm = DataM::compile(ctxt, args[0], "isize", &format!("{}:CheckJump:Arg1:{}", msgtag, args[0]));
-                let arg2dm = DataM::compile(ctxt, args[1], "isize", &format!("{}:CheckJump:Arg2:{}", msgtag, args[1]));
+                let arg1dm = DataM::compile(ctxt, &args[0], "isize", &format!("{}:CheckJump:Arg1:{}", msgtag, args[0]));
+                let arg2dm = DataM::compile(ctxt, &args[1], "isize", &format!("{}:CheckJump:Arg2:{}", msgtag, args[1]));
                 return Ok(Op::CheckJump(arg1dm, arg2dm, args[2].to_string(), args[3].to_string(), args[4].to_string()));
             }
             "jump" | "goto" => {
