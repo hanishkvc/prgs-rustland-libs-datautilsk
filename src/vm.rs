@@ -595,21 +595,20 @@ impl DataM {
                 }
                 if schar == '!' && echar == ')' {
                     let sa = sdata.the_str().split_once('(').unwrap();
-                    let sarg = &sa.1[..sa.1.len()-1];
+                    let sarg = TStr::from_str(&sa.1[..sa.1.len()-1]);
                     let sarg1;
                     let bdm2;
                     match sa.0 {
                         "!byteele" | "!be" | "!arrayele" | "!ae" => {
-                            // ALERT: For now dont allow
-                            // * string literals with comma in them as part of args (or rather data arg) of Byte/ArrayEle xcasting
+                            // ALERT: For now does not support
                             // * indexing of indexing using xcasting syntax
                             let (tdata, tindex) = sarg.split_once(',').expect(&format!("ERRR:{}:DataM:Compile:XCast:{}:Extracting args:{}", smsg, sa.0, sarg));
-                            sarg1 = tdata;
-                            let idm = DataM::compile(ctxt, tindex, stype, &format!("{}:XCast-{}:{}",smsg, sa.0, tindex));
+                            sarg1 = tdata.as_str();
+                            let idm = DataM::compile(ctxt, &tindex, stype, &format!("{}:XCast-{}:{}",smsg, sa.0, tindex));
                             bdm2 = Some(Box::new(idm));
                         }
                         _ => {
-                            sarg1 = sarg;
+                            sarg1 = sarg.the_str();
                             bdm2 = None;
                         }
                     }
@@ -1262,7 +1261,7 @@ impl Op {
             sargs = "";
         }
         let sargs = sargs.trim();
-        let sargs = TStr::from_str(sargs);
+        //let sargs = TStr::from_str(sargs);
         match sop {
             "nop" => {
                 return Ok(Op::Nop);
