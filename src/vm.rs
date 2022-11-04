@@ -548,9 +548,7 @@ impl DataM {
     ///   * it could either be a func arg or local variable or a global variable.
     ///
     fn compile(ctxt: &Context, sdata: &str, stype: &str, smsg: &str) -> DataM {
-        let mut sdata = TStr::from_str(sdata);
-        sdata.escseq_defaults();
-        sdata.trim();
+        let mut sdata = TStr::from_str_ex(sdata, true, true);
         if sdata.remaining_len() == 0 {
             panic!("ERRR:{}:DataM:Compile:{}:Data token empty", smsg, stype);
         }
@@ -638,7 +636,7 @@ impl DataM {
         if echar == ']' {
             var = sdata.peel_bracket('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
             index = sdata.to_string();
-            sdata = TStr::from_str(&var);
+            sdata = TStr::from_str_ex(&var, true, true);
         } else {
             index = "".to_string();
         }
