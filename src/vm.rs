@@ -1331,8 +1331,7 @@ impl Op {
             }
 
             "iobnew" => {
-                let mut tsargs = TStr::from_str_ex(sargs, true, true);
-                let args = tsargs.splitn(3, ' ').expect(&format!("ERRR:{}:{}:Extracting arguments[{}]", msgtag, sop, sargs));
+                let args = TStr::from_str_ex(sargs, true, true).splitn(3, ' ').expect(&format!("ERRR:{}:{}:Extracting arguments[{}]", msgtag, sop, sargs));
                 if args.len() < 2 {
                     panic!("ERRR:{}:IobNew:InsufficientArgs:{}:[{:?}]", msgtag, sargs, args);
                 }
@@ -1370,21 +1369,16 @@ impl Op {
             }
 
             "iflt" | "iflt.i" | "ifgt" | "ifgt.i" | "ifeq" | "ifeq.b" | "ifeq.i" | "ifeq.s" | "ifne" | "ifne.b" | "ifne.i" | "ifne.s" | "ifle" | "ifle.i" | "ifge" | "ifge.i" => {
-                let next = datautils::next_token(sargs).unwrap();
-                let arg0 = next.0;
-                let next = datautils::next_token(&next.1).unwrap();
-                let arg1 = next.0;
-                let args: Vec<&str> = next.1.splitn(2, ' ').collect();
-                let desttype;
-                let destdata;
-                if args.len() != 2 {
-                    panic!("ERRR:{}:{}:InsufficientArgs:{}", msgtag, sop, sargs);
-                } else {
-                    desttype = args[0];
-                    destdata = args[1];
+                let vargs = TStr::from_str_ex(sargs, true, true).splitn(4, ' ').expect(&format!("ERRR:{}:{}:Extracting operands:{}", msgtag, sop, sargs));
+                if vargs.len() != 4 {
+                    panic!("ERRR:{}:{}:Insufficient args:{}", msgtag, sop, sargs);
                 }
-                let val1dm = DataM::compile(ctxt, &arg0, "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, arg0));
-                let val2dm = DataM::compile(ctxt, &arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
+                let arg0 = vargs[0].as_str();
+                let arg1 = vargs[1].as_str();
+                let desttype = vargs[2].as_str();
+                let destdata = vargs[3].as_str();
+                let val1dm = DataM::compile(ctxt, arg0, "any", &format!("{}:{}:CheckValue1:{}", msgtag, sop, arg0));
+                let val2dm = DataM::compile(ctxt, arg1, "any", &format!("{}:{}:CheckValue2:{}", msgtag, sop, arg1));
                 let cop = match sop {
                     "iflt" | "iflt.i" => CondOp::IfLtInt,
                     "ifgt" | "ifgt.i" => CondOp::IfGtInt,
