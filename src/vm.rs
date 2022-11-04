@@ -557,7 +557,7 @@ impl DataM {
         let echar = sdata.char_last().unwrap();
 
         if schar.is_numeric() || schar == '+' || schar == '-' {
-            let idata = datautils::intvalue(sdata).expect(&format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
+            let idata = datautils::intvalue(sdata.the_str()).expect(&format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
             return DataM::Value(Variant::IntValue(idata));
         }
 
@@ -567,7 +567,7 @@ impl DataM {
                 if schar != echar {
                     panic!("ERRR:{}:DataM:Compile:StringLiteral:Mising double quote at one of the ends:[{}]", smsg, sdata);
                 }
-                let tdata = sdata.nexttok(true).expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Processing...", smsg));
+                let tdata = sdata.nexttok(' ', true).expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Processing...", smsg));
                 if sdata.remaining_len() > 0 {
                     panic!("ERRR:{}:DataM:Compile:StringLiteral:Extra data [{}] beyond end of the string[{}]???", smsg, sdata, tdata);
                 }
@@ -597,11 +597,13 @@ impl DataM {
                     let xop = sdata.peel_bracket('(').unwrap();
                     let sarg1;
                     let bdm2;
+                    let tdata;
                     match xop.as_str() {
                         "!byteele" | "!be" | "!arrayele" | "!ae" => {
                             // ALERT: For now does not support
                             // * indexing of indexing using xcasting syntax
-                            let (tdata, tindex) = sdata.split_once(',').expect(&format!("ERRR:{}:DataM:Compile:XCast:{}:Extracting args:{}", smsg, xop, sdata));
+                            let tindex;
+                            (tdata, tindex) = sdata.split_once(',').expect(&format!("ERRR:{}:DataM:Compile:XCast:{}:Extracting args:{}", smsg, xop, sdata));
                             sarg1 = tdata.as_str();
                             let idm = DataM::compile(ctxt, &tindex, stype, &format!("{}:XCast-{}:{}",smsg, xop, tindex));
                             bdm2 = Some(Box::new(idm));
@@ -631,8 +633,9 @@ impl DataM {
             panic!("ERRR:{}:DataM:{}:Variable name {} should start with a alphabetic char", smsg, stype, sdata);
         }
         let index;
+        let var;
         if echar == ']' {
-            let var = sdata.peel_bracket('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
+            var = sdata.peel_bracket('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
             sdata = TStr::from_str(&var);
             index = sdata.the_str();
         } else {
