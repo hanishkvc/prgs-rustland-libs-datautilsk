@@ -1501,12 +1501,11 @@ impl Op {
                 let (bufid, srcs) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufMerged:Extracting dest from {}", msgtag, sargs));
                 let bufid = DataM::compile(ctxt, bufid, "any", &format!("{}:BufMerged:Dest:{}", msgtag, bufid));
                 let mut vdm = Vec::new();
-                let mut tnext = srcs.to_string();
-                while tnext.len() > 0 {
-                    let tplus = datautils::next_token(&tnext).expect(&format!("ERRR:{}:BufMerged:Extracting data sources at {}", msgtag, tnext));
-                    let dm = DataM::compile(ctxt, &tplus.0, "any", &format!("{}:BufMerged:ProcessingSrc:{}", msgtag, tplus.0));
+                let mut vsrcs = TStr::from_str_ex(srcs, true, true);
+                let vsrcs = vsrcs.tokens_vec(' ', true, false).expect(&format!("ERRR:{}:BufMerged:Extracting data sources [{}]", msgtag, srcs));
+                for tnext in vsrcs {
+                    let dm = DataM::compile(ctxt, &tnext, "any", &format!("{}:BufMerged:ProcessingSrc:{}", msgtag, tnext));
                     vdm.push(dm);
-                    tnext = tplus.1;
                 }
                 let op_type = sop.split_once('.');
                 let mtype;
