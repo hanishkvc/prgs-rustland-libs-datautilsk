@@ -594,7 +594,7 @@ impl DataM {
                     panic!("ERRR:{}:DataM:Compile:{}:Unknown Special Tag {}???", smsg, stype, sdata);
                 }
                 if schar == '!' && echar == ')' {
-                    let xop = sdata.peel_bracket('(');
+                    let xop = sdata.peel_bracket('(').unwrap();
                     let sarg1;
                     let bdm2;
                     match xop.as_str() {
@@ -632,9 +632,9 @@ impl DataM {
         }
         let index;
         if echar == ']' {
-            let varind = sdata[..sdata.len()-1].split_once('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
-            sdata = varind.0;
-            index = varind.1;
+            let var = sdata.peel_bracket('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
+            sdata = TStr::from_str(&var);
+            index = sdata.the_str();
         } else {
             index = "";
         }
