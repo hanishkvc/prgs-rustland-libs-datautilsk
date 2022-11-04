@@ -1302,10 +1302,14 @@ impl Op {
                     "mod" => AluAOP::Mod,
                     _ => todo!(),
                 };
-                let args: Vec<&str> = sargs.split_whitespace().collect();
-                let dmdst = DataM::compile(ctxt, args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
-                let dmsrc1 = DataM::compile(ctxt, args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
-                let dmsrc2 = DataM::compile(ctxt, args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
+                let args = TStr::from_str_ex(sargs, true, true).tokens_vec(' ', true, false);
+                if args.is_err() {
+                    panic!("ERRR:{}:{}:extracting operands:[{}]:{}", msgtag, sop, sargs, args.unwrap_err());
+                }
+                let args = args.unwrap();
+                let dmdst = DataM::compile(ctxt, &args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
+                let dmsrc1 = DataM::compile(ctxt, &args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
+                let dmsrc2 = DataM::compile(ctxt, &args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
                 return Ok(Op::AluArith(aluop, dmdst, dmsrc1, dmsrc2));
             }
             "and" | "or" | "not" | "xor" | "slb" | "srb" => {
