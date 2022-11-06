@@ -556,7 +556,7 @@ impl DataM {
         let echar = sdata.char_last().unwrap();
 
         if schar.is_numeric() || schar == '+' || schar == '-' {
-            let idata = datautils::intvalue(sdata.the_str()).expect(&format!("ERRR:{}:DataM:Compile:IntLiteral:Conversion", smsg));
+            let idata = datautils::intvalue(sdata.the_str()).expect(&format!("ERRR:{}:DataM:Compile:IntLiteral[{}]:Conversion", smsg, sdata));
             return DataM::Value(Variant::IntValue(idata));
         }
 
@@ -566,7 +566,7 @@ impl DataM {
                 if schar != echar {
                     panic!("ERRR:{}:DataM:Compile:StringLiteral:Mising double quote at one of the ends:[{}]", smsg, sdata);
                 }
-                let tdata = sdata.nexttok(' ', true).expect(&format!("ERRR:{}:DataM:Compile:StringLiteral:Processing...", smsg));
+                let tdata = sdata.nexttok(' ', true).expect(&format!("ERRR:{}:DataM:Compile:StringLiteral~[{}]:Processing...", smsg, sdata));
                 if sdata.remaining_len() > 0 {
                     panic!("ERRR:{}:DataM:Compile:StringLiteral:Extra data [{}] beyond end of the string[{}]???", smsg, sdata, tdata);
                 }
