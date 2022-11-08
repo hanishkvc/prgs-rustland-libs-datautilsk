@@ -20,7 +20,7 @@ use crate::cfgfiles;
 
 mod datas;
 use datas::{Variant, VDataType};
-use tokensk::{TStr, self};
+use tokensk::{self, TStrX};
 
 
 macro_rules! dformat {
@@ -69,10 +69,14 @@ struct Context {
     /// During compilation of Ops, if any op wants to add
     /// auto generated instructions/ops, before itself.
     preops: Vec<Op>,
+    /// Contains the base tokenisation setup
+    tstrx: TStrX,
 }
 
 impl Context {
     fn new() -> Context {
+        let mut tstrx = TStrX::new();
+        tstrx.flags.mainbracket_beginstandalone = false;
         Context {
             globals: HashMap::new(),
             iobs: HashMap::new(),
@@ -89,6 +93,7 @@ impl Context {
             compilingfunc: String::new(),
             compilingline: 0,
             preops: Vec::new(),
+            tstrx: tstrx,
         }
     }
 }
@@ -548,7 +553,7 @@ impl DataM {
     ///   * it could either be a func arg or local variable or a global variable.
     ///
     fn compile(ctxt: &Context, sdata: &str, stype: &str, smsg: &str) -> DataM {
-        let mut sdata = TStr::from_str_ex(sdata, true, true);
+        let mut sdata = ctxt.tstrx.from_str(sdata, true);
         if sdata.remaining_len() == 0 {
             panic!("ERRR:{}:DataM:Compile:{}:Data token empty", smsg, stype);
         }
@@ -636,7 +641,7 @@ impl DataM {
         if echar == ']' {
             var = sdata.peel_bracket('[').expect(&format!("ERRR:{}:DataM:Compile:{}:Invalid array indexing???:{}", smsg, stype, sdata));
             index = sdata.to_string();
-            sdata = TStr::from_str_ex(&var, true, true);
+            sdata = ctxt.tstrx.from_str(&var, true);
         } else {
             index = "".to_string();
         }
@@ -1136,7 +1141,7 @@ impl Op {
     ///
     /// Retrieve the function name and any following args wrt call ops
     ///
-    fn name_args(ins: &str) -> Result<(String, Vec<String>), String> {
+    fn name_args(ctxt: &Context, ins: &str) -> Result<(String, Vec<String>), String> {
         let ins = ins.trim();
         let n_args = ins.split_once(' ');
         if n_args.is_none() {
@@ -1147,7 +1152,7 @@ impl Op {
             return Ok((ins.to_string(), vargs));
         }
         let n_args = n_args.unwrap();
-        let mut targs = TStr::from_str_ex(n_args.1, true, true);
+        let mut targs = ctxt.tstrx.from_str(n_args.1, true);
         let vargs = targs.tokens_vec(' ', true, false);
         if vargs.is_err() {
             return Err(format!("NameArgs:args [{}] error [{}]", n_args.1, vargs.unwrap_err()));
@@ -1237,11 +1242,11 @@ impl Op {
         let theop;
         match sop {
             "callvo" => {
-                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:{}:Extract name and args:{}", msgtag, sop, sargs));
+                let na = Op::name_args(ctxt, sargs).expect(&format!("ERRR:{}:{}:Extract name and args:{}", msgtag, sop, sargs));
                 theop = Op::Call(na.0, na.1);
             }
             "call" => {
-                let na = Op::name_args(sargs).expect(&format!("ERRR:{}:{}:Extract name and args:{}", msgtag, sop, sargs));
+                let na = Op::name_args(ctxt, sargs).expect(&format!("ERRR:{}:{}:Extract name and args:{}", msgtag, sop, sargs));
                 let destargs = Op::compile_literals2autotempvars(ctxt, na.1, &format!("{}:{}:{}", msgtag, sop, sargs));
                 theop = Op::Call(na.0, destargs);
             }
@@ -1262,7 +1267,6 @@ impl Op {
             sargs = "";
         }
         let sargs = sargs.trim();
-        //let sargs = TStr::from_str(sargs);
         match sop {
             "nop" => {
                 return Ok(Op::Nop);
@@ -1302,7 +1306,7 @@ impl Op {
                     "mod" => AluAOP::Mod,
                     _ => todo!(),
                 };
-                let args = TStr::from_str_ex(sargs, true, true).tokens_vec(' ', true, false).expect(&format!("ERRR:{}:{}:extracting operands:[{}]", msgtag, sop, sargs));
+                let args = ctxt.tstrx.from_str(sargs, true).tokens_vec(' ', true, false).expect(&format!("ERRR:{}:{}:extracting operands:[{}]", msgtag, sop, sargs));
                 let dmdst = DataM::compile(ctxt, &args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
                 let dmsrc1 = DataM::compile(ctxt, &args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
                 let dmsrc2 = DataM::compile(ctxt, &args[2], "any", &format!("{}:{}:SrcArg2:{}", msgtag, sop, args[1]));
@@ -1318,7 +1322,7 @@ impl Op {
                     "srb" => AluLOP::Srb,
                     _ => todo!(),
                 };
-                let args = TStr::from_str_ex(sargs, true, true).tokens_vec(' ', true, false).expect(&format!("ERRR:{}:{}:extracting operands:[{}]", msgtag, sop, sargs));
+                let args = ctxt.tstrx.from_str(sargs, true).tokens_vec(' ', true, false).expect(&format!("ERRR:{}:{}:extracting operands:[{}]", msgtag, sop, sargs));
                 let dmdst = DataM::compile(ctxt, &args[0], "any", &format!("{}:{}:Dest:{}", msgtag, sop, args[0]));
                 let dmsrc1 = DataM::compile(ctxt, &args[1], "any", &format!("{}:{}:SrcArg1:{}", msgtag, sop, args[1]));
                 let dmsrc2;
@@ -1331,7 +1335,7 @@ impl Op {
             }
 
             "iobnew" => {
-                let args = TStr::from_str_ex(sargs, true, true).splitn(3, ' ').expect(&format!("ERRR:{}:{}:Extracting arguments[{}]", msgtag, sop, sargs));
+                let args = ctxt.tstrx.from_str(sargs, true).splitn(3, ' ').expect(&format!("ERRR:{}:{}:Extracting arguments[{}]", msgtag, sop, sargs));
                 if args.len() < 2 {
                     panic!("ERRR:{}:IobNew:InsufficientArgs:{}:[{:?}]", msgtag, sargs, args);
                 }
@@ -1342,7 +1346,7 @@ impl Op {
                     sioargs = args[2].as_str();
                 }
                 let mut ioargs = HashMap::new();
-                let lioargs = TStr::from_str_ex(sioargs, true, true)
+                let lioargs = ctxt.tstrx.from_str(sioargs, true)
                     .tokens_vec(' ', true, false)
                     .expect(&format!("ERRR:{}:{}:IoArgs:{}", msgtag, sop, sioargs));
                 for sioarg in lioargs {
@@ -1369,7 +1373,7 @@ impl Op {
             }
 
             "iflt" | "iflt.i" | "ifgt" | "ifgt.i" | "ifeq" | "ifeq.b" | "ifeq.i" | "ifeq.s" | "ifne" | "ifne.b" | "ifne.i" | "ifne.s" | "ifle" | "ifle.i" | "ifge" | "ifge.i" => {
-                let vargs = TStr::from_str_ex(sargs, true, true).splitn(4, ' ').expect(&format!("ERRR:{}:{}:Extracting operands:{}", msgtag, sop, sargs));
+                let vargs = ctxt.tstrx.from_str(sargs, true).splitn(4, ' ').expect(&format!("ERRR:{}:{}:Extracting operands:{}", msgtag, sop, sargs));
                 if vargs.len() != 4 {
                     panic!("ERRR:{}:{}:Insufficient args:{}", msgtag, sop, sargs);
                 }
@@ -1401,7 +1405,7 @@ impl Op {
                 return Ok(Op::If(cop, val1dm, val2dm, Box::new(nxtop)));
             }
             "checkjump" => {
-                let args = TStr::from_str_ex(sargs, true, true).splitn(5, ' ').expect(&format!("ERRR:{}:{}:Extracting operands:{}", msgtag, sop, sargs));
+                let args = ctxt.tstrx.from_str(sargs, true).splitn(5, ' ').expect(&format!("ERRR:{}:{}:Extracting operands:{}", msgtag, sop, sargs));
                 if args.len() != 5 {
                     panic!("ERRR:{}:CheckJump:Insufficient args:{}", msgtag, sargs);
                 }
@@ -1439,7 +1443,7 @@ impl Op {
                 return Ok(Op::BufNew(bufid, dmbufsize));
             }
             "buf8randomize" => {
-                let parts = TStr::from_str_ex(sargs, true, true)
+                let parts = ctxt.tstrx.from_str(sargs, true)
                     .tokens_vec(' ', true, false)
                     .expect(&format!("ERRR:{}:{}:Extracting args:{}", msgtag, sop, sargs));
                 let bufid = parts[0].as_ref();
@@ -1497,7 +1501,7 @@ impl Op {
                 let (bufid, srcs) = sargs.split_once(' ').expect(&format!("ERRR:{}:BufMerged:Extracting dest from {}", msgtag, sargs));
                 let bufid = DataM::compile(ctxt, bufid, "any", &format!("{}:BufMerged:Dest:{}", msgtag, bufid));
                 let mut vdm = Vec::new();
-                let mut vsrcs = TStr::from_str_ex(srcs, true, true);
+                let mut vsrcs = ctxt.tstrx.from_str(srcs, true);
                 let vsrcs = vsrcs.tokens_vec(' ', true, false).expect(&format!("ERRR:{}:BufMerged:Extracting data sources [{}]", msgtag, srcs));
                 for tnext in vsrcs {
                     let dm = DataM::compile(ctxt, &tnext, "any", &format!("{}:BufMerged:ProcessingSrc:{}", msgtag, tnext));
