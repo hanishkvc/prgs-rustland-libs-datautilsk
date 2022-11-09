@@ -11,9 +11,9 @@ use std::thread;
 use std::time::Duration;
 use std::panic;
 
-use loggerk::{log_w, log_e, log_d, ldebug};
 use rand::Rng;
-use crate::datautils;
+
+use loggerk::{log_w, log_e, log_d, ldebug};
 use crate::iob::IOBridge;
 use crate::rtm::RunTimeManager;
 use crate::cfgfiles;
@@ -1344,16 +1344,6 @@ impl VM {
     pub fn compile(&mut self, ops: Vec<String>) {
         self.compile_p1(ops);
         self.compile_p2();
-    }
-
-    #[allow(dead_code)]
-    fn test_bruteforce_nexttoken(nl: &str) {
-        let mut tl = nl.to_string();
-        while tl.len() > 0 {
-            let (tok, tlnext) = datautils::next_token(&tl).unwrap();
-            log_d(&format!("[{}]=>\n\t[{}],\n\t[{}]", tl, tok, tlnext));
-            tl = tlnext;
-        }
     }
 
     pub fn load_asmprg(&mut self, asmfile: &str) {

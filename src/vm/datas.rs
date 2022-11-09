@@ -1,5 +1,5 @@
 //!
-//! Helpers wrt data used by VM
+//! A Variant data type
 //! HanishKVC, 2022
 //!
 
