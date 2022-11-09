@@ -715,6 +715,17 @@ impl DataM {
         return VDataType::Unknown;
     }
 
+    fn get_type_char(&self, ctxt: &Context) -> char {
+        let vtype = self.get_type(ctxt);
+        match vtype {
+            VDataType::Unknown => '?',
+            VDataType::Integer => 'i',
+            VDataType::String => 's',
+            VDataType::Buffer => 'b',
+            VDataType::Special => 'b',
+        }
+    }
+
     ///
     /// * Int -> Int
     /// * String -> Try interpret the string as a textual literal value of a integer
@@ -1168,8 +1179,8 @@ impl Op {
     ///
     /// Uses local variables space of the current function, if inside a func. Else use global space.
     ///
-    /// Uses current source line number and index of the argument in the argument list
-    /// to generate a name for the auto created temp variable
+    /// Uses current source line number and index of the argument in the argument list to generate
+    /// a name for the auto created temp variable.
     ///
     fn compile_literals2autotempvars(ctxt: &mut Context, vargsin: Vec<String>, msgtag: &str) -> Vec<String> {
         let mut vargs: Vec<String> = Vec::new();
@@ -1181,13 +1192,10 @@ impl Op {
                 vargs.push(stok);
                 continue;
             }
-            let odtype = match dm.get_type(ctxt) {
-                VDataType::Unknown => todo!(),
-                VDataType::Integer => 'i',
-                VDataType::String => 's',
-                VDataType::Buffer => 'b',
-                VDataType::Special => 'b',
-            };
+            let odtype = dm.get_type_char(ctxt);
+            if odtype == '?' {
+                todo!();
+            }
             let autovar = format!("ATV_{}_{}_AtVaTv", ctxt.compilingline, itok);
             let avdm = DataM::compile(ctxt, &autovar, "any", &format!("{}:Lit2AutoTempVars:Auto var:{}", msgtag, autovar));
             if ctxt.bcompilingfunc {
@@ -1205,13 +1213,7 @@ impl Op {
         let srctype = match tm {
             "?" => {
                 if srcdm.is_value() {
-                    match srcdm.get_type(ctxt) {
-                        VDataType::Unknown => '?',
-                        VDataType::Integer => 'i',
-                        VDataType::String => 's',
-                        VDataType::Buffer => 'b',
-                        VDataType::Special => 'b',
-                    }
+                    srcdm.get_type_char(ctxt)
                 } else { // a variable's associated data value type cant be resolved at compile time.
                     '?'
                 }
@@ -1557,13 +1559,7 @@ impl Op {
     fn oprun_opdatatype_infer(curtypeinfo: char, ctxt: &Context, srcdm: &DataM) -> char {
         let dtype;
         if curtypeinfo == '?' {
-            dtype = match srcdm.get_type(ctxt) {
-                VDataType::Unknown => '?',
-                VDataType::Integer => 'i',
-                VDataType::String => 's',
-                VDataType::Buffer => 'b',
-                VDataType::Special => 'b',
-            }
+            dtype = srcdm.get_type_char(ctxt);
         } else {
             dtype = curtypeinfo;
         }
