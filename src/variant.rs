@@ -3,6 +3,7 @@
 //! HanishKVC, 2022
 //!
 
+use std::fmt::Display;
 use std::time;
 
 use crate::hex;
@@ -227,7 +228,24 @@ impl From<&str> for Variant {
         if sin.starts_with('"') && sin.ends_with('"'){
             return Variant::StrValue(sin[1..sin.len()-1].to_string());
         }
+        if sin == "__TIME__STAMP__" {
+            return Variant::XTimeStamp;
+        }
         return Variant::IntValue(integer::intvalue(sin).unwrap());
+    }
+
+}
+
+impl Display for Variant {
+
+    /// Allow a variant to be shown/output to the user
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Variant::IntValue(ival) => f.write_str(&ival.to_string()),
+            Variant::StrValue(sval) => f.write_str(sval),
+            Variant::BufValue(bval) => f.write_str(&hex::hex_from_vu8(bval)),
+            Variant::XTimeStamp => f.write_str(&self.get_string()),
+        }
     }
 
 }

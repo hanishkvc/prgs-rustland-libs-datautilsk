@@ -16,7 +16,8 @@ pub fn test_variant() {
     let ivar = variant::Variant::from("     123  ");
     let svar = variant::Variant::from("  \" 456 but a string \"             ");
     let bvar = variant::Variant::from("  $0x1122334455 ");
-    print!("TEST:Variant:UsingFrom:IntV[{}]:StrV[{}]:BufV[{}]\n", ivar, svar, bvar);
+    let tvar = variant::Variant::from("    __TIME__STAMP__ ");
+    print!("TEST:Variant:UsingFrom:IntV[{}]:StrV[{}]:BufV[{}]:TSV[{}]\n", ivar, svar, bvar, tvar);
 }
 
 pub fn test_bufhex() {
