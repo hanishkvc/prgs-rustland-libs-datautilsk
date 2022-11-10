@@ -1,6 +1,6 @@
-##########
-DataUtils
-##########
+############
+DataUtilsK
+############
 
 Author: HanishKVC
 Version: 20221110IST1418
@@ -20,9 +20,10 @@ wrt fuzzer to remain there.
 Details
 #########
 
-Variant allows one to store integer, string or binary buffer.
+Variant allows one to store a integer, string or a binary/byte buffer
+in the same variable/data entity.
 
-Convertion between Binary buffer and Hex string.
+Convertion between Binary/Byte buffer and Hex string.
 
 Convert string into different int types through isize.
 

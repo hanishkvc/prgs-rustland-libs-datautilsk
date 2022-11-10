@@ -3,7 +3,7 @@
 //! HanishKVC, 2022
 //!
 
-use datautils::testlib;
+use datautilsk::testlib;
 
 fn main() {
     testlib::test_variant();
