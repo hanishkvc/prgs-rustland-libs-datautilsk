@@ -5,7 +5,8 @@
 
 use std::time;
 
-use crate::datautils;
+use crate::hex;
+use crate::integer;
 
 
 #[derive(Debug)]
@@ -58,7 +59,7 @@ impl Variant {
                 return Ok(*ival);
             },
             Self::StrValue(sval) => {
-                let ival = datautils::intvalue(sval);
+                let ival = integer::intvalue(sval);
                 if ival.is_ok() {
                     return Ok(ival.unwrap());
                 }
@@ -113,7 +114,7 @@ impl Variant {
                 return sval.to_string();
             },
             Self::BufValue(bval) => {
-                return datautils::hex_from_vu8(bval);
+                return hex::hex_from_vu8(bval);
             },
             Self::XTimeStamp => {
                 let ts = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap();
