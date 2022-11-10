@@ -19,6 +19,15 @@ pub enum VDataType {
 
 
 #[derive(Debug, Clone)]
+/// Maintain either a Integer or String or a Binary buffer
+/// in a given variable of this type.
+///
+/// Inturn operate on them in a transparent way, to a great
+/// extent, in that one can try to fetch the stored value
+/// either has a integer or a string or a binary buffer.
+/// The logic tries to convert the stored data into the
+/// requested type in a predefined and potentially sane
+/// way, which should be fine in many cases.
 pub enum Variant {
     IntValue(isize),
     StrValue(String),
@@ -72,8 +81,8 @@ impl Variant {
     }
 
     ///
-    /// Return a positive interger value, this is built upon get_isize
-    /// If the underlying value is negative, then it will panic
+    /// Return a unsigned (ie positive interger value), this is built upon
+    /// get_isize. If the underlying value is negative, then it will panic
     ///
     #[allow(dead_code)]
     fn get_usize(&self) -> Result<usize, String> {
@@ -149,12 +158,20 @@ impl Variant {
     }
 
     #[allow(dead_code)]
+    /// Get the byte value at the given byte offset within the underlying/raw bytes
+    /// of the data stored in the variant.
     pub fn get_byteelement(&self, index: usize) -> u8 {
         let bval = self.get_bufvu8();
         let aval = bval[index];
         return aval;
     }
 
+    /// Get a appropriate data element at the given offset within the data.
+    ///
+    /// Int: the offset maps to byte offset
+    /// String: the offset maps to char offset (and not byte offset)
+    ///     should help with multibyte unicode chars which are stored internally.
+    /// Buf: the offset maps to byte offset.
     pub fn get_arrayelement(&self, index: usize) -> Result<Variant, String> {
         match self {
             Self::IntValue(_ival) => {
