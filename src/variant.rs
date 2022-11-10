@@ -21,7 +21,7 @@ pub enum VDataType {
 
 
 #[derive(Debug, Clone)]
-/// Maintain either a Integer or String or a Binary buffer
+/// Maintain either a Integer or String or a Binary/Byte buffer
 /// in a given variable of this type.
 ///
 /// Inturn operate on them in a transparent way, to a great
@@ -246,6 +246,27 @@ impl Display for Variant {
             Variant::BufValue(bval) => f.write_str(&hex::hex_from_vu8(bval)),
             Variant::XTimeStamp => f.write_str(&self.get_string()),
         }
+    }
+
+}
+
+/// These set members just set the variant instance to a appropriate variant type
+/// along with the corresponding value.
+impl Variant {
+
+    /// Set a variant to a int value
+    pub fn set_isize(&mut self, ival: isize) {
+        *self = Variant::IntValue(ival);
+    }
+
+    /// Set a variant to a string value
+    pub fn set_string(&mut self, sval: &str) {
+        *self = Variant::StrValue(sval.to_string());
+    }
+
+    /// Set a variant to a binary/byte buffer value
+    pub fn set_bufvu8(&mut self, bval: &Vec<u8>) {
+        *self = Variant::BufValue(bval.clone())
     }
 
 }
