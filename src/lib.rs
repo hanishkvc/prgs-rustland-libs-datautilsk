@@ -26,4 +26,9 @@ mod tests {
         testlib::test_variant();
     }
 
+    #[test]
+    fn test_bufhex() {
+        testlib::test_bufhex();
+    }
+
 }

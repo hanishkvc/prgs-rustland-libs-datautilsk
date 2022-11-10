@@ -7,4 +7,5 @@ use datautils::testlib;
 
 fn main() {
     testlib::test_variant();
+    testlib::test_bufhex();
 }
