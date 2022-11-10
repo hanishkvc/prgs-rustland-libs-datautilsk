@@ -4,8 +4,9 @@
 //! HanishKVC, 2022
 //!
 
-mod datautils;
 mod variant;
+mod integer;
+mod hex;
 
 
 #[cfg(test)]
