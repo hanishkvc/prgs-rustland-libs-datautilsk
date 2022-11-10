@@ -3,21 +3,26 @@
 //! HanishKVC, 2022
 //!
 
-use crate::{variant, hex};
+use crate::variant::Variant;
+use crate::hex;
 
 
 pub fn test_variant() {
-    let ivar = variant::Variant::IntValue(5);
-    let svar = variant::Variant::StrValue("666".to_string());
-    let bvar = variant::Variant::BufValue(Vec::from("\x07\x00\x00\x00\x00\x00\x00\x00"));
+    let ivar = Variant::IntValue(5);
+    let svar = Variant::StrValue("666".to_string());
+    let bvar = Variant::BufValue(Vec::from("\x07\x00\x00\x00\x00\x00\x00\x00"));
     print!("TEST:Variant:Int:Int[{}]:String[{}]:Buf[{:?}]\n", ivar.get_isize().unwrap(), ivar.get_string(), ivar.get_bufvu8());
     print!("TEST:Variant:Str:Int[{}]:String[{}]:Buf[{:?}]\n", svar.get_isize().unwrap(), svar.get_string(), svar.get_bufvu8());
     print!("TEST:Variant:Buf:Int[{}]:String[{}]:Buf[{:?}]\n", bvar.get_isize().unwrap(), bvar.get_string(), bvar.get_bufvu8());
-    let ivar = variant::Variant::from("     123  ");
-    let svar = variant::Variant::from("  \" 456 but a string \"             ");
-    let bvar = variant::Variant::from("  $0x1122334455 ");
-    let tvar = variant::Variant::from("    __TIME__STAMP__ ");
+    let ivar = Variant::from("     123  ");
+    let svar = Variant::from("  \" 456 but a string \"             ");
+    let bvar = Variant::from("  $0x1122334455 ");
+    let tvar = Variant::from("    __TIME__STAMP__ ");
     print!("TEST:Variant:UsingFrom:IntV[{}]:StrV[{}]:BufV[{}]:TSV[{}]\n", ivar, svar, bvar, tvar);
+    let mut isvar = Variant::IntValue(123);
+    let isorig = isvar.clone();
+    isvar.set_string("Set a int variant to string variant");
+    print!("TEST:Variant:Set:Initial[{}]:Set[{}]\n", isorig, isvar);
 }
 
 pub fn test_bufhex() {
