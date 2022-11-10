@@ -13,6 +13,10 @@ pub fn test_variant() {
     print!("TEST:Variant:Int:Int[{}]:String[{}]:Buf[{:?}]\n", ivar.get_isize().unwrap(), ivar.get_string(), ivar.get_bufvu8());
     print!("TEST:Variant:Str:Int[{}]:String[{}]:Buf[{:?}]\n", svar.get_isize().unwrap(), svar.get_string(), svar.get_bufvu8());
     print!("TEST:Variant:Buf:Int[{}]:String[{}]:Buf[{:?}]\n", bvar.get_isize().unwrap(), bvar.get_string(), bvar.get_bufvu8());
+    let ivar = variant::Variant::from("     123  ");
+    let svar = variant::Variant::from("  \" 456 but a string \"             ");
+    let bvar = variant::Variant::from("  $0x1122334455 ");
+    print!("TEST:Variant:UsingFrom:IntV[{}]:StrV[{}]:BufV[{}]\n", ivar, svar, bvar);
 }
 
 pub fn test_bufhex() {

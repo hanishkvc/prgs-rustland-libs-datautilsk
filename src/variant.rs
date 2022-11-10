@@ -211,3 +211,23 @@ impl Variant {
     }
 
 }
+
+impl From<&str> for Variant {
+
+    /// Create a appropriate Variant from the given string value.
+    /// The passed string is trimmed, before processing.
+    /// * if it starts with $0x, create binary buffer variant
+    /// * if the passed value is enclosed in double quotes, create a string variant
+    /// * if neither of above, create a integer
+    fn from(sin: &str) -> Self {
+        let sin = sin.trim();
+        if sin.starts_with("$0x") {
+            return Variant::BufValue(hex::vu8_from_hex(&sin[3..]).unwrap())
+        }
+        if sin.starts_with('"') && sin.ends_with('"'){
+            return Variant::StrValue(sin[1..sin.len()-1].to_string());
+        }
+        return Variant::IntValue(integer::intvalue(sin).unwrap());
+    }
+
+}
