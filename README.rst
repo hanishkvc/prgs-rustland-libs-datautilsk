@@ -4,6 +4,7 @@ DataUtilsK
 
 Author: HanishKVC
 Version: 20221110IST1418
+License: LGPL-3.0+
 
 
 Overview
