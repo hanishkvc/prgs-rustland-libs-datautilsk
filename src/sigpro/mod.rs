@@ -23,3 +23,70 @@ pub fn vec_avg<T: AddAssign + From<u16> + Div<Output = T> + Copy>(vdata: &Vec<T>
     d/(vdata.len() as u16).into()
 }
 
+/// Sliding window averaging over a given window size
+///
+/// The data is expected to be a vector of tuple of usize,f32,
+/// inturn the f32 part will be averaged wrt/over specified sliding window size
+///
+fn lowpass_average_f_of_uf_(vdata: &Vec<(usize, f32)>, fw: usize) -> Vec<(usize, f32)> {
+    let fwh = (fw/2) as isize;
+    let weight = 1.0/(fw as f32);
+    let mut vnew = Vec::new();
+    let mut vbtw = Vec::new();
+    for i in 0..vdata.len() {
+        vbtw.push(vdata[i].1*weight);
+    }
+    for i in 0..fwh {
+        vnew.push(vdata[i as usize]);
+    }
+    for i in fw..vbtw.len()-fw {
+        let mut d = 0.0;
+        for j in -fwh..(fwh+1) {
+            let fi = (i as isize + j) as usize;
+            d += vbtw[fi];
+        }
+        vnew.push((vdata[i].0, d));
+    }
+    for i in (1..=fwh as usize).rev() {
+        vnew.push(vdata[vdata.len()-i]);
+    }
+    vnew
+}
+
+/// Sliding window cross-correlation of given data with given weights
+///
+/// The data is expected to be a vector of tuple of usize,f32,
+/// inturn the f32 part will be cross-correlated
+///
+fn crosscorr_weighted_f_of_uf(vdata: &Vec<(usize, f32)>, vweights: &Vec<f32>) -> Vec<(usize, f32)> {
+    let fw = vweights.len();
+    let fwh = (fw/2) as usize;
+    let ifwh = fwh as isize;
+    let mut vnew = Vec::new();
+    // Initial placeholders
+    for i in 0..fwh {
+        vnew.push(vdata[i as usize]);
+    }
+    // CrossCorrelated data
+    for i in fwh..(vdata.len()-fwh) {
+        let mut d = 0.0;
+        for j in -ifwh..=ifwh {
+            let wi = (j + ifwh) as usize;
+            let di = (i as isize + j) as usize;
+            d += vdata[di].1 * vweights[wi];
+        }
+        vnew.push((vdata[i].0, d/fw as f32));
+    }
+    // Extend data at begin
+    for i in 0..fwh {
+        vnew[i] = vnew[fwh];
+    }
+    // Extend data at end.
+    for _i in (1..=fwh as usize).rev() {
+        //let fi = vdata.len() - i;
+        let fi = vdata.len() - fwh - 1;
+        //eprintln!("DBUG:SdlX:CrossCorrWeighted:{:?}:{:?}:{:?}:{}",vdata, vweights, vnew, fi);
+        vnew.push(vnew[fi]);
+    }
+    vnew
+}
