@@ -5,6 +5,7 @@
 
 use crate::variant::Variant;
 use crate::hex;
+use crate::sigpro;
 
 
 pub fn test_variant() {
@@ -30,4 +31,17 @@ pub fn test_bufhex() {
     vbuf[0] = 99;
     let shex = hex::hex_from_vu8(&vbuf);
     print!("TEST:BufHex:vbuf[{:?}], shex[{}]\n", vbuf, shex);
+}
+
+pub fn test_vecavg() {
+    let vtd11 = vec![1,2,3,4,5];
+    let vtd12 = vec![1u32,2,3,4,5];
+    let vtd13 = vec![1i32,2,3,4,5];
+    let vtd21 = vec![1.1f32,2.1,3.1,4.1,5.1];
+    let vtd22 = vec![1.1f64,2.1,3.1,4.1,5.1];
+    eprintln!("TEST:VecAvg:{:?}:{}", vtd11, sigpro::vec_avg(&vtd11));
+    eprintln!("TEST:VecAvg:{:?}:{}", vtd12, sigpro::vec_avg(&vtd12));
+    eprintln!("TEST:VecAvg:{:?}:{}", vtd13, sigpro::vec_avg(&vtd13));
+    eprintln!("TEST:VecAvg:{:?}:{}", vtd21, sigpro::vec_avg(&vtd21));
+    eprintln!("TEST:VecAvg:{:?}:{}", vtd22, sigpro::vec_avg(&vtd22));
 }

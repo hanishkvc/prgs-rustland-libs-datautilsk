@@ -32,4 +32,9 @@ mod tests {
         testlib::test_bufhex();
     }
 
+    #[test]
+    fn test_vecavg() {
+        testlib::test_vecavg();
+    }
+
 }
