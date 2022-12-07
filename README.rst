@@ -12,11 +12,15 @@ Overview
 
 Provide a bunch of data related helper entities and logic.
 
-This is extracted from fuzzerk, in which some of these logics started out.
+History
+==========
+
+Initial set extracted from fuzzerk, in which some of these logics started out.
 Inturn when using filter-repo to extract out the specifics wrt this module,
 I kept vm.rs/datam in initially, to allow some of the history behind variant,
 wrt fuzzer to remain there.
 
+Some of the data processing helpers moved from gameplaypgnd.
 
 Details
 #########
@@ -27,4 +31,6 @@ in the same variable/data entity.
 Convertion between Binary/Byte buffer and Hex string.
 
 Convert string into different int types through isize.
+
+Do sliding windowed averaging and cross correlation on vector of data.
 
