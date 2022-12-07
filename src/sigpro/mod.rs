@@ -6,6 +6,15 @@
 use std::ops::{AddAssign, Div};
 
 
+/// Calculate the sum of the values in the passed vector of numeric values.
+pub fn vec_sum<T: AddAssign + Copy>(vdata: &Vec<T>) -> T {
+    let mut d = vdata[0];
+    for i in 1..vdata.len() {
+        d += vdata[i];
+    }
+    d
+}
+
 /// Find average of the passed vector of supported numeric values.
 ///
 /// ALERT: Using u16 gives a nice compromise between supported vector length
