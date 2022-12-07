@@ -53,3 +53,11 @@ pub fn test_lowpassavg() {
     eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 2, vtd1, sigpro::sw_average_f_of_xf(&vtd1, 2));
     eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 3, vtd1, sigpro::sw_average_f_of_xf(&vtd1, 3));
 }
+
+pub fn test_crosscorr() {
+    let vweights1 = vec![0.2,0.6,0.2];
+    let vweights2 = vec![0.1,0.8,0.1];
+    let vtd1 = vec![(0,0.0),(0,1.0),(0,2.0), (1,3.0),(1,4.0),(1,5.0), (2,6.0),(2,7.0),(2,8.0),(2,9.0)];
+    eprintln!("TEST:CrossCorr:{:?}:{:?}", vtd1, sigpro::sw_crosscorr_f_of_xf(&vtd1, &vweights1));
+    eprintln!("TEST:CrossCorr:{:?}:{:?}", vtd1, sigpro::sw_crosscorr_f_of_xf(&vtd1, &vweights2));
+}

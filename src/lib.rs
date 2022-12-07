@@ -42,4 +42,9 @@ mod tests {
         testlib::test_lowpassavg();
     }
 
+    #[test]
+    fn test_crosscorr() {
+        testlib::test_crosscorr();
+    }
+
 }

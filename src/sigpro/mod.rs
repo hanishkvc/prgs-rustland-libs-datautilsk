@@ -95,7 +95,7 @@ pub fn sw_crosscorr_f_of_xf<M: Copy>(vdata: &Vec<(M, f32)>, vweights: &Vec<f32>)
             let di = (i as isize + j) as usize;
             d += vdata[di].1 * vweights[wi];
         }
-        vnew.push((vdata[i].0, d/ww as f32));
+        vnew.push((vdata[i].0, d));
     }
     // Extend data at begin
     for i in 0..wwh {
