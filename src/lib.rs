@@ -7,6 +7,7 @@
 pub mod variant;
 pub mod integer;
 pub mod hex;
+pub mod sigpro;
 pub mod testlib;
 
 
