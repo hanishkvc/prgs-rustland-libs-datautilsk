@@ -28,8 +28,12 @@ pub fn vec_avg<T: AddAssign + From<u16> + Div<Output = T> + Copy>(vdata: &Vec<T>
 /// The data is expected to be a vector of tuple of usize,f32,
 /// inturn the f32 part will be averaged wrt/over specified sliding window size
 ///
-fn lowpass_average_f_of_uf_(vdata: &Vec<(usize, f32)>, fw: usize) -> Vec<(usize, f32)> {
-    let fwh = (fw/2) as isize;
+/// Data at either end, which doesnt have sufficient elements on either side for
+/// sliding window based averaging, is left, as is.
+///
+pub fn lowpass_average_f_of_xf<M: Copy>(vdata: &Vec<(M, f32)>, fw: usize) -> Vec<(M, f32)> {
+    let fwh = fw/2;
+    let ifwh = fwh as isize;
     let weight = 1.0/(fw as f32);
     let mut vnew = Vec::new();
     let mut vbtw = Vec::new();
@@ -37,17 +41,17 @@ fn lowpass_average_f_of_uf_(vdata: &Vec<(usize, f32)>, fw: usize) -> Vec<(usize,
         vbtw.push(vdata[i].1*weight);
     }
     for i in 0..fwh {
-        vnew.push(vdata[i as usize]);
+        vnew.push(vdata[i]);
     }
-    for i in fw..vbtw.len()-fw {
+    for i in fwh..vbtw.len()-fwh {
         let mut d = 0.0;
-        for j in -fwh..(fwh+1) {
+        for j in -ifwh..(ifwh+1) {
             let fi = (i as isize + j) as usize;
             d += vbtw[fi];
         }
         vnew.push((vdata[i].0, d));
     }
-    for i in (1..=fwh as usize).rev() {
+    for i in (1..=fwh).rev() {
         vnew.push(vdata[vdata.len()-i]);
     }
     vnew
@@ -55,17 +59,21 @@ fn lowpass_average_f_of_uf_(vdata: &Vec<(usize, f32)>, fw: usize) -> Vec<(usize,
 
 /// Sliding window cross-correlation of given data with given weights
 ///
-/// The data is expected to be a vector of tuple of usize,f32,
-/// inturn the f32 part will be cross-correlated
+/// The data is expected to be a vector of tuple (AnyTypeSupportingCopy,f32),
+/// inturn the f32 part will be cross-correlated with passed weights.
 ///
-fn crosscorr_weighted_f_of_uf(vdata: &Vec<(usize, f32)>, vweights: &Vec<f32>) -> Vec<(usize, f32)> {
+/// Datas at either end, which dont have enough elements on their either side to
+/// apply given weights over them to find the cross-correlated values, is replaced
+/// with value on either end, which can be computed fully wrt given weights vector.
+///
+pub fn crosscorr_weighted_f_of_xf<M: Copy>(vdata: &Vec<(M, f32)>, vweights: &Vec<f32>) -> Vec<(M, f32)> {
     let fw = vweights.len();
     let fwh = (fw/2) as usize;
     let ifwh = fwh as isize;
     let mut vnew = Vec::new();
     // Initial placeholders
     for i in 0..fwh {
-        vnew.push(vdata[i as usize]);
+        vnew.push(vdata[i]);
     }
     // CrossCorrelated data
     for i in fwh..(vdata.len()-fwh) {
@@ -82,7 +90,7 @@ fn crosscorr_weighted_f_of_uf(vdata: &Vec<(usize, f32)>, vweights: &Vec<f32>) ->
         vnew[i] = vnew[fwh];
     }
     // Extend data at end.
-    for _i in (1..=fwh as usize).rev() {
+    for _i in (1..=fwh).rev() {
         //let fi = vdata.len() - i;
         let fi = vdata.len() - fwh - 1;
         //eprintln!("DBUG:SdlX:CrossCorrWeighted:{:?}:{:?}:{:?}:{}",vdata, vweights, vnew, fi);

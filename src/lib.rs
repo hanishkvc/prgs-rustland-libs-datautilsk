@@ -37,4 +37,9 @@ mod tests {
         testlib::test_vecavg();
     }
 
+    #[test]
+    fn test_lowpassavg() {
+        testlib::test_lowpassavg();
+    }
+
 }
