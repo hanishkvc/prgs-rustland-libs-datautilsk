@@ -48,8 +48,8 @@ pub fn test_vecavg() {
 
 pub fn test_lowpassavg() {
     let vtd1 = vec![(0,0.0),(0,1.0),(0,2.0), (1,3.0),(1,4.0),(1,5.0), (2,6.0),(2,7.0),(2,8.0),(2,9.0)];
-    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 0, vtd1, sigpro::lowpass_average_f_of_xf(&vtd1, 0));
-    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 1, vtd1, sigpro::lowpass_average_f_of_xf(&vtd1, 1));
-    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 2, vtd1, sigpro::lowpass_average_f_of_xf(&vtd1, 2));
-    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 3, vtd1, sigpro::lowpass_average_f_of_xf(&vtd1, 3));
+    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 0, vtd1, sigpro::sw_average_f_of_xf(&vtd1, 0));
+    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 1, vtd1, sigpro::sw_average_f_of_xf(&vtd1, 1));
+    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 2, vtd1, sigpro::sw_average_f_of_xf(&vtd1, 2));
+    eprintln!("TEST:LowPassAvg:{}:{:?}:{:?}", 3, vtd1, sigpro::sw_average_f_of_xf(&vtd1, 3));
 }

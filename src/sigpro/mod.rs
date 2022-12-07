@@ -31,7 +31,10 @@ pub fn vec_avg<T: AddAssign + From<u16> + Div<Output = T> + Copy>(vdata: &Vec<T>
 /// Data at either end, which doesnt have sufficient elements on either side for
 /// sliding window based averaging, is left, as is.
 ///
-pub fn lowpass_average_f_of_xf<M: Copy>(vdata: &Vec<(M, f32)>, fw: usize) -> Vec<(M, f32)> {
+/// NOTE: A even window size will favor forward side bit more than backword side.
+/// NOTE: This acts like a low pass filter to an extent.
+///
+pub fn sw_average_f_of_xf<M: Copy>(vdata: &Vec<(M, f32)>, fw: usize) -> Vec<(M, f32)> {
     let fwh = fw/2;
     let ifwh = fwh as isize;
     let weight = 1.0/(fw as f32);
@@ -43,11 +46,20 @@ pub fn lowpass_average_f_of_xf<M: Copy>(vdata: &Vec<(M, f32)>, fw: usize) -> Vec
     for i in 0..fwh {
         vnew.push(vdata[i]);
     }
+    let wsi;
+    let wei;
+    if (fw > 0) && (fw % 2 == 0) {
+        wsi = -ifwh+1;
+        wei = ifwh;
+    } else {
+        wsi = -ifwh;
+        wei = ifwh;
+    }
     for i in fwh..vbtw.len()-fwh {
         let mut d = 0.0;
-        for j in -ifwh..(ifwh+1) {
-            let fi = (i as isize + j) as usize;
-            d += vbtw[fi];
+        for j in wsi..=wei {
+            let di = (i as isize + j) as usize;
+            d += vbtw[di];
         }
         vnew.push((vdata[i].0, d));
     }
